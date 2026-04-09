@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string
   readonly VITE_APP_TITLE: string
+  /** When true, skip Keycloak and use in-memory API mocks (see npm run dev:standalone). */
+  readonly VITE_STANDALONE_MOCK: string
 }
 
 interface ImportMeta {

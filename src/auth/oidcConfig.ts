@@ -1,6 +1,59 @@
-import { UserManager, WebStorageStateStore, Log } from 'oidc-client-ts'
+import { UserManager, WebStorageStateStore, Log, type User } from 'oidc-client-ts'
 import { getConfig, type AppConfig } from '../api/config'
 import { logger } from '@/utils/logger'
+
+function isStandaloneMock(): boolean {
+  return import.meta.env.VITE_STANDALONE_MOCK === 'true'
+}
+
+function createStandaloneMockUser(): User {
+  return {
+    access_token: 'standalone-mock-access-token',
+    token_type: 'Bearer',
+    profile: {
+      sub: 'standalone-mock-user',
+      preferred_username: 'demo',
+      name: 'Demo User',
+      email: 'demo@example.com',
+      groups: ['/admins'],
+    },
+    expires_at: Math.floor(Date.now() / 1000) + 86400,
+    expired: false,
+    scopes: ['openid', 'profile'],
+    id_token: 'standalone-mock-id-token',
+    session_state: null,
+    scope: 'openid profile',
+  } as unknown as User
+}
+
+function noop(): void {
+  /* standalone mock: OIDC events not used */
+}
+
+/** Minimal UserManager stand-in so private API modules receive a Bearer token without Keycloak. */
+const standaloneMockUserManager = {
+  getUser: async () => createStandaloneMockUser(),
+  signinRedirect: async () => {
+    window.location.assign('/overview')
+  },
+  signoutRedirect: async () => {
+    localStorage.removeItem('osac_ui_token')
+    window.location.assign('/login')
+  },
+  signinRedirectCallback: async () => createStandaloneMockUser(),
+  events: {
+    addUserLoaded: noop,
+    removeUserLoaded: noop,
+    addUserUnloaded: noop,
+    removeUserUnloaded: noop,
+    addSilentRenewError: noop,
+    removeSilentRenewError: noop,
+    addAccessTokenExpiring: noop,
+    removeAccessTokenExpiring: noop,
+    addAccessTokenExpired: noop,
+    removeAccessTokenExpired: noop,
+  },
+} as unknown as UserManager
 
 // Enable OIDC client logging in development
 if (import.meta.env.DEV) {
@@ -81,6 +134,10 @@ export function getOidcConfig() {
 let userManagerInstance: UserManager | null = null
 
 export function getUserManager() {
+  if (isStandaloneMock()) {
+    return standaloneMockUserManager
+  }
+
   if (!userManagerInstance) {
     userManagerInstance = new UserManager(getOidcConfig())
 
