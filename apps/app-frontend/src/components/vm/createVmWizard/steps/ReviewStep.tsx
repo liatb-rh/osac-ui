@@ -11,7 +11,7 @@ import {
   Title,
 } from '@patternfly/react-core'
 import type { ComputeInstance } from '@osac/api-contracts'
-import { useMemo, useState, type ReactNode } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useComputeInstanceTemplates } from '../../../../api/hooks'
 import {
   parseTemplateAdditionalDisksGibInput,
@@ -45,7 +45,7 @@ export function ReviewStep({
   const tpl = useMemo(
     () =>
       state.selectedTemplateId
-        ? templates.find((t) => t.id === state.selectedTemplateId) ?? null
+        ? (templates.find((t) => t.id === state.selectedTemplateId) ?? null)
         : null,
     [templates, state.selectedTemplateId],
   )
@@ -105,9 +105,11 @@ export function ReviewStep({
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm>Run strategy</DescriptionListTerm>
-            <DescriptionListDescription>{state.templateRunStrategy || '—'}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {state.templateRunStrategy || '—'}
+            </DescriptionListDescription>
           </DescriptionListGroup>
-        </DescriptionList>
+        </DescriptionList>,
       )}
       {renderSection(
         'template-storage',
@@ -127,7 +129,7 @@ export function ReviewStep({
                 : 'None'}
             </DescriptionListDescription>
           </DescriptionListGroup>
-        </DescriptionList>
+        </DescriptionList>,
       )}
       {renderSection(
         'template-network',
@@ -135,7 +137,9 @@ export function ReviewStep({
         <DescriptionList isCompact>
           <DescriptionListGroup>
             <DescriptionListTerm>Subnet</DescriptionListTerm>
-            <DescriptionListDescription>{state.templateSubnetId.trim() || '—'}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {state.templateSubnetId.trim() || '—'}
+            </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm>Security groups</DescriptionListTerm>
@@ -143,7 +147,7 @@ export function ReviewStep({
               {securityGroups.length ? securityGroups.join(', ') : '—'}
             </DescriptionListDescription>
           </DescriptionListGroup>
-        </DescriptionList>
+        </DescriptionList>,
       )}
       {renderSection(
         'template-ssh',
@@ -155,7 +159,7 @@ export function ReviewStep({
               {state.templateSshPublicKey.trim() ? 'Provided' : 'None'}
             </DescriptionListDescription>
           </DescriptionListGroup>
-        </DescriptionList>
+        </DescriptionList>,
       )}
       {renderSection(
         'template-initial-run',
@@ -175,7 +179,7 @@ export function ReviewStep({
               {state.templateUserData.trim() ? 'Provided' : 'None'}
             </DescriptionListDescription>
           </DescriptionListGroup>
-        </DescriptionList>
+        </DescriptionList>,
       )}
     </>
   )

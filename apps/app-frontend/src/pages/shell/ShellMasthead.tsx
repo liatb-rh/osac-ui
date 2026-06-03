@@ -1,3 +1,8 @@
+import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon'
+import { BellIcon } from '@patternfly/react-icons/dist/esm/icons/bell-icon'
+import { CogIcon } from '@patternfly/react-icons/dist/esm/icons/cog-icon'
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon'
+import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
 import {
   Button,
   Content,
@@ -20,11 +25,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core'
-import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon'
-import { BellIcon } from '@patternfly/react-icons/dist/esm/icons/bell-icon'
-import { CogIcon } from '@patternfly/react-icons/dist/esm/icons/cog-icon'
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon'
-import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
+import type { MouseEvent } from 'react'
 import type { DemoShellRole, DemoTenantId, TenantSovereignty } from '@osac/api-contracts'
 import { demoOperatingModeLabel } from '@osac/api-contracts'
 
@@ -191,7 +192,7 @@ export function ShellMasthead({
                 )}
               >
                 <DropdownList>
-                  <DropdownItem value="profile" onClick={(e) => e.preventDefault()}>
+                  <DropdownItem value="profile" onClick={(e: MouseEvent) => e.preventDefault()}>
                     Account settings
                   </DropdownItem>
                   <DropdownItem value="logout" onClick={onLogout}>

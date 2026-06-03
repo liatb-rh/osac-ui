@@ -20,8 +20,6 @@ export function assertFulfillmentDevReady(
     throw new Error(`FULFILLMENT_API_URL is not a valid URL: ${base}`)
   }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error(
-      `FULFILLMENT_API_URL must use http: or https: (got ${parsed.protocol}).`,
-    )
+    throw new Error(`FULFILLMENT_API_URL must use http: or https: (got ${parsed.protocol}).`)
   }
 }

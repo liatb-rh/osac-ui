@@ -9,10 +9,10 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'node:crypto'
 import {
-  VM_TEMPLATES,
-  normalizeRunStrategyWire,
   type ComputeInstance,
   type OsType,
+  VM_TEMPLATES,
+  normalizeRunStrategyWire,
 } from '@osac/api-contracts'
 import { vmStore } from '../mock-vm-store.js'
 
@@ -170,7 +170,10 @@ interface WizardSession {
 
 const sessions = new Map<string, WizardSession>()
 
-function buildStepNav(ordered: string[], activeIndex: number): { id: string; label: string; status: string }[] {
+function buildStepNav(
+  ordered: string[],
+  activeIndex: number,
+): { id: string; label: string; status: string }[] {
   return ordered.map((id, i) => ({
     id,
     label: STEP_LABELS[id] ?? id,
@@ -192,7 +195,11 @@ function sessionPayload(session: WizardSession, sessionId: string) {
   }
 }
 
-function validateStep(stepId: string, draft: WizardDraft, vms: ComputeInstance[]): Record<string, string> | null {
+function validateStep(
+  stepId: string,
+  draft: WizardDraft,
+  vms: ComputeInstance[],
+): Record<string, string> | null {
   const e: Record<string, string> = {}
   switch (stepId) {
     case 'deployment':
@@ -234,9 +241,10 @@ function validateStep(stepId: string, draft: WizardDraft, vms: ComputeInstance[]
         if (parseTemplateMemoryGibInput(draft.templateMemoryGib ?? '') === null) {
           e.templateMemoryGib = `Memory must be an integer ${TEMPLATE_MEMORY_GIB_MIN}–${TEMPLATE_MEMORY_GIB_MAX} GiB`
         }
-        if (parseTemplateAdditionalDisksGibInput(draft.templateAdditionalDisksGibRaw ?? '') === null) {
-          e.templateAdditionalDisksGibRaw =
-            `Additional disks must be empty or comma-separated integers ${TEMPLATE_BOOT_DISK_MIN_GIB}–${TEMPLATE_BOOT_DISK_MAX_GIB} GiB each`
+        if (
+          parseTemplateAdditionalDisksGibInput(draft.templateAdditionalDisksGibRaw ?? '') === null
+        ) {
+          e.templateAdditionalDisksGibRaw = `Additional disks must be empty or comma-separated integers ${TEMPLATE_BOOT_DISK_MIN_GIB}–${TEMPLATE_BOOT_DISK_MAX_GIB} GiB each`
         }
       }
       break
@@ -248,7 +256,11 @@ function validateStep(stepId: string, draft: WizardDraft, vms: ComputeInstance[]
   return Object.keys(e).length ? e : null
 }
 
-function validateAllStepsBeforeReview(draft: WizardDraft, skipDeployment: boolean, vms: ComputeInstance[]) {
+function validateAllStepsBeforeReview(
+  draft: WizardDraft,
+  skipDeployment: boolean,
+  vms: ComputeInstance[],
+) {
   const ordered = orderedStepIds(draft.mode, skipDeployment)
   for (const sid of ordered.slice(0, -1)) {
     const fe = validateStep(sid, draft, vms)
@@ -287,7 +299,8 @@ function buildVmFromDraft(draft: WizardDraft, vms: ComputeInstance[]): ComputeIn
       tpl?.defaultBootDiskSizeGib ??
       40
     const cores = parseTemplateCoresInput(draft.templateCores ?? '') ?? tpl?.defaultCores ?? 2
-    const memoryGib = parseTemplateMemoryGibInput(draft.templateMemoryGib ?? '') ?? tpl?.defaultMemoryGib ?? 8
+    const memoryGib =
+      parseTemplateMemoryGibInput(draft.templateMemoryGib ?? '') ?? tpl?.defaultMemoryGib ?? 8
     const runStrategy = normalizeRunStrategyWire(draft.templateRunStrategy?.trim()) ?? 'Always'
     const templateId = draft.selectedTemplateId ?? tpl?.id ?? ''
 
@@ -311,7 +324,9 @@ function buildVmFromDraft(draft: WizardDraft, vms: ComputeInstance[]): ComputeIn
     const securityGroups = parseTemplateSecurityGroupsInput(draft.templateSecurityGroupsRaw ?? '')
     if (securityGroups.length) spec.securityGroups = securityGroups
 
-    const extraDisks = parseTemplateAdditionalDisksGibInput(draft.templateAdditionalDisksGibRaw ?? '')
+    const extraDisks = parseTemplateAdditionalDisksGibInput(
+      draft.templateAdditionalDisksGibRaw ?? '',
+    )
     if (extraDisks?.length) {
       spec.additionalDisks = extraDisks.map((size_gib) => ({ size_gib }))
     }
@@ -391,8 +406,8 @@ export async function registerCreateVmWizardRoutes(app: FastifyInstance) {
       return reply.status(503).send({
         error: 'Clone wizard path is disabled until fulfillment supports it.',
       })
-    }
-    /*
+    } else if (body.deploymentMethod) {
+      /*
     RESTORE clone_drawer session bootstrap:
     else if (entry === 'clone_drawer' && body.presetCloneSourceVmId) {
       const src = Array.from(vmStore.values()).find((v) => v.id === body.presetCloneSourceVmId)
@@ -406,18 +421,16 @@ export async function registerCreateVmWizardRoutes(app: FastifyInstance) {
       activeIndex = 0
     }
     */
-    else if (body.deploymentMethod) {
       return reply.status(503).send({
         error: 'Non-template deployment methods are disabled until fulfillment supports them.',
       })
-    }
-    /*
+    } else {
+      /*
     RESTORE deploymentMethod branch:
     else if (body.deploymentMethod) {
       draft = { ...INITIAL_DRAFT, mode: body.deploymentMethod }
     }
     */
-    else {
       draft = {
         ...INITIAL_DRAFT,
         mode: 'template',

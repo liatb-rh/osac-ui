@@ -21,7 +21,7 @@ import { DEMO_TENANT_DISPLAY_USER } from '@osac/api-contracts'
 import type { CreateVmWizardHandle, DeploymentMode } from '../../components/vm/CreateVmWizard'
 import { CreateVmWizard } from '../../components/vm/CreateVmWizard'
 import { PageHeader } from '../../components/layout'
-import { DashboardUtilizationSection, DashboardQuotaSection } from '../../components/dashboard'
+import { DashboardQuotaSection, DashboardUtilizationSection } from '../../components/dashboard'
 import { useSession } from '../../contexts/SessionContext'
 import { useComputeInstances, useProvisionVm } from '../../api/hooks'
 

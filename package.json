@@ -2,11 +2,13 @@
   "name": "osac",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "dev:backend": "OSAC_API_MODE=mock pnpm --filter @osac/app-backend run dev",
     "dev:frontend": "pnpm --filter @osac/app-frontend run dev",
     "build": "pnpm -r run build",
-    "lint": "pnpm -r run lint",
+    "lint": "eslint \"{apps,libs}/*/src/**\" && prettier --check \"{apps,libs}/*/src/**/*.{js,jsx,ts,tsx}\"",
+    "format": "prettier --write \"{apps,libs}/*/src/**/*.{js,jsx,ts,tsx}\"",
     "check:pf-primitives": "node scripts/check-pf-primitives.mjs",
     "test": "pnpm -r run test",
     "storybook": "pnpm --filter @osac/ui-components run storybook",
@@ -15,8 +17,16 @@
     "graph:statecharts": "node scripts/statechart-graph.mjs --all --format both --out-dir docs/specs/graphs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^17.4.0",
+    "prettier": "^3.0.0",
+    "typescript-eslint": "^8.57.0",
     "yaml": "^2.7.0"
   },
+  "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"

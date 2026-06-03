@@ -35,7 +35,7 @@ function readStr(obj: Record<string, unknown>, a: string, b?: string): string | 
 function readStrArr(obj: Record<string, unknown>, a: string, b?: string): string[] | undefined {
   for (const k of b ? [a, b] : [a]) {
     const v = obj[k]
-    if (Array.isArray(v) && v.every((x) => typeof x === 'string')) return v as string[]
+    if (Array.isArray(v) && v.every((x) => typeof x === 'string')) return v
   }
   return undefined
 }
@@ -126,9 +126,7 @@ export function deriveGuestOsFromSpec(spec: ComputeInstanceSpec): OsType | undef
   const refRaw =
     img && typeof img === 'object'
       ? String(
-          (img as Record<string, unknown>).source_ref ??
-            (img as Record<string, unknown>).sourceRef ??
-            '',
+          (img.source_ref as string | undefined) ?? (img.sourceRef as string | undefined) ?? '',
         ).toLowerCase()
       : ''
 
@@ -162,7 +160,7 @@ export function totalStorageGiBFromSpec(spec: ComputeInstanceSpec): number | und
   let any = false
   const boot = spec.bootDisk
   if (boot && typeof boot === 'object') {
-    const n = readNum(boot as Record<string, unknown>, 'size_gib', 'sizeGib')
+    const n = readNum(boot, 'size_gib', 'sizeGib')
     if (n != null) {
       sum += n
       any = true
@@ -170,7 +168,7 @@ export function totalStorageGiBFromSpec(spec: ComputeInstanceSpec): number | und
   }
   for (const d of spec.additionalDisks ?? []) {
     if (d && typeof d === 'object') {
-      const n = readNum(d as Record<string, unknown>, 'size_gib', 'sizeGib')
+      const n = readNum(d, 'size_gib', 'sizeGib')
       if (n != null) {
         sum += n
         any = true
@@ -194,8 +192,7 @@ export function formatVmStorageGiBLine(spec: ComputeInstanceSpec): string {
 export function shortSubnetDisplay(subnet: string | undefined): string {
   if (!subnet?.trim()) return '—'
   const s = subnet.trim()
-  const uuidLike =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
   if (uuidLike) return `${s.slice(0, 8)}…`
   return s
 }
@@ -224,11 +221,11 @@ function normalizeSpec(raw: Record<string, unknown>): ComputeInstanceSpec {
 
   return {
     template: readStr(raw, 'template'),
-    templateParameters: templateParameters as Record<string, unknown> | undefined,
+    templateParameters: templateParameters,
     cores: readNum(raw, 'cores'),
     memoryGib: readNum(raw, 'memory_gib', 'memoryGib'),
     image: image as ComputeInstanceSpec['image'],
-    bootDisk: bootDisk as ComputeInstanceSpec['bootDisk'],
+    bootDisk: bootDisk,
     additionalDisks: additionalDisks as ComputeInstanceSpec['additionalDisks'],
     runStrategy: normalizeRunStrategyWire(readStr(raw, 'run_strategy', 'runStrategy')),
     sshKey: readStr(raw, 'ssh_key', 'sshKey'),
@@ -387,14 +384,18 @@ function serializeMetadataForCreate(md: Metadata | undefined): Record<string, un
   return Object.keys(o).length ? o : undefined
 }
 
-function serializeDiskWire(d: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function serializeDiskWire(
+  d: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!d || typeof d !== 'object') return undefined
   const n = readNum(d, 'size_gib', 'sizeGib')
   if (n == null) return undefined
   return { size_gib: n }
 }
 
-function serializeImageWire(img: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function serializeImageWire(
+  img: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!img || typeof img !== 'object') return undefined
   const o: Record<string, unknown> = {}
   const st = readStr(img, 'source_type', 'sourceType')
@@ -470,16 +471,19 @@ export function serializeTemplateParametersWire(
   return Object.keys(out).length ? out : undefined
 }
 
-function appendComputeInstanceSpecOptionalWire(spec: ComputeInstanceSpec, o: Record<string, unknown>): void {
+function appendComputeInstanceSpecOptionalWire(
+  spec: ComputeInstanceSpec,
+  o: Record<string, unknown>,
+): void {
   if (spec.cores != null) o.cores = spec.cores
   if (spec.memoryGib != null) o.memory_gib = spec.memoryGib
-  const img = serializeImageWire(spec.image as Record<string, unknown> | undefined)
+  const img = serializeImageWire(spec.image)
   if (img) o.image = img
-  const boot = serializeDiskWire(spec.bootDisk as Record<string, unknown> | undefined)
+  const boot = serializeDiskWire(spec.bootDisk)
   if (boot) o.boot_disk = boot
   if (spec.additionalDisks?.length) {
     const disks = spec.additionalDisks
-      .map((d) => serializeDiskWire(d as Record<string, unknown>))
+      .map((d) => serializeDiskWire(d))
       .filter((x): x is Record<string, unknown> => Boolean(x))
     if (disks.length) o.additional_disks = disks
   }
@@ -500,7 +504,7 @@ function serializeSpecForCreate(
 
   const o: Record<string, unknown> = {}
   if (spec.template) o.template = spec.template
-  const tpWire = serializeTemplateParametersWire(spec.templateParameters as Record<string, unknown> | undefined)
+  const tpWire = serializeTemplateParametersWire(spec.templateParameters)
   if (tpWire) o.template_parameters = tpWire
   appendComputeInstanceSpecOptionalWire(spec, o)
 
@@ -527,7 +531,10 @@ export function serializeComputeInstanceForCreate(
   if (vm.id) wire.id = vm.id
   const md = serializeMetadataForCreate(vm.metadata)
   if (md) wire.metadata = md
-  const sp = serializeSpecForCreate(vm.spec, opts?.specTemplateOnly ? { templateOnly: true } : undefined)
+  const sp = serializeSpecForCreate(
+    vm.spec,
+    opts?.specTemplateOnly ? { templateOnly: true } : undefined,
+  )
   if (sp) wire.spec = sp
   if (vm.status?.state) {
     const stateWire = vmPowerStateToProtoEnum(vm.status.state)

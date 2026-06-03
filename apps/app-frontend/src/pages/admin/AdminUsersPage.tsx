@@ -4,7 +4,7 @@
  */
 import { Button, Label, PageSection } from '@patternfly/react-core'
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
-import { NORTHSTAR_USERS, EVERGREEN_USERS } from '@osac/api-contracts'
+import { EVERGREEN_USERS, NORTHSTAR_USERS } from '@osac/api-contracts'
 import { useSession } from '../../contexts/SessionContext'
 import { PageHeader } from '../../components/layout'
 

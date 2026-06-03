@@ -8,8 +8,8 @@ import {
   Stack,
   StackItem,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
   TextArea,
   TextInput,
   Title,
@@ -17,17 +17,17 @@ import {
 import { useLayoutEffect, useMemo, useState } from 'react'
 import { useComputeInstanceTemplates } from '../../../../api/hooks'
 import {
-  defaultTemplateBootDiskGib,
-  parseTemplateAdditionalDisksGibInput,
-  parseTemplateBootDiskGibInput,
-  parseTemplateCoresInput,
-  parseTemplateMemoryGibInput,
   TEMPLATE_BOOT_DISK_MAX_GIB,
   TEMPLATE_BOOT_DISK_MIN_GIB,
   TEMPLATE_CORES_MAX,
   TEMPLATE_CORES_MIN,
   TEMPLATE_MEMORY_GIB_MAX,
   TEMPLATE_MEMORY_GIB_MIN,
+  defaultTemplateBootDiskGib,
+  parseTemplateAdditionalDisksGibInput,
+  parseTemplateBootDiskGibInput,
+  parseTemplateCoresInput,
+  parseTemplateMemoryGibInput,
 } from '../constants'
 import type { UpdateFn, WizardState } from '../types'
 
@@ -89,12 +89,18 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
     }
 
     const dc = String(selectedTemplate.defaultCores ?? 2)
-    if (state.templateCores.trim() === '' || parseTemplateCoresInput(state.templateCores) === null) {
+    if (
+      state.templateCores.trim() === '' ||
+      parseTemplateCoresInput(state.templateCores) === null
+    ) {
       update('templateCores', dc)
     }
 
     const dm = String(selectedTemplate.defaultMemoryGib ?? 8)
-    if (state.templateMemoryGib.trim() === '' || parseTemplateMemoryGibInput(state.templateMemoryGib) === null) {
+    if (
+      state.templateMemoryGib.trim() === '' ||
+      parseTemplateMemoryGibInput(state.templateMemoryGib) === null
+    ) {
       update('templateMemoryGib', dm)
     }
   }, [
@@ -103,10 +109,7 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
     state.templateBootDiskSizeGib,
     state.templateCores,
     state.templateMemoryGib,
-    selectedTemplate?.id,
-    selectedTemplate?.defaultBootDiskSizeGib,
-    selectedTemplate?.defaultCores,
-    selectedTemplate?.defaultMemoryGib,
+    selectedTemplate,
     update,
   ])
 
@@ -173,7 +176,8 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                       aria-describedby="template-memory-gib-helper"
                     />
                     <FormHelperText id="template-memory-gib-helper">
-                      Whole number between {TEMPLATE_MEMORY_GIB_MIN} and {TEMPLATE_MEMORY_GIB_MAX} GiB.
+                      Whole number between {TEMPLATE_MEMORY_GIB_MIN} and {TEMPLATE_MEMORY_GIB_MAX}{' '}
+                      GiB.
                     </FormHelperText>
                   </FormGroup>
                   <FormGroup label="Run strategy" fieldId="template-run-strategy">
@@ -193,7 +197,11 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
             <Tab key="storage" eventKey="storage" title={<TabTitleText>Storage</TabTitleText>}>
               <Stack hasGutter style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
                 <Form>
-                  <FormGroup label="Boot disk size (GiB)" fieldId="template-boot-disk-gib" isRequired>
+                  <FormGroup
+                    label="Boot disk size (GiB)"
+                    fieldId="template-boot-disk-gib"
+                    isRequired
+                  >
                     <TextInput
                       id="template-boot-disk-gib"
                       type="text"
@@ -204,7 +212,8 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                       aria-describedby="template-boot-disk-gib-helper"
                     />
                     <FormHelperText id="template-boot-disk-gib-helper">
-                      Whole number between {TEMPLATE_BOOT_DISK_MIN_GIB} and {TEMPLATE_BOOT_DISK_MAX_GIB} GiB
+                      Whole number between {TEMPLATE_BOOT_DISK_MIN_GIB} and{' '}
+                      {TEMPLATE_BOOT_DISK_MAX_GIB} GiB
                       {selectedTemplate
                         ? ` (template suggests ${defaultTemplateBootDiskGib(selectedTemplate)} GiB)`
                         : ''}
@@ -216,8 +225,8 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                     fieldId="template-additional-disks"
                     labelHelp={
                       <Content component="p">
-                        Comma-separated sizes, for example <code>50, 100</code>. Leave empty if you do not need extra
-                        data disks.
+                        Comma-separated sizes, for example <code>50, 100</code>. Leave empty if you
+                        do not need extra data disks.
                       </Content>
                     }
                   >
@@ -247,9 +256,7 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                   <FormGroup
                     label="Security groups"
                     fieldId="template-security-groups"
-                    labelHelp={
-                      <Content component="p">Comma-separated identifiers.</Content>
-                    }
+                    labelHelp={<Content component="p">Comma-separated identifiers.</Content>}
                   >
                     <TextInput
                       id="template-security-groups"
@@ -278,7 +285,11 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                 </Form>
               </Stack>
             </Tab>
-            <Tab key="advanced" eventKey="advanced" title={<TabTitleText>Image &amp; user data</TabTitleText>}>
+            <Tab
+              key="advanced"
+              eventKey="advanced"
+              title={<TabTitleText>Image &amp; user data</TabTitleText>}
+            >
               <Stack hasGutter style={{ paddingTop: 'var(--pf-t--global--spacer--md)' }}>
                 <Form>
                   <FormGroup label="Image source type" fieldId="template-image-source-type">

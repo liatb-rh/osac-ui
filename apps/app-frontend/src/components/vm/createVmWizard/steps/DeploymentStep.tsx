@@ -1,3 +1,6 @@
+import { BlueprintIcon } from '@patternfly/react-icons/dist/esm/icons/blueprint-icon'
+import { CloneIcon } from '@patternfly/react-icons/dist/esm/icons/clone-icon'
+import { DesktopIcon } from '@patternfly/react-icons/dist/esm/icons/desktop-icon'
 /**
  * WIZARD_TEMPLATE_ONLY: this step is not mounted (wizard is template-only). Kept for RESTORE when
  * fulfillment supports "new" and "clone" creation methods — wire back in CreateVmWizard `renderStepBody`.
@@ -15,9 +18,6 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core'
-import { BlueprintIcon } from '@patternfly/react-icons/dist/esm/icons/blueprint-icon'
-import { CloneIcon } from '@patternfly/react-icons/dist/esm/icons/clone-icon'
-import { DesktopIcon } from '@patternfly/react-icons/dist/esm/icons/desktop-icon'
 import type { DeploymentMode, UpdateFn, WizardState } from '../types'
 
 const OPTIONS: {
@@ -62,7 +62,11 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
         </Content>
       </StackItem>
       <StackItem>
-        <div className="osac-deploy-options" role="radiogroup" aria-labelledby="deployment-step-heading">
+        <div
+          className="osac-deploy-options"
+          role="radiogroup"
+          aria-labelledby="deployment-step-heading"
+        >
           {OPTIONS.map((opt) => {
             const selected = state.mode === opt.value
             const Icon = opt.Icon
@@ -114,37 +118,43 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
                       </FlexItem>
                     </Flex>
                   </CardHeader>
-                    <CardBody>
-                      <Stack hasGutter style={{ flex: 1 }}>
-                        <StackItem>
-                          <Content component="h3" style={{ fontWeight: 600, margin: 0, fontSize: '1rem' }}>
-                            {opt.title}
-                          </Content>
-                        </StackItem>
-                        <StackItem>
-                          <div className="osac-deploy-options__badge-slot">
-                            {opt.value === 'template' ? (
-                              <Label color="blue" isCompact>
-                                recommended
-                              </Label>
-                            ) : null}
-                          </div>
-                        </StackItem>
-                        <StackItem>
-                          <Content
-                            component="p"
-                            className="pf-v6-u-color-text-subtle"
-                            style={{ margin: 0, fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
-                          >
-                            {opt.description}
-                          </Content>
-                        </StackItem>
-                      </Stack>
-                    </CardBody>
-                  </Card>
-                </div>
-              )
-            })}
+                  <CardBody>
+                    <Stack hasGutter style={{ flex: 1 }}>
+                      <StackItem>
+                        <Content
+                          component="h3"
+                          style={{ fontWeight: 600, margin: 0, fontSize: '1rem' }}
+                        >
+                          {opt.title}
+                        </Content>
+                      </StackItem>
+                      <StackItem>
+                        <div className="osac-deploy-options__badge-slot">
+                          {opt.value === 'template' ? (
+                            <Label color="blue" isCompact>
+                              recommended
+                            </Label>
+                          ) : null}
+                        </div>
+                      </StackItem>
+                      <StackItem>
+                        <Content
+                          component="p"
+                          className="pf-v6-u-color-text-subtle"
+                          style={{
+                            margin: 0,
+                            fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                          }}
+                        >
+                          {opt.description}
+                        </Content>
+                      </StackItem>
+                    </Stack>
+                  </CardBody>
+                </Card>
+              </div>
+            )
+          })}
         </div>
       </StackItem>
     </Stack>

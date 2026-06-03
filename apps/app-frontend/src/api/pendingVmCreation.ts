@@ -68,10 +68,7 @@ export function createPostCreateWatch(vmId: string, startedAtMs: number): PostCr
   }
 }
 
-function postCreateInProgressDisplay(
-  watch: PostCreateWatch,
-  nowMs: number,
-): VmPowerState {
+function postCreateInProgressDisplay(watch: PostCreateWatch, nowMs: number): VmPowerState {
   if (nowMs - watch.startedAtMs >= STILL_PROVISIONING_AFTER_MS) {
     return 'still_provisioning'
   }

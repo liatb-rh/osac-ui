@@ -7,7 +7,7 @@ import type { ComputeInstance } from '@osac/api-contracts'
 
 export function usePendingVmDeletes(listedVms: ComputeInstance[]) {
   const pendingRef = useRef<Set<string>>(new Set())
-  const [pendingIds, setPendingIds] = useState<string[]>([])
+  const [_pendingIds, setPendingIds] = useState<string[]>([])
 
   const sync = useCallback(() => {
     setPendingIds([...pendingRef.current])
@@ -40,10 +40,7 @@ export function usePendingVmDeletes(listedVms: ComputeInstance[]) {
     if (pendingRef.current.size !== before) sync()
   }, [listedVms, sync])
 
-  const isPendingDelete = useCallback(
-    (vmId: string) => pendingRef.current.has(vmId),
-    [pendingIds],
-  )
+  const isPendingDelete = useCallback((vmId: string) => pendingRef.current.has(vmId), [])
 
   return {
     markPendingDelete,

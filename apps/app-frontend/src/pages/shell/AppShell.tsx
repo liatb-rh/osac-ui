@@ -4,7 +4,7 @@
  *
  * Authenticated application shell — masthead, sidebar nav (role-based), breadcrumb.
  */
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { type ReactNode, useCallback, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Page, PageSection } from '@patternfly/react-core'
 
@@ -19,17 +19,17 @@ import { useSession } from '../../contexts/SessionContext'
 
 // Pages
 import {
-  DashboardPage,
-  VmListPage,
   CatalogPage,
+  DashboardPage,
   RecentActivitiesPage,
   TenantSparsePlaceholderPage,
+  VmListPage,
 } from '../tenant'
-import { AdminDashboardPage, AdminUsersPage, AdminQuotaPage, AdminNetworksPage } from '../admin'
+import { AdminDashboardPage, AdminNetworksPage, AdminQuotaPage, AdminUsersPage } from '../admin'
 import {
   ProviderAdminDashboardPage,
-  ProviderTenantOrgsPage,
   ProviderInfraTopologyPage,
+  ProviderTenantOrgsPage,
 } from '../provider'
 import { ShellBreadcrumb } from './ShellBreadcrumb'
 import { ShellMasthead } from './ShellMasthead'

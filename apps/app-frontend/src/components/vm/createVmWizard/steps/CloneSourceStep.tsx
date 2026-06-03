@@ -1,3 +1,5 @@
+import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
+import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 /**
  * flow: create-virtual-machine-wizard
  * step: cvm_wizard_source_clone
@@ -8,13 +10,13 @@ import {
   CardBody,
   CardHeader,
   Content,
+  Divider,
   Flex,
   FlexItem,
   Form,
   FormGroup,
   FormSelect,
   FormSelectOption,
-  Divider,
   Radio,
   SearchInput,
   Stack,
@@ -22,8 +24,6 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core'
-import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
-import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import type { ComputeInstance } from '@osac/api-contracts'
 import linuxMascotUrl from '../../../../assets/guest-os-tux-linux.png'
 import { VmStatusLabel } from '@osac/ui-components'
@@ -254,7 +254,11 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
         </Content>
       </StackItem>
       <StackItem>
-        <div className="osac-clone-source-cards" role="radiogroup" aria-label="Source virtual machines">
+        <div
+          className="osac-clone-source-cards"
+          role="radiogroup"
+          aria-label="Source virtual machines"
+        >
           {filtered.length === 0 ? (
             <Content
               component="p"

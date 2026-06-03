@@ -42,13 +42,21 @@ export function VmDeleteConfirmModal({
       onClose={isPending ? undefined : onClose}
       aria-labelledby="vm-delete-confirm-title"
     >
-      <ModalHeader title={`Delete ${vm.metadata.name}?`} titleIconVariant="warning" labelId="vm-delete-confirm-title" />
+      <ModalHeader
+        title={`Delete ${vm.metadata.name}?`}
+        titleIconVariant="warning"
+        labelId="vm-delete-confirm-title"
+      />
       <ModalBody>
         {willStopFirst
           ? 'This virtual machine is still running. It will be stopped first, then deleted permanently. This action cannot be undone.'
           : 'This permanently deletes the virtual machine. This action cannot be undone.'}
         {errorMessage ? (
-          <Alert variant="danger" title="Delete failed" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+          <Alert
+            variant="danger"
+            title="Delete failed"
+            style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+          >
             {errorMessage}
           </Alert>
         ) : null}

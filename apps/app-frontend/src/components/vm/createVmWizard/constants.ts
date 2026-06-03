@@ -1,4 +1,4 @@
-import { normalizeRunStrategyWire, type ClusterTemplate } from '@osac/api-contracts'
+import { type ClusterTemplate, normalizeRunStrategyWire } from '@osac/api-contracts'
 import type { WizardState } from './types'
 
 /** WIZARD_TEMPLATE_ONLY: wizard UI is template-only; other modes kept in types for RESTORE. */
@@ -12,7 +12,9 @@ export const TEMPLATE_CORES_MAX = 128
 export const TEMPLATE_MEMORY_GIB_MIN = 1
 export const TEMPLATE_MEMORY_GIB_MAX = 512
 
-export function defaultTemplateBootDiskGib(template: Pick<ClusterTemplate, 'defaultBootDiskSizeGib'> | null): number {
+export function defaultTemplateBootDiskGib(
+  template: Pick<ClusterTemplate, 'defaultBootDiskSizeGib'> | null,
+): number {
   return template?.defaultBootDiskSizeGib ?? 40
 }
 
@@ -47,7 +49,10 @@ export function parseTemplateMemoryGibInput(raw: string): number | null {
 export function parseTemplateAdditionalDisksGibInput(raw: string): number[] | null {
   const t = raw.trim()
   if (t === '') return []
-  const parts = t.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean)
+  const parts = t
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
   const out: number[] = []
   for (const p of parts) {
     if (!/^\d+$/.test(p)) return null

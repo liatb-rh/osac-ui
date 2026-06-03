@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
 import type { DemoShellRole, DemoTenantId } from '@osac/api-contracts'
 import { demoLoginEmailForRole } from '@osac/api-contracts'
 import { clearAccessToken } from '../api/authToken'
@@ -80,7 +73,6 @@ export function SessionProvider({
     () => osacEntry.current?.tenant ?? null,
   )
   const [role, setRole] = useState<DemoShellRole>(() => osacEntry.current?.role ?? 'tenantUser')
-  const roleRef = useRef<DemoShellRole>(role)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoginLoading, setIsLoginLoading] = useState(false)
   const [isDarkTheme, setIsDarkTheme] = useState(false)
@@ -99,11 +91,6 @@ export function SessionProvider({
     window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
   })
 
-  // Sync roleRef
-  useState(() => {
-    roleRef.current = role
-  })
-
   // Theme sync to DOM
   useLayoutEffect(() => {
     const root = document.documentElement
@@ -116,26 +103,27 @@ export function SessionProvider({
   const selectProviderAdmin = useCallback(() => {
     setSelectedTenant('vertexa')
     setRole('providerAdmin')
-    roleRef.current = 'providerAdmin'
   }, [])
 
   const selectTenantPersona = useCallback((tenant: DemoTenantId, r: DemoShellRole) => {
     if (tenant === 'vertexa') return
     setSelectedTenant(tenant)
     setRole(r)
-    roleRef.current = r
   }, [])
 
-  const loginSuccess = useCallback((_email: string, _password: string) => {
-    setIsLoginLoading(true)
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null
-      setIsLoginLoading(false)
-      setIsLoggedIn(true)
-      onNavigateAfterLogin(roleRef.current)
-    }, 2000)
-  }, [onNavigateAfterLogin])
+  const loginSuccess = useCallback(
+    (_email: string, _password: string) => {
+      setIsLoginLoading(true)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        setIsLoginLoading(false)
+        setIsLoggedIn(true)
+        onNavigateAfterLogin(role)
+      }, 2000)
+    },
+    [onNavigateAfterLogin, role],
+  )
 
   const logout = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -144,7 +132,6 @@ export function SessionProvider({
     setIsLoginLoading(false)
     setSelectedTenant(null)
     setRole('tenantUser')
-    roleRef.current = 'tenantUser'
     setTopologyDetailRequest(null)
     onNavigateToWelcome()
   }, [onNavigateToWelcome])

@@ -1,14 +1,14 @@
+import { CrownIcon } from '@patternfly/react-icons/dist/esm/icons/crown-icon'
+import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
+import { UsersIcon } from '@patternfly/react-icons/dist/esm/icons/users-icon'
 /**
  * flow: welcome-and-role-selection
  * step: wrs_welcome_landing
  */
-import { useLayoutEffect, type ReactNode } from 'react'
+import { type ReactNode, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Button, Content, Flex, FlexItem, Title } from '@patternfly/react-core'
-import { CrownIcon } from '@patternfly/react-icons/dist/esm/icons/crown-icon'
-import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
-import { UsersIcon } from '@patternfly/react-icons/dist/esm/icons/users-icon'
-import type { DemoTenantId, DemoShellRole } from '@osac/api-contracts'
+import type { DemoShellRole, DemoTenantId } from '@osac/api-contracts'
 import { DEMO_TENANT_LABEL } from '@osac/api-contracts'
 import { LightDarkToggle } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
@@ -131,7 +131,11 @@ export function WelcomePage() {
                 className="osac-welcome-role-actions"
               >
                 <FlexItem>
-                  <Button variant="primary" className="osac-welcome-role-btn" onClick={handleProviderAdmin}>
+                  <Button
+                    variant="primary"
+                    className="osac-welcome-role-btn"
+                    onClick={handleProviderAdmin}
+                  >
                     Enter
                   </Button>
                 </FlexItem>

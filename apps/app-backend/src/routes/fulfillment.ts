@@ -18,7 +18,7 @@
  *   GET  /api/fulfillment/v1/security_groups         → mock SG list
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { VM_TEMPLATES, DEMO_ORGANIZATIONS, normalizeComputeInstance } from '@osac/api-contracts'
+import { DEMO_ORGANIZATIONS, VM_TEMPLATES, normalizeComputeInstance } from '@osac/api-contracts'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { vmStore } from '../mock-vm-store.js'
 import type { FulfillmentProxyRouteConfig } from './fulfillmentProxyConfig.js'

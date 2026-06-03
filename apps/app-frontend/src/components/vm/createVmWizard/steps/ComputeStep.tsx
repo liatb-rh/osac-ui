@@ -1,4 +1,12 @@
-import { Content, Form, FormGroup, Stack, StackItem, TextInput, Title } from '@patternfly/react-core'
+import {
+  Content,
+  Form,
+  FormGroup,
+  Stack,
+  StackItem,
+  TextInput,
+  Title,
+} from '@patternfly/react-core'
 import type { UpdateFn, WizardState } from '../types'
 
 export function ComputeStep({ state, update }: { state: WizardState; update: UpdateFn }) {

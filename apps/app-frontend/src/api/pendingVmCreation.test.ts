@@ -1,12 +1,12 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { clearAllPostCreateWatches } from './postCreateWatchStore'
 import {
+  STILL_PROVISIONING_AFTER_MS,
   advancePostCreateWatch,
   createPostCreateWatch,
   matchesPendingCreation,
   resolveCreationDisplayState,
-  STILL_PROVISIONING_AFTER_MS,
 } from './pendingVmCreation'
 
 describe('pendingVmCreation', () => {
@@ -47,7 +47,7 @@ describe('pendingVmCreation', () => {
 
   it('post-create: Creating placeholder → Starting in list → Running only after starting seen', () => {
     const t0 = 1_000_000
-    let watch = createPostCreateWatch('vm-1', t0)
+    const watch = createPostCreateWatch('vm-1', t0)
     expect(watch.displayOverride).toBe('starting')
 
     const r1 = advancePostCreateWatch('running', watch, t0 + 1000)

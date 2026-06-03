@@ -29,7 +29,7 @@ describe('vmPowerDisplay', () => {
   })
 
   it('advancePendingPowerWatch clears stop after seen stopping', () => {
-    let watch = createPendingPowerWatch()
+    const watch = createPendingPowerWatch()
 
     const r1 = advancePendingPowerWatch('stopping', 'stopping', watch)
     const r2 = advancePendingPowerWatch('stopping', 'stopped', r1.watch)

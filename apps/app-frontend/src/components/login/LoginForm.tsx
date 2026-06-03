@@ -1,3 +1,5 @@
+import { EyeIcon } from '@patternfly/react-icons/dist/esm/icons/eye-icon'
+import { EyeSlashIcon } from '@patternfly/react-icons/dist/esm/icons/eye-slash-icon'
 /**
  * Shared login form — used by InstitutionalSignInPage (institutional-sign-in flow).
  */
@@ -13,8 +15,6 @@ import {
   Spinner,
   TextInput,
 } from '@patternfly/react-core'
-import { EyeIcon } from '@patternfly/react-icons/dist/esm/icons/eye-icon'
-import { EyeSlashIcon } from '@patternfly/react-icons/dist/esm/icons/eye-slash-icon'
 
 interface LoginFormProps {
   defaultEmail: string

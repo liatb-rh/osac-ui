@@ -47,10 +47,15 @@ describe('BFF dev proxy (integration contract)', () => {
       expect(headers.get('Authorization')).toBe('Bearer test-jwt')
       const body = JSON.parse(String(init?.body)) as { spec: { run_strategy: string } }
       expect(body.spec.run_strategy).toBe('Halted')
-      return new Response(JSON.stringify({ object: { id: 'vm-stop-1', status: { state: 'COMPUTE_INSTANCE_STATE_STOPPED' } } }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({
+          object: { id: 'vm-stop-1', status: { state: 'COMPUTE_INSTANCE_STATE_STOPPED' } },
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
 

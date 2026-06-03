@@ -1,3 +1,7 @@
+import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon'
+import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
+import { ThLargeIcon } from '@patternfly/react-icons/dist/esm/icons/th-large-icon'
+import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 /**
  * flow: manage-virtual-machines
  * steps: mvm_list_view, mvm_detail_drawer
@@ -21,16 +25,12 @@ import {
   GalleryItem,
   PageSection,
   SearchInput,
+  Spinner,
   Stack,
   StackItem,
-  Spinner,
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core'
-import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon'
-import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
-import { ThLargeIcon } from '@patternfly/react-icons/dist/esm/icons/th-large-icon'
-import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import { formatVmStorageGiBLine, resolveVmOsForUi } from '@osac/api-contracts'
 import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
@@ -203,10 +203,7 @@ export function VmListPage() {
     [dismissPending, noteCreateSuccess, provisionVm, registerPending],
   )
 
-  const isPendingCreation = useCallback(
-    (vm: ComputeInstance) => isPendingVmClientId(vm.id),
-    [],
-  )
+  const isPendingCreation = useCallback((vm: ComputeInstance) => isPendingVmClientId(vm.id), [])
 
   const getVmDisplayState = useCallback(
     (vm: ComputeInstance) => {
@@ -216,12 +213,7 @@ export function VmListPage() {
       if (postCreate) return postCreate
       return getDisplayState(vm)
     },
-    [
-      getCreationDisplayState,
-      getPostCreateDisplayState,
-      getDisplayState,
-      isPendingDelete,
-    ],
+    [getCreationDisplayState, getPostCreateDisplayState, getDisplayState, isPendingDelete],
   )
 
   useEffect(() => {
@@ -246,12 +238,10 @@ export function VmListPage() {
   )
 
   const filteredVms = useMemo(() => {
-    const pending =
-      powerFilter === 'all' ? pendingInstances() : []
+    const pending = powerFilter === 'all' ? pendingInstances() : []
     const merged = [...vms, ...pending]
     const filtered = merged.filter((vm) => {
-      const matchesSearch =
-        !search || vm.metadata.name.toLowerCase().includes(search.toLowerCase())
+      const matchesSearch = !search || vm.metadata.name.toLowerCase().includes(search.toLowerCase())
       const matchesOs = osFilter === 'all' || resolveVmOsForUi(vm) === osFilter
       if (isPendingVmClientId(vm.id) || isPendingDelete(vm.id)) {
         return matchesSearch && matchesOs
@@ -305,15 +295,7 @@ export function VmListPage() {
         },
       },
     )
-  }, [
-    clearPendingDelete,
-    deleteVm,
-    markPendingDelete,
-    patchVm,
-    selectedVm?.id,
-    vmToDelete,
-    vms,
-  ])
+  }, [clearPendingDelete, deleteVm, markPendingDelete, patchVm, selectedVm?.id, vmToDelete, vms])
 
   const vmToDeleteLive = vmToDelete ? (vms.find((v) => v.id === vmToDelete.id) ?? vmToDelete) : null
   const deleteWillStopFirst = vmToDeleteLive != null && vmToDeleteLive.status.state !== 'stopped'
@@ -579,13 +561,14 @@ export function VmListPage() {
                           <FlexItem>
                             <VmDetailField
                               label="Memory"
-                              value={
-                                vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—'
-                              }
+                              value={vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—'}
                             />
                           </FlexItem>
                           <FlexItem>
-                            <VmDetailField label="Storage" value={formatVmStorageGiBLine(vm.spec)} />
+                            <VmDetailField
+                              label="Storage"
+                              value={formatVmStorageGiBLine(vm.spec)}
+                            />
                           </FlexItem>
                         </Flex>
                         <Divider style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }} />

@@ -1,3 +1,4 @@
+import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon'
 /**
  * flow: tenant-user-dashboard
  * step: tud_dashboard_home — VM utilization trends + recent activities preview
@@ -10,7 +11,6 @@
  */
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon'
 import {
   Card,
   CardBody,
@@ -297,11 +297,7 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
                             spaceItems={{ default: 'spaceItemsSm' }}
                           >
                             <FlexItem>
-                              <Label
-                                color={labelColor as 'green' | 'red' | 'orange' | 'blue'}
-                                variant="outline"
-                                isCompact
-                              >
+                              <Label color={labelColor} variant="outline" isCompact>
                                 {item.type}
                               </Label>
                             </FlexItem>

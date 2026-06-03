@@ -2,9 +2,9 @@ import type {
   ClusterTemplate,
   ComputeInstance,
   DemoTenantId,
-  OsacEvent,
   Organization,
   OsType,
+  OsacEvent,
   VmPowerState,
 } from './types.js'
 import { normalizeComputeInstance } from './computeInstanceNormalize.js'
@@ -467,7 +467,7 @@ function fulfillmentProtoState(state: VmPowerState): string {
     stopping: 'COMPUTE_INSTANCE_STATE_STOPPING',
     creating: 'COMPUTE_INSTANCE_STATE_CREATING',
     restarting: 'COMPUTE_INSTANCE_STATE_RESTARTING',
-    still_provisioning: 'COMPUTE_INSTANCE_STATE_STILL_PROVISIONING'
+    still_provisioning: 'COMPUTE_INSTANCE_STATE_STILL_PROVISIONING',
   }
   return m[state]
 }

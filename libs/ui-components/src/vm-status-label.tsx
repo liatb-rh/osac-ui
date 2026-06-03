@@ -1,5 +1,5 @@
 import { Flex, FlexItem, Label, Spinner } from '@patternfly/react-core'
-import { isVmTransitionPowerState, type VmPowerState } from '@osac/api-contracts'
+import { type VmPowerState, isVmTransitionPowerState } from '@osac/api-contracts'
 
 interface VmStatusLabelProps {
   state: VmPowerState

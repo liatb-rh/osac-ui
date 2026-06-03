@@ -1,3 +1,5 @@
+import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
+import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import {
   Card,
   CardBody,
@@ -10,8 +12,6 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core'
-import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
-import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import type { ClusterTemplate } from '@osac/api-contracts'
 import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
 

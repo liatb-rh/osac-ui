@@ -1,3 +1,5 @@
+import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
+import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import {
   Card,
   CardBody,
@@ -13,8 +15,6 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core'
-import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
-import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import guestOsTuxLinuxUrl from '../../../../assets/guest-os-tux-linux.png'
 import { GUEST_OS_FAMILIES, OS_TYPES } from '../constants'
 import type { UpdateFn, WizardState } from '../types'

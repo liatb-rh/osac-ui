@@ -1,6 +1,6 @@
+import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon'
 import { useState } from 'react'
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core'
-import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 
 interface VmActionsMenuProps {
@@ -31,8 +31,7 @@ export function VmActionsMenu({
   const canStart = state === 'stopped' && !pending
   const canStop = (state === 'running' || state === 'paused') && !pending
   const canRestart = (state === 'running' || state === 'paused') && !isRestarting && !pending
-  const canDelete =
-    typeof onDelete === 'function' && state !== 'deleting' && state !== 'starting'
+  const canDelete = typeof onDelete === 'function' && state !== 'deleting' && state !== 'starting'
 
   return (
     <Dropdown

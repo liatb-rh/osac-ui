@@ -1,8 +1,8 @@
 import { useCallback, useRef } from 'react'
-import { BrowserRouter, useNavigate, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import type { DemoShellRole } from '@osac/api-contracts'
 import { SessionProvider, useSession } from './contexts/SessionContext'
-import { WelcomePage, SignInPage } from './pages/auth'
+import { SignInPage, WelcomePage } from './pages/auth'
 import { AppShell } from './pages/shell'
 
 function InnerApp() {

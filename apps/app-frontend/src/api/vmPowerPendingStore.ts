@@ -2,9 +2,9 @@
  * Session-scoped pending power-action state (survives route changes within the SPA).
  */
 import {
-  createPendingPowerWatch,
   type PendingPowerWatch,
   type VmPendingPowerAction,
+  createPendingPowerWatch,
 } from './vmPowerDisplay'
 
 export interface VmPowerPendingEntry {

@@ -1,12 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "allowImportingTsExtensions": false,
-    "noEmit": true,
-    "outDir": "dist",
+    "jsx": "react-jsx",
     "paths": {
       "@osac/api-contracts": ["../../libs/api-contracts/src/index.ts"]
     }

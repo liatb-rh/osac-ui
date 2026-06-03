@@ -129,25 +129,16 @@ export function useVmPowerActionDisplay(
       const id = vm.id
       if (action === 'restart') {
         setPowerPending(id, 'restarting', { restartCycle: true })
-        patchMutate(
-          { id, powerAction: 'stop' },
-          { onError: () => clearPowerPending(id) },
-        )
+        patchMutate({ id, powerAction: 'stop' }, { onError: () => clearPowerPending(id) })
         return
       }
       if (action === 'start') {
         setPowerPending(id, 'starting')
-        patchMutate(
-          { id, powerAction: 'start' },
-          { onError: () => clearPowerPending(id) },
-        )
+        patchMutate({ id, powerAction: 'start' }, { onError: () => clearPowerPending(id) })
         return
       }
       setPowerPending(id, 'stopping')
-      patchMutate(
-        { id, powerAction: 'stop' },
-        { onError: () => clearPowerPending(id) },
-      )
+      patchMutate({ id, powerAction: 'stop' }, { onError: () => clearPowerPending(id) })
     },
     [patchMutate],
   )

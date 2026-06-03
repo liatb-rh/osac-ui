@@ -1,5 +1,5 @@
 {
-  "extends": "../../libs/config/tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "allowImportingTsExtensions": false,
     "noEmit": false,

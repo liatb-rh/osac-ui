@@ -12,13 +12,13 @@ import {
   setPostCreateWatch,
 } from './postCreateWatchStore'
 import {
+  type PendingVmCreation,
   advancePostCreateWatch,
   createPendingVmClientId,
   createPostCreateWatch,
   matchesPendingCreation,
   pendingToComputeInstance,
   resolveCreationDisplayState,
-  type PendingVmCreation,
 } from './pendingVmCreation'
 
 type UsePendingVmCreationsOptions = {
@@ -46,10 +46,7 @@ export function usePendingVmCreations(
   const registerPending = useCallback(
     (draft: Partial<ComputeInstance>) => {
       const clientId = createPendingVmClientId()
-      pendingRef.current = [
-        ...pendingRef.current,
-        { clientId, draft, startedAtMs: Date.now() },
-      ]
+      pendingRef.current = [...pendingRef.current, { clientId, draft, startedAtMs: Date.now() }]
       syncPending()
       return clientId
     },
@@ -122,10 +119,7 @@ export function usePendingVmCreations(
     return () => window.clearInterval(id)
   }, [hasActiveProvisioning])
 
-  const pendingInstances = useCallback(
-    () => pending.map(pendingToComputeInstance),
-    [pending],
-  )
+  const pendingInstances = useCallback(() => pending.map(pendingToComputeInstance), [pending])
 
   const getCreationDisplayState = useCallback(
     (clientId: string) => {
@@ -133,20 +127,14 @@ export function usePendingVmCreations(
       if (!entry) return 'creating' as const
       return resolveCreationDisplayState(entry.startedAtMs)
     },
-    [pending, tick],
+    [pending],
   )
 
-  const getPostCreateDisplayState = useCallback(
-    (vm: ComputeInstance): VmPowerState | undefined => {
-      return getPostCreateWatch(vm.id)?.displayOverride
-    },
-    [watchedVmIds, tick],
-  )
+  const getPostCreateDisplayState = useCallback((vm: ComputeInstance): VmPowerState | undefined => {
+    return getPostCreateWatch(vm.id)?.displayOverride
+  }, [])
 
-  const isPostCreateWatched = useCallback(
-    (vmId: string) => getPostCreateWatch(vmId) != null,
-    [watchedVmIds],
-  )
+  const isPostCreateWatched = useCallback((vmId: string) => getPostCreateWatch(vmId) != null, [])
 
   return {
     registerPending,

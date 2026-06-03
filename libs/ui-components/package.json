@@ -8,8 +8,7 @@
   },
   "scripts": {
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "lint": "echo 'no lint target'"
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@osac/api-contracts": "workspace:*",

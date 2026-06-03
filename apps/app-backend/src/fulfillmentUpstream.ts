@@ -53,7 +53,10 @@ export function createFulfillmentUpstream(options: {
 
   return {
     fetch: ((input: RequestInfo | URL, init?: RequestInit) =>
-      undiciFetch(input as never, { ...init, dispatcher: agent } as never)) as unknown as FulfillmentUpstreamFetch,
+      undiciFetch(
+        input as never,
+        { ...init, dispatcher: agent } as never,
+      )) as unknown as FulfillmentUpstreamFetch,
     close: () => agent.close(),
   }
 }

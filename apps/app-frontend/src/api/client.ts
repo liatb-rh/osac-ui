@@ -4,20 +4,20 @@
  * In production the BFF serves both the SPA and the API.
  */
 import type {
-  ComputeInstance,
   ClusterTemplate,
+  ComputeInstance,
   FulfillmentCapabilities,
   PageOfT,
 } from '@osac/api-contracts'
 import {
+  type ComputeInstancePowerAction,
+  type SerializeComputeInstanceForCreateOptions,
   normalizeComputeInstance,
   normalizeComputeInstancePage,
   normalizeComputeInstanceTemplate,
   normalizeComputeInstanceTemplatePage,
   serializeComputeInstanceForCreate,
   serializeComputeInstancePowerPatch,
-  type ComputeInstancePowerAction,
-  type SerializeComputeInstanceForCreateOptions,
 } from '@osac/api-contracts'
 import { buildAuthHeaders } from './authToken'
 
@@ -107,7 +107,8 @@ export async function createComputeInstance(
     throw new Error(`API ${res.status}: ${body || res.statusText}`)
   }
   const raw = unwrapFulfillmentObject(await parseJson(res))
-  if (raw == null || typeof raw !== 'object') throw new Error('API: missing object in create response')
+  if (raw == null || typeof raw !== 'object')
+    throw new Error('API: missing object in create response')
   return normalizeComputeInstance(raw)
 }
 
@@ -125,7 +126,8 @@ export async function patchComputeInstance(
     throw new Error(`API ${res.status}: ${body || res.statusText}`)
   }
   const raw = unwrapFulfillmentObject(await parseJson(res))
-  if (raw == null || typeof raw !== 'object') throw new Error('API: missing object in patch response')
+  if (raw == null || typeof raw !== 'object')
+    throw new Error('API: missing object in patch response')
   return normalizeComputeInstance(raw)
 }
 
@@ -143,7 +145,8 @@ export async function patchComputeInstancePower(
     throw new Error(`API ${res.status}: ${body || res.statusText}`)
   }
   const raw = unwrapFulfillmentObject(await parseJson(res))
-  if (raw == null || typeof raw !== 'object') throw new Error('API: missing object in patch response')
+  if (raw == null || typeof raw !== 'object')
+    throw new Error('API: missing object in patch response')
   return normalizeComputeInstance(raw)
 }
 

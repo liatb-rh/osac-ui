@@ -19,7 +19,7 @@ describe('BFF mock mode (integration contract)', () => {
     const app = await buildApp({ apiMode: 'mock', logger: false })
     const res = await app.inject({ method: 'GET', url: '/api/fulfillment/v1/capabilities' })
     expect(res.statusCode).toBe(200)
-    const body = res.json() as { authn: { trustedTokenIssuers: unknown[] } }
+    const body = res.json()
     expect(body).toHaveProperty('authn')
     expect(Array.isArray(body.authn.trustedTokenIssuers)).toBe(true)
     await app.close()
@@ -27,9 +27,12 @@ describe('BFF mock mode (integration contract)', () => {
 
   it('GET /api/fulfillment/v1/compute_instance_templates returns page envelope', async () => {
     const app = await buildApp({ apiMode: 'mock', logger: false })
-    const res = await app.inject({ method: 'GET', url: '/api/fulfillment/v1/compute_instance_templates' })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/fulfillment/v1/compute_instance_templates',
+    })
     expect(res.statusCode).toBe(200)
-    const body = res.json() as { size: number; total: number; items: unknown[] }
+    const body = res.json()
     expect(typeof body.size).toBe('number')
     expect(typeof body.total).toBe('number')
     expect(Array.isArray(body.items)).toBe(true)
@@ -43,13 +46,13 @@ describe('BFF mock mode (integration contract)', () => {
       method: 'GET',
       url: '/api/fulfillment/v1/compute_instance_templates',
     })
-    const total = (all.json() as { total: number }).total
+    const total = all.json().total
     const filtered = await app.inject({
       method: 'GET',
       url: '/api/fulfillment/v1/compute_instance_templates?filter=rhel',
     })
     expect(filtered.statusCode).toBe(200)
-    const fb = filtered.json() as { total: number; items: Array<{ title?: string }> }
+    const fb = filtered.json()
     expect(fb.total).toBeLessThanOrEqual(total)
     expect(
       fb.items.every((it) => {
@@ -64,7 +67,7 @@ describe('BFF mock mode (integration contract)', () => {
       url: '/api/fulfillment/v1/compute_instance_templates?limit=1&offset=0',
     })
     expect(page.statusCode).toBe(200)
-    const pb = page.json() as { size: number; total: number; items: unknown[] }
+    const pb = page.json()
     expect(pb.size).toBe(1)
     expect(pb.total).toBe(total)
     await app.close()
@@ -72,15 +75,18 @@ describe('BFF mock mode (integration contract)', () => {
 
   it('GET /api/fulfillment/v1/compute_instance_templates/:id returns template or 404', async () => {
     const app = await buildApp({ apiMode: 'mock', logger: false })
-    const list = await app.inject({ method: 'GET', url: '/api/fulfillment/v1/compute_instance_templates?limit=1' })
-    const id = (list.json() as { items: Array<{ id: string }> }).items[0]?.id
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/fulfillment/v1/compute_instance_templates?limit=1',
+    })
+    const id = list.json().items[0]?.id
     expect(id).toBeTruthy()
     const ok = await app.inject({
       method: 'GET',
       url: `/api/fulfillment/v1/compute_instance_templates/${encodeURIComponent(id)}`,
     })
     expect(ok.statusCode).toBe(200)
-    expect((ok.json() as { id: string }).id).toBe(id)
+    expect(ok.json().id).toBe(id)
 
     const missing = await app.inject({
       method: 'GET',
@@ -92,8 +98,11 @@ describe('BFF mock mode (integration contract)', () => {
 
   it('PATCH /api/fulfillment/v1/compute_instances/:id stop updates mock VM state', async () => {
     const app = await buildApp({ apiMode: 'mock', logger: false })
-    const list = await app.inject({ method: 'GET', url: '/api/fulfillment/v1/compute_instances?limit=1' })
-    const item = (list.json() as { items: Array<{ id: string; status?: { state?: string } }> }).items[0]
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/fulfillment/v1/compute_instances?limit=1',
+    })
+    const item = list.json().items[0]
     expect(item?.id).toBeTruthy()
 
     const patch = await app.inject({
@@ -105,7 +114,7 @@ describe('BFF mock mode (integration contract)', () => {
       },
     })
     expect(patch.statusCode).toBe(200)
-    const body = patch.json() as { object: { status: { state: string }; spec: { runStrategy?: string } } }
+    const body = patch.json()
     expect(body.object.status.state).toBe('stopped')
     expect(body.object.spec.runStrategy).toBe('Halted')
     await app.close()
@@ -113,8 +122,11 @@ describe('BFF mock mode (integration contract)', () => {
 
   it('DELETE /api/fulfillment/v1/compute_instances/:id removes VM from mock store', async () => {
     const app = await buildApp({ apiMode: 'mock', logger: false })
-    const list = await app.inject({ method: 'GET', url: '/api/fulfillment/v1/compute_instances?limit=1' })
-    const id = (list.json() as { items: Array<{ id: string }> }).items[0]?.id
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/fulfillment/v1/compute_instances?limit=1',
+    })
+    const id = list.json().items[0]?.id
     expect(id).toBeTruthy()
 
     const del = await app.inject({
@@ -141,7 +153,7 @@ describe('BFF mock mode (integration contract)', () => {
     const app = await buildApp({ apiMode: 'mock', logger: false })
     const res = await app.inject({ method: 'GET', url: '/api/events/v1/events?limit=5&offset=0' })
     expect(res.statusCode).toBe(200)
-    const body = res.json() as { size: number; total: number; items: unknown[] }
+    const body = res.json()
     expect(body.size).toBe(5)
     expect(body.total).toBeGreaterThan(0)
     expect(body.items).toHaveLength(5)
@@ -155,7 +167,7 @@ describe('BFF mock mode (integration contract)', () => {
       url: '/api/osac/public/v1/console/CONSOLE_RESOURCE_TYPE_COMPUTE_INSTANCE/vm-1/access',
     })
     expect(res.statusCode).toBe(200)
-    const body = res.json() as { available: boolean; supportedTypes: string[] }
+    const body = res.json()
     expect(body.available).toBe(true)
     expect(body.supportedTypes).toContain('serial')
     await app.close()

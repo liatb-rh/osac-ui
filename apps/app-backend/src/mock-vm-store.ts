@@ -1,7 +1,7 @@
 /**
  * Shared in-memory VM store for mock BFF (fulfillment routes + create-vm-wizard finalize).
  */
-import { buildVmsForTenant, type ComputeInstance } from '@osac/api-contracts'
+import { type ComputeInstance, buildVmsForTenant } from '@osac/api-contracts'
 
 const allMockVms: ComputeInstance[] = [
   ...buildVmsForTenant('northstar'),

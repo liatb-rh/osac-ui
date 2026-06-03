@@ -1,3 +1,5 @@
+import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
+import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 /**
  * flow: manage-virtual-machines
  * step: mvm_detail_drawer
@@ -11,23 +13,21 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   Divider,
   Flex,
   PageSection,
   Stack,
   StackItem,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
   Title,
 } from '@patternfly/react-core'
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table'
-import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
-import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { useState } from 'react'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import {
@@ -171,7 +171,9 @@ export function VmDetailDrawer({
                       </DescriptionListGroup>
                       <DescriptionListGroup>
                         <DescriptionListTerm>Template</DescriptionListTerm>
-                        <DescriptionListDescription>{vm.spec.template ?? '—'}</DescriptionListDescription>
+                        <DescriptionListDescription>
+                          {vm.spec.template ?? '—'}
+                        </DescriptionListDescription>
                       </DescriptionListGroup>
                       <DescriptionListGroup>
                         <DescriptionListTerm>Run strategy</DescriptionListTerm>
@@ -181,7 +183,9 @@ export function VmDetailDrawer({
                       </DescriptionListGroup>
                       <DescriptionListGroup>
                         <DescriptionListTerm>vCPU</DescriptionListTerm>
-                        <DescriptionListDescription>{vm.spec.cores ?? '—'}</DescriptionListDescription>
+                        <DescriptionListDescription>
+                          {vm.spec.cores ?? '—'}
+                        </DescriptionListDescription>
                       </DescriptionListGroup>
                       <DescriptionListGroup>
                         <DescriptionListTerm>Memory</DescriptionListTerm>
@@ -198,9 +202,7 @@ export function VmDetailDrawer({
                       <DescriptionListGroup>
                         <DescriptionListTerm>Created</DescriptionListTerm>
                         <DescriptionListDescription>
-                          {vm.metadata.createdAt
-                            ? formatIsoDate(vm.metadata.createdAt)
-                            : '—'}
+                          {vm.metadata.createdAt ? formatIsoDate(vm.metadata.createdAt) : '—'}
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                       <DescriptionListGroup>
@@ -229,7 +231,9 @@ export function VmDetailDrawer({
                     <DescriptionList isCompact>
                       <DescriptionListGroup>
                         <DescriptionListTerm>IP address</DescriptionListTerm>
-                        <DescriptionListDescription>{vm.status.ipAddress ?? '—'}</DescriptionListDescription>
+                        <DescriptionListDescription>
+                          {vm.status.ipAddress ?? '—'}
+                        </DescriptionListDescription>
                       </DescriptionListGroup>
                       <DescriptionListGroup>
                         <DescriptionListTerm>Subnet</DescriptionListTerm>
@@ -267,7 +271,9 @@ export function VmDetailDrawer({
                           {vm.status.conditions.map((c, i) => (
                             <Tr key={`${c.type}-${i}`}>
                               <Td dataLabel="Type">{humanizeConditionType(c.type)}</Td>
-                              <Td dataLabel="Status">{formatConditionStatusForDisplay(c.status)}</Td>
+                              <Td dataLabel="Status">
+                                {formatConditionStatusForDisplay(c.status)}
+                              </Td>
                               <Td dataLabel="Reason">{c.reason ?? '—'}</Td>
                               <Td dataLabel="Message">{c.message ?? '—'}</Td>
                               <Td dataLabel="Last transition">
@@ -323,7 +329,12 @@ export function VmDetailDrawer({
                   </Content>
                 </StackItem>
                 <StackItem>
-                  <Button variant="primary" isBlock isDisabled={!isConsoleAvailable} onClick={onOpenConsole}>
+                  <Button
+                    variant="primary"
+                    isBlock
+                    isDisabled={!isConsoleAvailable}
+                    onClick={onOpenConsole}
+                  >
                     Open console
                   </Button>
                 </StackItem>

@@ -1,3 +1,5 @@
+import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
+import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 /**
  * flow: vm-template-catalog
  * steps: vmc_catalog_grid, vmc_catalog_provider_global
@@ -14,11 +16,6 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Drawer,
-  Flex,
-  FlexItem,
-  ExpandableSection,
-  Gallery,
-  GalleryItem,
   DrawerActions,
   DrawerCloseButton,
   DrawerContent,
@@ -26,19 +23,22 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  ExpandableSection,
+  Flex,
+  FlexItem,
+  Gallery,
+  GalleryItem,
   PageSection,
   SearchInput,
   Sidebar,
-  Spinner,
   SidebarContent,
   SidebarPanel,
+  Spinner,
   Stack,
   StackItem,
   Switch,
   Title,
 } from '@patternfly/react-core'
-import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
-import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import type { ClusterTemplate, ComputeInstance } from '@osac/api-contracts'
 import { useLocation } from 'react-router-dom'
 import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
@@ -270,7 +270,11 @@ export function CatalogPage({ isProviderGlobal = false }: Props) {
   }, [selectedTemplate])
 
   const catalogContent = (
-    <Sidebar className="catalog-vm-templates-sidebar osac-template-catalog-layout" hasGutter hasBorder>
+    <Sidebar
+      className="catalog-vm-templates-sidebar osac-template-catalog-layout"
+      hasGutter
+      hasBorder
+    >
       <SidebarPanel variant="static">
         <Title headingLevel="h2" size="md">
           Categories
@@ -326,7 +330,9 @@ export function CatalogPage({ isProviderGlobal = false }: Props) {
               <Stack hasGutter>
                 <StackItem>
                   <Alert variant="danger" title="Could not load templates">
-                    {templatesErrorDetail instanceof Error ? templatesErrorDetail.message : 'Request failed'}
+                    {templatesErrorDetail instanceof Error
+                      ? templatesErrorDetail.message
+                      : 'Request failed'}
                   </Alert>
                 </StackItem>
                 <StackItem>
@@ -428,126 +434,134 @@ export function CatalogPage({ isProviderGlobal = false }: Props) {
 
       <div className="tenant-vm-templates-drawer-host">
         {selectedTemplate ? (
-          <Drawer isExpanded isInline={false} position="right" className="tenant-vm-templates-drawer">
+          <Drawer
+            isExpanded
+            isInline={false}
+            position="right"
+            className="tenant-vm-templates-drawer"
+          >
             <DrawerContent
               panelContent={
-              <DrawerPanelContent
-                widths={{ default: 'width_100', lg: 'width_50' }}
-                className="tenant-vm-template-drawer-panel"
-                aria-labelledby="tenant-vm-template-drawer-title"
-              >
-                <DrawerHead className="tenant-vm-template-drawer-head">
-                  <Flex
-                    alignItems={{ default: 'alignItemsFlexStart' }}
-                    spaceItems={{ default: 'spaceItemsMd' }}
-                  >
-                    <FlexItem className="tenant-vm-template-card__icon-tile">
-                      <OsIcon icon={selectedTemplate.icon} />
-                    </FlexItem>
-                    <FlexItem>
-                      <Stack hasGutter={false}>
-                        <StackItem>
-                          <Title
-                            headingLevel="h2"
-                            size="xl"
-                            tabIndex={-1}
-                            id="tenant-vm-template-drawer-title"
-                            ref={drawerTitleRef}
-                          >
-                            {selectedTemplate.title}
-                          </Title>
-                        </StackItem>
-                        <StackItem>
-                          <Content component="small" className="tenant-vm-template-drawer-subtitle">
-                            {drawerSubtitle(selectedTemplate)}
-                          </Content>
-                        </StackItem>
-                      </Stack>
-                    </FlexItem>
-                  </Flex>
-                  <DrawerActions>
-                    <Button
-                      className="tenant-vm-template-drawer-head-create"
-                      variant="primary"
-                      onClick={() => {
-                        handleOpenFromTemplate(selectedTemplate)
-                      }}
+                <DrawerPanelContent
+                  widths={{ default: 'width_100', lg: 'width_50' }}
+                  className="tenant-vm-template-drawer-panel"
+                  aria-labelledby="tenant-vm-template-drawer-title"
+                >
+                  <DrawerHead className="tenant-vm-template-drawer-head">
+                    <Flex
+                      alignItems={{ default: 'alignItemsFlexStart' }}
+                      spaceItems={{ default: 'spaceItemsMd' }}
                     >
-                      Create virtual machine
-                    </Button>
-                    <DrawerCloseButton onClick={() => setSelectedTemplate(null)} />
-                  </DrawerActions>
-                </DrawerHead>
-                <DrawerPanelBody className="tenant-vm-template-drawer-body tenant-vm-template-drawer-scroll">
-                  <Stack className="tenant-vm-template-detail-stack">
-                    <StackItem>
-                      <DescriptionList isCompact>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Guest operating system</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {guestOperatingSystem(selectedTemplate)}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>CPU</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {selectedTemplate.defaultCores ?? 2} vCPU
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Memory</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {selectedTemplate.defaultMemoryGib ?? 8} GiB
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Storage</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {selectedTemplate.defaultBootDiskSizeGib ?? 40} GiB boot disk
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Workload</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {workloadLabel(selectedTemplate)}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      </DescriptionList>
-                    </StackItem>
-                    <StackItem>
-                      <Stack hasGutter>
-                        <StackItem>
-                          <Switch
-                            id="template-detail-headless-mode"
-                            label="Headless mode"
-                            aria-label="Headless mode"
-                            isChecked={false}
-                            isDisabled
-                          />
-                        </StackItem>
-                        <StackItem>
-                          <Switch
-                            id="template-detail-guest-log-access"
-                            label="Guest system log access"
-                            aria-label="Guest system log access"
-                            isChecked
-                            isDisabled
-                          />
-                        </StackItem>
-                        <StackItem>
-                          <Switch
-                            id="template-detail-deletion-protection"
-                            label="Deletion protection"
-                            aria-label="Deletion protection"
-                            isChecked={false}
-                            isDisabled
-                          />
-                        </StackItem>
-                      </Stack>
-                    </StackItem>
-                  </Stack>
-                </DrawerPanelBody>
-              </DrawerPanelContent>
+                      <FlexItem className="tenant-vm-template-card__icon-tile">
+                        <OsIcon icon={selectedTemplate.icon} />
+                      </FlexItem>
+                      <FlexItem>
+                        <Stack hasGutter={false}>
+                          <StackItem>
+                            <Title
+                              headingLevel="h2"
+                              size="xl"
+                              tabIndex={-1}
+                              id="tenant-vm-template-drawer-title"
+                              ref={drawerTitleRef}
+                            >
+                              {selectedTemplate.title}
+                            </Title>
+                          </StackItem>
+                          <StackItem>
+                            <Content
+                              component="small"
+                              className="tenant-vm-template-drawer-subtitle"
+                            >
+                              {drawerSubtitle(selectedTemplate)}
+                            </Content>
+                          </StackItem>
+                        </Stack>
+                      </FlexItem>
+                    </Flex>
+                    <DrawerActions>
+                      <Button
+                        className="tenant-vm-template-drawer-head-create"
+                        variant="primary"
+                        onClick={() => {
+                          handleOpenFromTemplate(selectedTemplate)
+                        }}
+                      >
+                        Create virtual machine
+                      </Button>
+                      <DrawerCloseButton onClick={() => setSelectedTemplate(null)} />
+                    </DrawerActions>
+                  </DrawerHead>
+                  <DrawerPanelBody className="tenant-vm-template-drawer-body tenant-vm-template-drawer-scroll">
+                    <Stack className="tenant-vm-template-detail-stack">
+                      <StackItem>
+                        <DescriptionList isCompact>
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Guest operating system</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              {guestOperatingSystem(selectedTemplate)}
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>CPU</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              {selectedTemplate.defaultCores ?? 2} vCPU
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Memory</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              {selectedTemplate.defaultMemoryGib ?? 8} GiB
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Storage</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              {selectedTemplate.defaultBootDiskSizeGib ?? 40} GiB boot disk
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Workload</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              {workloadLabel(selectedTemplate)}
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        </DescriptionList>
+                      </StackItem>
+                      <StackItem>
+                        <Stack hasGutter>
+                          <StackItem>
+                            <Switch
+                              id="template-detail-headless-mode"
+                              label="Headless mode"
+                              aria-label="Headless mode"
+                              isChecked={false}
+                              isDisabled
+                            />
+                          </StackItem>
+                          <StackItem>
+                            <Switch
+                              id="template-detail-guest-log-access"
+                              label="Guest system log access"
+                              aria-label="Guest system log access"
+                              isChecked
+                              isDisabled
+                            />
+                          </StackItem>
+                          <StackItem>
+                            <Switch
+                              id="template-detail-deletion-protection"
+                              label="Deletion protection"
+                              aria-label="Deletion protection"
+                              isChecked={false}
+                              isDisabled
+                            />
+                          </StackItem>
+                        </Stack>
+                      </StackItem>
+                    </Stack>
+                  </DrawerPanelBody>
+                </DrawerPanelContent>
               }
             >
               <DrawerContentBody className="tenant-vm-templates-drawer__main">

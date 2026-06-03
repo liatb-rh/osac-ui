@@ -1,13 +1,13 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import type { ComputeInstance, ClusterTemplate } from '@osac/api-contracts'
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ClusterTemplate, ComputeInstance } from '@osac/api-contracts'
 import {
-  listComputeInstances,
-  listComputeInstanceTemplates,
+  type ListComputeInstancesParams,
   createComputeInstance,
+  deleteComputeInstance,
+  listComputeInstanceTemplates,
+  listComputeInstances,
   patchComputeInstance,
   patchComputeInstancePower,
-  deleteComputeInstance,
-  type ListComputeInstancesParams,
 } from './client'
 import type { ComputeInstancePowerAction } from '@osac/api-contracts'
 import { upsertComputeInstanceInCache } from './computeInstancesCache'

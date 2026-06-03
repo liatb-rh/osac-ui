@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { usePendingVmDeletes } from './usePendingVmDeletes'
 

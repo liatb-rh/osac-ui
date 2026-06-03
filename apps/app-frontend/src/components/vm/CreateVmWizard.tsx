@@ -22,18 +22,18 @@ import {
 } from '@patternfly/react-core'
 import type { ComputeInstance, DemoTenantId } from '@osac/api-contracts'
 import {
-  advanceWizardSession,
-  abandonWizardSession,
-  backWizardSession,
   CreateVmWizardApiError,
+  type WizardSessionResponse,
+  abandonWizardSession,
+  advanceWizardSession,
+  backWizardSession,
   finalizeWizardSession,
   startWizardSession,
-  type WizardSessionResponse,
 } from '../../api/createVmWizardClient'
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react'
 import {
-  draftFromSession,
   INITIAL_STATE,
+  draftFromSession,
   parseTemplateAdditionalDisksGibInput,
   parseTemplateBootDiskGibInput,
   parseTemplateCoresInput,
@@ -338,7 +338,10 @@ export const CreateVmWizard = forwardRef<CreateVmWizardHandle, Props>(function C
       ) : (
         <Wizard
           key={`${session.sessionId}-${session.activeIndex}`}
-          className={['create-vm-wizard', isDeploymentStep ? 'create-vm-wizard--deployment-step' : '']
+          className={[
+            'create-vm-wizard',
+            isDeploymentStep ? 'create-vm-wizard--deployment-step' : '',
+          ]
             .filter(Boolean)
             .join(' ')}
           navAriaLabel="Create virtual machine steps"

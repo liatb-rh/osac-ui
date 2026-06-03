@@ -291,7 +291,9 @@ describe('serializeComputeInstancePowerPatch', () => {
   it('restart sends restart_requested_at', () => {
     const body = serializeComputeInstancePowerPatch('restart')
     expect(body.spec).toBeDefined()
-    expect(typeof (body.spec as { restart_requested_at?: string }).restart_requested_at).toBe('string')
+    expect(typeof (body.spec as { restart_requested_at?: string }).restart_requested_at).toBe(
+      'string',
+    )
   })
 })
 
