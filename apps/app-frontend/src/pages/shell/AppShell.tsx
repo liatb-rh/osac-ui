@@ -25,12 +25,27 @@ import {
   TenantSparsePlaceholderPage,
   VmListPage,
 } from '../tenant'
-import { AdminDashboardPage, AdminNetworksPage, AdminQuotaPage, AdminUsersPage } from '../admin'
+import {
+  AdminClusterOfferingsPage,
+  AdminDashboardPage,
+  AdminNetworksPage,
+  AdminPublicIPsPage,
+  AdminQuotaPage,
+  AdminUsersPage,
+} from '../admin'
 import {
   ProviderAdminDashboardPage,
+  ProviderAgentManagementPage,
+  ProviderAllClustersPage,
   ProviderInfraTopologyPage,
+  ProviderNetworkClassesPage,
+  ProviderOrgDetailPage,
+  ProviderRbacPage,
+  ProviderStorageTiersPage,
   ProviderTenantOrgsPage,
 } from '../provider'
+import { ClustersPage } from '../../components/clusters/ClustersPage'
+import { ClusterDetailPage } from '../../components/clusters/ClusterDetailPage'
 import { ShellBreadcrumb } from './ShellBreadcrumb'
 import { ShellMasthead } from './ShellMasthead'
 import { ShellSidebar } from './ShellSidebar'
@@ -134,16 +149,20 @@ export function AppShell() {
         <Route path="/vms/*" element={<VmListPage />} />
         <Route path="/templates" element={<CatalogPage />} />
         <Route path="/activities" element={<RecentActivitiesPage />} />
+        <Route path="/clusters" element={<ClustersPage />} />
+        <Route path="/clusters/:id" element={<ClusterDetailPage />} />
 
         {/* Tenant admin routes */}
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/quota" element={<AdminQuotaPage />} />
         <Route path="/admin/templates" element={<CatalogPage />} />
+        <Route path="/admin/cluster-offerings" element={<AdminClusterOfferingsPage />} />
         <Route
           path="/admin/networks"
           element={<AdminNetworksPage onOpenVmDetail={openTopologyDetailRequest} />}
         />
+        <Route path="/admin/public-ips" element={<AdminPublicIPsPage />} />
         {ADMIN_PLACEHOLDER_ROUTES.map((route) => (
           <Route
             key={route.path}
@@ -159,6 +178,13 @@ export function AppShell() {
         {/* Provider admin routes */}
         <Route path="/provider/dashboard" element={<ProviderAdminDashboardPage />} />
         <Route path="/provider/organizations" element={<ProviderTenantOrgsPage />} />
+        <Route path="/provider/organizations/:id" element={<ProviderOrgDetailPage />} />
+        <Route path="/provider/security" element={<ProviderRbacPage />} />
+        <Route path="/provider/clusters" element={<ProviderAllClustersPage />} />
+        <Route path="/provider/agents" element={<ProviderAgentManagementPage />} />
+        <Route path="/provider/cluster-offerings" element={<AdminClusterOfferingsPage role="providerAdmin" />} />
+        <Route path="/provider/storage-tiers" element={<ProviderStorageTiersPage />} />
+        <Route path="/provider/network-classes" element={<ProviderNetworkClassesPage />} />
         {PROVIDER_PLACEHOLDER_ROUTES.map((route) => (
           <Route
             key={route.path}

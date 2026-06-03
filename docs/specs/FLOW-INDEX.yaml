@@ -128,10 +128,18 @@ flows:
     summary: Full-page activity feed from masthead bell (breadcrumb return).
   - id: tenant-administration
     file: ui-flows/tenant-administration.yaml
-    summary: Tenant admin dashboard, users, quota, networks topology with VM handoff, placeholders.
+    summary: >-
+      Tenant admin dashboard, users, quota, networks management (VN/Subnet/SG CRUD + topology with VM handoff),
+      public IPs lifecycle (allocate/attach/detach/delete), placeholders, and cluster offerings management
+      (enable/disable catalog items, org-level defaults). Routes /admin/networks, /admin/public-ips,
+      /admin/cluster-offerings.
   - id: provider-administration
     file: ui-flows/provider-administration.yaml
-    summary: Provider dashboard, tenant orgs, allocation/templates placeholders, infra topology (no VM drill-through in prototype).
+    summary: >-
+      Provider dashboard, tenant orgs, allocation/templates placeholders, infra topology, network classes
+      catalog (/provider/network-classes), and CaaS management: agent management (/provider/agents),
+      cluster offerings CRUD (/provider/cluster-offerings), storage tiers (/provider/storage-tiers),
+      cross-tenant all-clusters view (/provider/clusters).
   - id: vm-console-standalone-demo
     file: ui-flows/vm-console-standalone-demo.yaml
     summary: Query-param driven full-page console demo (?demo=vm-console).
@@ -139,8 +147,9 @@ flows:
     file: ui-flows/cluster-service-catalog.yaml
     summary: >-
       Tenant user Clusters page — lists OpenShift clusters provisioned for the tenant organization
-      with status (PROGRESSING/READY/FAILED), detail drawer with conditions/node-sets tabs, and
-      a create-cluster modal backed by cluster_catalog_items. Route /clusters; tenantUser only.
+      with status (PROGRESSING/READY/FAILED/UPGRADING), detail drawer with Overview/NodeSets/
+      Networking/Storage/Conditions tabs, create-cluster modal with networking section, upgrade
+      modal, and kubeconfig download. Route /clusters; tenantUser only.
 
 # Logical surfaces; implement with PatternFly 6 per design-system.yaml flow_component_mapping.
 reusable_components_across_flows:
@@ -217,7 +226,8 @@ canonical_step_ids:
     - tad_dashboard_home
     - tad_users
     - tad_quota
-    - tad_networks_topology
+    - tad_networks_management
+    - tad_public_ips
     - tad_storage_placeholder
     - tad_org_settings_placeholder
     - tad_org_security_placeholder
@@ -228,10 +238,17 @@ canonical_step_ids:
     - pad_infrastructure_topology
     - pad_security_placeholder
     - pad_platform_settings_placeholder
+    - pad_network_classes
     - vcd_console_page
     - csc_clusters_list
     - csc_cluster_detail_drawer
     - csc_create_cluster_modal
+    - csc_upgrade_cluster_modal
+    - tad_cluster_offerings
+    - pad_agent_management
+    - pad_cluster_offerings
+    - pad_storage_tiers
+    - pad_all_clusters
 
 bonus_ux_gaps_and_edge_cases:
   - >-

@@ -85,6 +85,110 @@ context:
         auth: Bearer JWT required (same as other protected fulfillment routes)
 
   # ---------------------------------------------------------------------------
+  # Networking API — wire contract and UI integration notes
+  # ---------------------------------------------------------------------------
+  networking_api:
+    description: >
+      Documents the Networking API integration for osac-ui. The fulfillment service exposes
+      full CRUD for VirtualNetwork, Subnet, SecurityGroup, PublicIP, and read-only
+      NetworkClass. UI pages are scoped by role: tenant admin manages VNs/Subnets/SGs/PublicIPs;
+      provider admin reads NetworkClasses.
+
+    resource_hierarchy:
+      - NetworkClass (system-provided, read-only)
+      - VirtualNetwork (tenant-owned; references NetworkClass)
+      - Subnet (owned by VirtualNetwork; 1:1 in v0.1)
+      - SecurityGroup (owned by VirtualNetwork; scoped to one VN)
+      - PublicIP (tenant-owned; attached to ComputeInstance)
+
+    wire_fields:
+      VirtualNetwork:
+        - id, metadata.name, spec.network_class, spec.ipv4_cidr, spec.ipv6_cidr
+        - spec.capabilities.enable_ipv4, enable_ipv6, enable_dual_stack
+        - status.state (PENDING/READY/FAILED), status.message
+      Subnet:
+        - id, metadata.name, spec.virtual_network (parent VN ID)
+        - spec.ipv4_cidr, spec.ipv6_cidr
+        - status.state, status.message
+      SecurityGroup:
+        - id, metadata.name, spec.virtual_network
+        - spec.ingress[], spec.egress[] (SecurityRule: protocol, port_from, port_to, ipv4_cidr, ipv6_cidr)
+        - status.state, status.message
+      NetworkClass:
+        - id, metadata.name, title, description
+        - capabilities.supports_ipv4, supports_ipv6, supports_dual_stack
+        - status.state, is_default
+      PublicIP:
+        - id, metadata.name, spec.pool, spec.compute_instance (nullable)
+        - status.state (PENDING/ALLOCATED/ATTACHING/ATTACHED/RELEASING/FAILED)
+        - status.address (populated from ALLOCATED onward), status.pool
+
+    normalization_notes:
+      - All wire fields are snake_case; UI model is camelCase after normalizeXxx functions.
+      - VirtualNetwork.spec.networkClass (camelCase) maps to wire spec.network_class.
+      - Subnet.spec.virtualNetwork maps to wire spec.virtual_network.
+      - SecurityGroup.spec.virtualNetwork maps to wire spec.virtual_network.
+      - PublicIP.spec.computeInstance maps to wire spec.compute_instance.
+
+    mock_behavior:
+      - GET list endpoints return DEMO_VIRTUAL_NETWORKS, DEMO_SUBNETS, DEMO_SECURITY_GROUPS,
+        DEMO_NETWORK_CLASSES, DEMO_PUBLIC_IPS from mock-data.ts.
+      - Subnets list supports ?virtual_network_id= filter.
+      - POST creates and appends to in-memory store; returns 201 with generated id.
+      - DELETE removes from in-memory store; returns 204.
+      - PATCH (PublicIP) updates spec.compute_instance and transitions state synchronously
+        in mock (ALLOCATED → ATTACHED or ATTACHED → ALLOCATED).
+
+    v1_constraints:
+      - SecurityGroup rule editing is out of scope for v1 UI (rules are set via API/CLI).
+      - PublicIPPool admin UI is out of scope; only pool listing for the allocate modal.
+      - NetworkClass is fully read-only from the UI; operator manages lifecycle.
+      - VirtualNetwork and Subnet CIDR fields are immutable after creation per proto.
+
+  # ---------------------------------------------------------------------------
+  # CaaS Tenant Storage Setup — backend behavior and wire contract
+  # ---------------------------------------------------------------------------
+  caas_storage_setup:
+    description: >
+      Documents how storage is automatically provisioned on CaaS tenant clusters and how
+      its readiness is tracked on the ClusterOrder CR (surfaced as status.storage_ready on
+      the Cluster resource). This section describes controller-side behavior; the UI spec
+      (cluster-service-catalog.yaml) describes how the SPA consumes this data.
+    trigger: >
+      When a CaaS cluster reaches ClusterOrderPhaseReady, the storage controller:
+        1. Queries the Tier API (Get/List) to determine which StorageTiers are available
+           for the tenant (filtered by available_tenant_ids on each StorageTier record).
+        2. Retrieves StorageProvider connection details from K8s secrets and the VAST VMS API.
+        3. Installs the VAST CSI driver on the target cluster.
+        4. Creates one StorageClass per available tier for the tenant, each referencing the
+           tier's QoS class and VIP pool.
+        5. Creates VolumeSnapshotClasses for snapshot support.
+        6. Sets status.storage_ready = true on the ClusterOrder CR once all resources are healthy.
+    v0_1_constraints:
+      - Networked storage only for application data; etcd and control-plane nodes use local storage.
+      - StorageClasses are per-tenant and per-tier; tenants cannot mix tiers in a single PVC.
+    teardown: >
+      On cluster deletion the controller removes cluster-side resources: StorageClasses,
+      VolumeSnapshotClasses, and the CSI Secret. Backend resources (VAST tenant, views, quotas)
+      and the per-tenant K8s Secret are preserved so other clusters sharing the same tenant
+      can continue using storage without reconfiguration.
+    wire_fields:
+      storage_ready: >-
+        status.storage_ready (boolean) on the Cluster wire response. Null/absent = not yet
+        triggered; false = CSI install in progress; true = all StorageClasses healthy.
+      storage: >-
+        status.storage (ClusterStorageStatus) populated once CSI setup completes. Contains
+        csi_driver string, storage_classes array (each with name, tier, is_default, parameters),
+        and volume_snapshot_classes array (each with name, driver, deletion_policy, is_default).
+    mock_behavior: >
+      In OSAC_API_MODE=mock the BFF mock store sets storage_ready: false on READY clusters
+      immediately and transitions to storage_ready: true after 30s to simulate the CSI
+      provisioning window. storage.storage_classes is populated with one entry per demo tier
+      (fast, standard) at that point. volume_snapshot_classes is populated with a single
+      default snapshot class.
+
+
+  # ---------------------------------------------------------------------------
   # Non-mock (“real fulfillment”) integration target — mock mode stays as-is
   # ---------------------------------------------------------------------------
   osac_real_api_integration:
@@ -1026,6 +1130,231 @@ reusable_schemas:
         type: integer
         format: int32
 
+  ResourceMetadata:
+    type: object
+    description: Standard resource metadata (mirrors osac.public.v1.Metadata proto).
+    properties:
+      name:
+        type: string
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+
+  VirtualNetworkResource:
+    type: object
+    description: >-
+      VirtualNetwork — tenant-isolated virtual network. Wire format uses snake_case;
+      UI model uses camelCase after normalization. Mirrors osac.public.v1.VirtualNetwork proto.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/ResourceMetadata'
+      spec:
+        type: object
+        properties:
+          network_class:
+            type: string
+            description: NetworkClass ID; immutable after creation
+          ipv4_cidr:
+            type: string
+            description: IPv4 CIDR block; immutable after creation (e.g. "10.0.0.0/16")
+          ipv6_cidr:
+            type: string
+            description: IPv6 CIDR block; immutable after creation (e.g. "fd00::/64")
+          capabilities:
+            type: object
+            properties:
+              enable_ipv4: { type: boolean }
+              enable_ipv6: { type: boolean }
+              enable_dual_stack: { type: boolean }
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+            enum: [VIRTUAL_NETWORK_STATE_UNSPECIFIED, VIRTUAL_NETWORK_STATE_PENDING, VIRTUAL_NETWORK_STATE_READY, VIRTUAL_NETWORK_STATE_FAILED]
+          message:
+            type: string
+
+  SubnetResource:
+    type: object
+    description: >-
+      Subnet — subdivision of a VirtualNetwork. Mirrors osac.public.v1.Subnet proto.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/ResourceMetadata'
+      spec:
+        type: object
+        properties:
+          virtual_network:
+            type: string
+            description: Parent VirtualNetwork ID; required and immutable
+          ipv4_cidr:
+            type: string
+            description: IPv4 CIDR block; immutable after creation
+          ipv6_cidr:
+            type: string
+            description: IPv6 CIDR block; immutable after creation
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+            enum: [SUBNET_STATE_UNSPECIFIED, SUBNET_STATE_PENDING, SUBNET_STATE_READY, SUBNET_STATE_FAILED, SUBNET_STATE_DELETING, SUBNET_STATE_DELETE_FAILED]
+          message:
+            type: string
+
+  SecurityGroupResource:
+    type: object
+    description: >-
+      SecurityGroup — virtual firewall for compute instances. Rule editor is deferred; only
+      name and parent VN are set on create in v1. Mirrors osac.public.v1.SecurityGroup proto.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/ResourceMetadata'
+      spec:
+        type: object
+        properties:
+          virtual_network:
+            type: string
+            description: Parent VirtualNetwork ID; required and immutable
+          ingress:
+            type: array
+            items:
+              $ref: '#/reusable_schemas/SecurityRule'
+          egress:
+            type: array
+            items:
+              $ref: '#/reusable_schemas/SecurityRule'
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+            enum: [SECURITY_GROUP_STATE_UNSPECIFIED, SECURITY_GROUP_STATE_PENDING, SECURITY_GROUP_STATE_READY, SECURITY_GROUP_STATE_FAILED, SECURITY_GROUP_STATE_DELETING, SECURITY_GROUP_STATE_DELETE_FAILED]
+          message:
+            type: string
+
+  SecurityRule:
+    type: object
+    description: Single firewall rule. Mirrors osac.public.v1.SecurityRule proto.
+    properties:
+      protocol:
+        type: string
+        enum: [PROTOCOL_UNSPECIFIED, PROTOCOL_TCP, PROTOCOL_UDP, PROTOCOL_ICMP, PROTOCOL_ALL]
+      port_from:
+        type: integer
+        description: Start port (TCP/UDP only)
+      port_to:
+        type: integer
+        description: End port (TCP/UDP only)
+      ipv4_cidr:
+        type: string
+      ipv6_cidr:
+        type: string
+
+  NetworkClassResource:
+    type: object
+    description: >-
+      NetworkClass — pluggable network backend descriptor. Read-only for UI users; managed
+      by operator. Mirrors osac.public.v1.NetworkClass proto.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/ResourceMetadata'
+      title:
+        type: string
+        description: Short human-friendly name (e.g. "UDN Network")
+      description:
+        type: string
+        description: Markdown long description
+      capabilities:
+        type: object
+        properties:
+          supports_ipv4: { type: boolean }
+          supports_ipv6: { type: boolean }
+          supports_dual_stack: { type: boolean }
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+            enum: [NETWORK_CLASS_STATE_UNSPECIFIED, NETWORK_CLASS_STATE_PENDING, NETWORK_CLASS_STATE_READY, NETWORK_CLASS_STATE_FAILED]
+          message:
+            type: string
+      is_default:
+        type: boolean
+        description: True if this is the default NetworkClass; at most one at a time
+
+  PublicIPResource:
+    type: object
+    description: >-
+      PublicIP — floating IP allocated from a PublicIPPool; optionally attached to a
+      ComputeInstance. Mirrors osac.public.v1.PublicIP proto.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/ResourceMetadata'
+      spec:
+        type: object
+        properties:
+          pool:
+            type: string
+            description: PublicIPPool ID; required and immutable after creation
+          compute_instance:
+            type: string
+            description: ComputeInstance ID to attach to; mutable (set to null to detach)
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+            enum: [PUBLIC_IP_STATE_UNSPECIFIED, PUBLIC_IP_STATE_PENDING, PUBLIC_IP_STATE_ALLOCATED, PUBLIC_IP_STATE_ATTACHING, PUBLIC_IP_STATE_ATTACHED, PUBLIC_IP_STATE_RELEASING, PUBLIC_IP_STATE_FAILED]
+          message:
+            type: string
+          address:
+            type: string
+            description: Allocated IP address; populated once ALLOCATED
+          pool:
+            type: string
+            description: Pool ID mirror for convenience
+
+  PublicIPPoolResource:
+    type: object
+    description: Public IP pool (read-only for UI users; managed by provider).
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/ResourceMetadata'
+      spec:
+        type: object
+        properties:
+          cidr:
+            type: string
+            description: CIDR range of the pool
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+          available_count:
+            type: integer
+
   ClusterNetwork:
     type: object
     properties:
@@ -1035,6 +1364,158 @@ reusable_schemas:
       service_cidr:
         type: string
         description: CIDR for cluster service network; wire snake_case; default 172.30.0.0/16
+      virtual_network_ref:
+        type: string
+        description: ID of the VirtualNetwork assigned to this cluster; wire snake_case
+      subnet_ref:
+        type: string
+        description: ID of the Subnet within the selected VirtualNetwork; wire snake_case
+      security_group_refs:
+        type: array
+        items:
+          type: string
+        description: IDs of SecurityGroups attached to the cluster; wire snake_case
+
+  ClusterNetworkStatus:
+    type: object
+    description: Runtime networking state populated by the controller after provisioning.
+    properties:
+      api_public_ip:
+        type: string
+        description: Public IP assigned to the API server LoadBalancer; wire snake_case
+      ingress_public_ip:
+        type: string
+        description: Public IP assigned to the Ingress controller LoadBalancer; wire snake_case
+      dns_records:
+        type: array
+        items:
+          type: string
+        description: DNS hostnames provisioned for this cluster (API + apps wildcard); wire snake_case
+
+  ClusterStorageClass:
+    type: object
+    properties:
+      name:
+        type: string
+      tier:
+        type: string
+        description: >-
+          StorageTier id this StorageClass was created for (e.g. "fast", "standard", "archive");
+          populated after CSI setup; wire snake_case
+      is_default:
+        type: boolean
+        description: Whether this is the default StorageClass; wire snake_case
+      parameters:
+        type: object
+        additionalProperties:
+          type: string
+
+  ClusterStorageStatus:
+    type: object
+    description: VAST CSI driver and StorageClass provisioning state.
+    properties:
+      csi_driver:
+        type: string
+        description: CSI driver name (e.g. "csi.vastdata.com"); wire snake_case
+      storage_classes:
+        type: array
+        items:
+          $ref: '#/reusable_schemas/ClusterStorageClass'
+        description: StorageClasses created by VAST CSI driver; wire snake_case
+      volume_snapshot_classes:
+        type: array
+        items:
+          $ref: '#/reusable_schemas/VolumeSnapshotClass'
+        description: VolumeSnapshotClasses installed by the VAST CSI driver; wire snake_case
+
+  VolumeSnapshotClass:
+    type: object
+    description: >-
+      Kubernetes VolumeSnapshotClass installed by the VAST CSI driver on the tenant cluster.
+      Cleaned up on cluster deletion (cluster-side teardown only).
+    properties:
+      name:
+        type: string
+      driver:
+        type: string
+        description: CSI driver name for this snapshot class (e.g. "csi.vastdata.com")
+      deletion_policy:
+        type: string
+        description: "Retain or Delete; wire snake_case"
+      is_default:
+        type: boolean
+        description: Whether this is the default VolumeSnapshotClass; wire snake_case
+
+  Agent:
+    type: object
+    description: Infrastructure agent that can be provisioned to host cluster node sets.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/Metadata'
+      state:
+        type: string
+        description: >-
+          AGENT_STATE_AVAILABLE / AGENT_STATE_PROVISIONING / AGENT_STATE_PROVISIONED /
+          AGENT_STATE_DEPROVISIONING / AGENT_STATE_UNAVAILABLE
+      hardware_profile:
+        type: string
+        description: Hardware profile identifier (e.g. "baremetal-standard-48c-192g"); wire snake_case
+      cluster_ref:
+        type: string
+        description: ID of the cluster this agent is assigned to; null if unassigned; wire snake_case
+      inventory_backend:
+        type: string
+        description: Inventory backend name this agent is registered with; wire snake_case
+
+  InventoryBackend:
+    type: object
+    description: External inventory system (e.g. Ansible Automation Platform inventory source).
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+        description: CONNECTED / DISCONNECTED
+      endpoint_url:
+        type: string
+        description: wire snake_case; endpoint_url
+      last_sync_time:
+        type: string
+        format: date-time
+        description: wire snake_case; last_sync_time
+
+  StorageTier:
+    type: object
+    description: VAST storage tier definition for cluster persistent storage.
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      qos_class:
+        type: string
+        description: QoS policy class name; wire snake_case
+      vip_pool:
+        type: string
+        description: VAST VIP pool name for this tier; wire snake_case
+      storage_class_name:
+        type: string
+        description: Kubernetes StorageClass name generated from this tier; wire snake_case
+      available:
+        type: boolean
+        description: Whether this tier is globally available for cluster provisioning
+      available_tenant_ids:
+        type: array
+        items:
+          type: string
+        description: >-
+          Tenant IDs for which this tier is currently enabled. Provider admin configures
+          which tenants have access per tier. When empty and available is true, the tier
+          is available to all tenants; wire snake_case
 
   ClusterCondition:
     type: object
@@ -1101,6 +1582,8 @@ reusable_schemas:
                 CLUSTER_STATE_PROGRESSING → "Provisioning" (blue + spinner)
                 CLUSTER_STATE_READY → "Ready" (green)
                 CLUSTER_STATE_FAILED → "Failed" (red)
+                CLUSTER_STATE_UPGRADING → "Upgrading" (blue + spinner)
+                CLUSTER_STATE_UPGRADE_FAILED → "Upgrade Failed" (red)
                 CLUSTER_STATE_UNSPECIFIED → "Unknown" (grey)
           conditions:
             type: array
@@ -1117,6 +1600,20 @@ reusable_schemas:
             additionalProperties:
               $ref: '#/reusable_schemas/ClusterNodeSet'
             description: Current node set sizes from the system; may differ from spec.node_sets during scaling
+          version:
+            type: string
+            description: Current OCP version string (e.g. "4.17.3"); populated after provisioning
+          upgrade_state:
+            type: string
+            description: Details of the current or last upgrade operation; wire snake_case
+          storage_ready:
+            type: boolean
+            description: Whether VAST CSI driver and StorageClasses are provisioned and healthy; wire snake_case
+          storage:
+            $ref: '#/reusable_schemas/ClusterStorageStatus'
+          network:
+            $ref: '#/reusable_schemas/ClusterNetworkStatus'
+            description: Runtime networking IPs and DNS records; populated by controller post-provision
 
   FieldDefinition:
     type: object
@@ -1157,6 +1654,13 @@ reusable_schemas:
       published:
         type: boolean
         description: Only published items are shown to tenant users
+      allowed_versions:
+        type: array
+        items:
+          type: string
+        description: >-
+          Semver OCP version strings permitted for upgrade (e.g. ["4.17.3", "4.18.0"]).
+          UI shows only versions strictly greater than current cluster version; wire snake_case.
       field_definitions:
         type: array
         items:
@@ -1604,8 +2108,8 @@ apis:
           type: object
           description: Streaming framing depends on deployment (SSE vs chunked JSON)
 
-  - name: virtual_networks_crud
-    description: Tenant network scope for topology and VM attachment.
+  - name: virtual_networks_list
+    description: List tenant virtual networks.
     endpoint: /api/fulfillment/v1/virtual_networks
     method: GET
     auth:
@@ -1621,9 +2125,122 @@ apis:
         schema:
           $ref: '#/reusable_schemas/PageOfT'
 
-  - name: subnets_crud
-    description: Subnets for VM spec.subnet references.
+  - name: virtual_networks_get
+    description: Get a single virtual network by ID.
+    endpoint: /api/fulfillment/v1/virtual_networks/{id}
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin, viewer]
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/VirtualNetworkResource'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Virtual network not found
+
+  - name: virtual_networks_create
+    description: Create a new virtual network.
+    endpoint: /api/fulfillment/v1/virtual_networks
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    request:
+      schema:
+        $ref: '#/reusable_schemas/VirtualNetworkResource'
+    response:
+      success:
+        status: 201
+        schema:
+          $ref: '#/reusable_schemas/VirtualNetworkResource'
+
+  - name: virtual_networks_delete
+    description: Delete a virtual network. Cascades to subnets and security groups.
+    endpoint: /api/fulfillment/v1/virtual_networks/{id}
+    method: DELETE
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    response:
+      success:
+        status: 204
+      errors:
+        - code: 409_CONFLICT
+          description: Virtual network has attached compute instances
+
+  - name: subnets_list
+    description: List subnets. Filter by virtual_network_id query param.
     endpoint: /api/fulfillment/v1/subnets
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    request:
+      schema:
+        allOf:
+          - $ref: '#/reusable_schemas/ListQuery'
+        properties:
+          virtual_network_id:
+            type: string
+            description: Optional filter by parent VirtualNetwork ID
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/PageOfT'
+
+  - name: subnets_get
+    description: Get a single subnet by ID.
+    endpoint: /api/fulfillment/v1/subnets/{id}
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/SubnetResource'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Subnet not found
+
+  - name: subnets_create
+    description: Create a new subnet within a virtual network.
+    endpoint: /api/fulfillment/v1/subnets
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    request:
+      schema:
+        $ref: '#/reusable_schemas/SubnetResource'
+    response:
+      success:
+        status: 201
+        schema:
+          $ref: '#/reusable_schemas/SubnetResource'
+
+  - name: subnets_delete
+    description: Delete a subnet.
+    endpoint: /api/fulfillment/v1/subnets/{id}
+    method: DELETE
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    response:
+      success:
+        status: 204
+      errors:
+        - code: 409_CONFLICT
+          description: Subnet has attached compute instances
+
+  - name: security_groups_list
+    description: List security groups. Attachable firewall policy objects for compute instances.
+    endpoint: /api/fulfillment/v1/security_groups
     method: GET
     auth:
       required: true
@@ -1638,13 +2255,160 @@ apis:
         schema:
           $ref: '#/reusable_schemas/PageOfT'
 
-  - name: security_groups_crud
-    description: Attachable firewall policy objects for compute instances.
-    endpoint: /api/fulfillment/v1/security_groups
+  - name: security_groups_get
+    description: Get a single security group by ID.
+    endpoint: /api/fulfillment/v1/security_groups/{id}
     method: GET
     auth:
       required: true
       roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/SecurityGroupResource'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Security group not found
+
+  - name: security_groups_create
+    description: Create a new security group.
+    endpoint: /api/fulfillment/v1/security_groups
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    request:
+      schema:
+        $ref: '#/reusable_schemas/SecurityGroupResource'
+    response:
+      success:
+        status: 201
+        schema:
+          $ref: '#/reusable_schemas/SecurityGroupResource'
+
+  - name: security_groups_delete
+    description: Delete a security group.
+    endpoint: /api/fulfillment/v1/security_groups/{id}
+    method: DELETE
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    response:
+      success:
+        status: 204
+
+  - name: network_classes_list
+    description: >-
+      List available NetworkClasses. Provider admins see all; tenant users/admins see READY ones.
+    endpoint: /api/fulfillment/v1/network_classes
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    request:
+      schema:
+        allOf:
+          - $ref: '#/reusable_schemas/ListQuery'
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/PageOfT'
+
+  - name: public_ips_list
+    description: List public IPs for the tenant.
+    endpoint: /api/fulfillment/v1/public_ips
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin, viewer]
+    request:
+      schema:
+        allOf:
+          - $ref: '#/reusable_schemas/ListQuery'
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/PageOfT'
+
+  - name: public_ips_get
+    description: Get a single public IP by ID.
+    endpoint: /api/fulfillment/v1/public_ips/{id}
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin, viewer]
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/PublicIPResource'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Public IP not found
+
+  - name: public_ips_create
+    description: Allocate a new public IP from a PublicIPPool.
+    endpoint: /api/fulfillment/v1/public_ips
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    request:
+      schema:
+        $ref: '#/reusable_schemas/PublicIPResource'
+    response:
+      success:
+        status: 201
+        schema:
+          $ref: '#/reusable_schemas/PublicIPResource'
+
+  - name: public_ips_update
+    description: >-
+      Patch a public IP — used to attach (set spec.compute_instance) or detach (clear
+      spec.compute_instance). Field mask applied server-side.
+    endpoint: /api/fulfillment/v1/public_ips/{id}
+    method: PATCH
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    request:
+      schema:
+        $ref: '#/reusable_schemas/PublicIPResource'
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/PublicIPResource'
+      errors:
+        - code: 409_CONFLICT
+          description: IP is in a transitioning state (ATTACHING or RELEASING)
+
+  - name: public_ips_delete
+    description: Release (delete) a public IP and return address to pool.
+    endpoint: /api/fulfillment/v1/public_ips/{id}
+    method: DELETE
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin]
+    response:
+      success:
+        status: 204
+      errors:
+        - code: 409_CONFLICT
+          description: IP is in ATTACHING or RELEASING state — wait until stable
+
+  - name: public_ip_pools_list
+    description: >-
+      List PublicIPPools available to the tenant — used by the Allocate IP modal to populate
+      the pool selector. Pool admin UI is out of scope for v1.
+    endpoint: /api/fulfillment/v1/public_ip_pools
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_admin, provider_admin, viewer]
     request:
       schema:
         allOf:
@@ -1809,6 +2573,10 @@ apis:
     description: >-
       Delete a cluster. Disabled in UI while cluster state is CLUSTER_STATE_PROGRESSING.
       Mock BFF removes entry from clusterStore; dev proxies DELETE to fulfillment with Authorization.
+      On deletion, the controller removes cluster-side resources (StorageClasses, VolumeSnapshotClasses,
+      CSI Secret) from the target cluster. Backend resources (VAST tenant, views, quotas) and the
+      per-tenant K8s Secret are preserved so other clusters sharing the same tenant can continue
+      using them.
     endpoint: /api/fulfillment/v1/clusters/{id}
     method: DELETE
     auth:
@@ -1990,6 +2758,182 @@ apis:
       errors:
         - code: 404_NOT_FOUND
           description: Unknown catalog item id
+
+  - name: cluster_upgrade_post
+    description: >-
+      Initiate an OCP version upgrade for a specific cluster. Cluster must be in CLUSTER_STATE_READY.
+      Returns the updated Cluster in CLUSTER_STATE_UPGRADING state.
+    endpoint: /api/fulfillment/v1/clusters/{id}/upgrade
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin]
+    request:
+      schema:
+        type: object
+        required: [target_version]
+        properties:
+          target_version:
+            type: string
+            description: >-
+              Target OCP version string; must be present in the cluster's catalog_item.allowed_versions
+              and strictly greater than current status.version
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/Cluster'
+      errors:
+        - code: 400_BAD_REQUEST
+          description: target_version not allowed or cluster not in READY state
+        - code: 404_NOT_FOUND
+          description: Unknown cluster id
+    mock_behavior: >-
+      BFF mock transitions cluster to CLUSTER_STATE_UPGRADING immediately, then auto-transitions
+      to CLUSTER_STATE_READY (with updated version) after 90 seconds.
+
+  - name: cluster_kubeconfig_get
+    description: >-
+      Retrieve the kubeconfig YAML for a specific cluster. Only available when cluster is
+      CLUSTER_STATE_READY. Response is application/yaml.
+    endpoint: /api/fulfillment/v1/clusters/{id}/kubeconfig
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin]
+    request:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            required: true
+    response:
+      success:
+        status: 200
+        content_type: application/yaml
+        description: kubeconfig YAML string
+      errors:
+        - code: 400_BAD_REQUEST
+          description: Cluster not in READY state
+        - code: 404_NOT_FOUND
+          description: Unknown cluster id
+    mock_behavior: >-
+      BFF mock returns a generated kubeconfig YAML with the cluster's api_url substituted for the
+      server field. Context name is the cluster metadata.name.
+
+  - name: agents_list_get
+    description: List all infrastructure agents. Provider admin scoped; returns agents across all tenants.
+    endpoint: /api/fulfillment/v1/agents
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [provider_admin]
+    request:
+      schema:
+        allOf:
+          - $ref: '#/reusable_schemas/ListQuery'
+    response:
+      success:
+        status: 200
+        schema:
+          type: object
+          properties:
+            size: { type: integer }
+            total: { type: integer }
+            items:
+              type: array
+              items:
+                $ref: '#/reusable_schemas/Agent'
+
+  - name: agent_provision_post
+    description: Provision an available agent (mark it for cluster node set assignment).
+    endpoint: /api/fulfillment/v1/agents/{id}/provision
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [provider_admin]
+    request:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            required: true
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/Agent'
+      errors:
+        - code: 400_BAD_REQUEST
+          description: Agent not in AVAILABLE state
+        - code: 404_NOT_FOUND
+          description: Unknown agent id
+
+  - name: agent_deprovision_post
+    description: Deprovision a provisioned agent (return to available pool).
+    endpoint: /api/fulfillment/v1/agents/{id}/deprovision
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [provider_admin]
+    request:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            required: true
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/Agent'
+      errors:
+        - code: 400_BAD_REQUEST
+          description: Agent not in PROVISIONED state
+        - code: 404_NOT_FOUND
+          description: Unknown agent id
+
+  - name: storage_tiers_list_get
+    description: List all storage tier definitions. Provider admin scoped.
+    endpoint: /api/fulfillment/v1/storage_tiers
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [provider_admin]
+    response:
+      success:
+        status: 200
+        schema:
+          type: object
+          properties:
+            size: { type: integer }
+            total: { type: integer }
+            items:
+              type: array
+              items:
+                $ref: '#/reusable_schemas/StorageTier'
+
+  - name: storage_tier_patch
+    description: Update a storage tier definition (e.g. toggle availability, update QoS or VIP pool).
+    endpoint: /api/fulfillment/v1/storage_tiers/{id}
+    method: PATCH
+    auth:
+      required: true
+      roles_allowed: [provider_admin]
+    request:
+      schema:
+        $ref: '#/reusable_schemas/StorageTier'
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/StorageTier'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Unknown storage tier id
 
   - name: private_compute_instances_signal
     description: >

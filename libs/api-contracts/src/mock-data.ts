@@ -1,10 +1,22 @@
 import type {
+  Agent,
+  Cluster,
+  ClusterCatalogItem,
   ClusterTemplate,
   ComputeInstance,
   DemoTenantId,
+  InventoryBackend,
+  NetworkClass,
   Organization,
   OsType,
   OsacEvent,
+  PublicIP,
+  PublicIPPool,
+  RoleAssignment,
+  SecurityGroup,
+  StorageTier,
+  Subnet,
+  VirtualNetwork,
   VmPowerState,
 } from './types.js'
 import { normalizeComputeInstance } from './computeInstanceNormalize.js'
@@ -805,6 +817,23 @@ export const DEMO_ORGANIZATIONS: Organization[] = [
     description: 'Financial services — US East region banking workloads.',
     status: 'active',
     vmCount: 20,
+    clusterCount: 3,
+    realm: 'northstar',
+    idp: {
+      type: 'OIDC',
+      issuerUrl: 'https://sso.northstar-bank.internal/realms/northstar',
+      clientId: 'osac-northstar',
+      status: 'CONNECTED',
+      lastHealthCheck: '2026-06-04T01:00:00Z',
+    },
+    tenantAdmins: [
+      { id: 'ta-northstar-1', email: 'admin@northstar-bank.internal', isBreakGlass: false, createdAt: '2024-03-15T00:00:00Z' },
+      { id: 'ta-northstar-bg', email: 'breakglass@northstar.osac.internal', isBreakGlass: true, createdAt: '2024-03-15T00:00:00Z' },
+    ],
+    projects: [
+      { id: 'proj-northstar-default', name: 'default', openshiftNamespace: 'osac-org-northstar-project-default', createdAt: '2024-03-15T00:00:00Z' },
+      { id: 'proj-northstar-prod', name: 'production', openshiftNamespace: 'osac-org-northstar-project-production', createdAt: '2024-06-01T00:00:00Z' },
+    ],
   },
   {
     id: 'org-evergreen',
@@ -813,7 +842,28 @@ export const DEMO_ORGANIZATIONS: Organization[] = [
     description: 'Canadian financial institution — PIPEDA-compliant cloud workspace.',
     status: 'active',
     vmCount: 13,
+    clusterCount: 2,
+    realm: 'evergreen',
+    idp: {
+      type: 'LDAP',
+      issuerUrl: 'ldaps://ldap.bluestone.internal:636',
+      status: 'DEGRADED',
+      lastHealthCheck: '2026-06-03T18:30:00Z',
+    },
+    tenantAdmins: [
+      { id: 'ta-evergreen-bg', email: 'breakglass@evergreen.osac.internal', isBreakGlass: true, createdAt: '2024-05-01T00:00:00Z' },
+    ],
+    projects: [
+      { id: 'proj-evergreen-default', name: 'default', openshiftNamespace: 'osac-org-evergreen-project-default', createdAt: '2024-05-01T00:00:00Z' },
+    ],
   },
+]
+
+export const DEMO_SYSTEM_ROLE_ASSIGNMENTS: RoleAssignment[] = [
+  { subject: 'alex.johnson@vertexa.internal', role: 'cloud-provider-admin', source: 'break-glass' },
+  { subject: 'ops-team', role: 'cloud-provider-reader', source: 'idp-group' },
+  { subject: 'catalog-team', role: 'catalog-curator', source: 'idp-group' },
+  { subject: 'maria.santos@vertexa.internal', role: 'cloud-provider-admin', source: 'idp-group' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -843,3 +893,752 @@ export const DEMO_QUOTA: Record<'northstar' | 'evergreen', QuotaEntry[]> = {
     { resource: 'Public IPs', used: 3, limit: 8, unit: 'IPs' },
   ],
 }
+
+// ---------------------------------------------------------------------------
+// CaaS — Cluster Catalog Items
+// ---------------------------------------------------------------------------
+
+export const DEMO_CLUSTER_CATALOG_ITEMS: ClusterCatalogItem[] = [
+  {
+    id: 'ocp-standard',
+    title: 'OpenShift Standard',
+    description:
+      'A standard OpenShift 4.17 cluster with 3 worker nodes. Ideal for development and staging workloads.',
+    template: 'openshift-4-17',
+    published: true,
+    allowedVersions: ['4.17.3', '4.18.0'],
+    fieldDefinitions: [
+      {
+        path: 'spec.node_sets.workers.size',
+        displayName: 'Worker node count',
+        editable: true,
+        default: { '@type': 'type.googleapis.com/google.protobuf.Int32Value', value: 3 },
+        validationSchema: '{"type":"integer","minimum":1,"maximum":10}',
+      },
+    ],
+  },
+  {
+    id: 'ocp-gpu',
+    title: 'OpenShift GPU-Accelerated',
+    description:
+      'OpenShift cluster with GPU worker nodes for AI/ML workloads. Includes NVIDIA GPU Operator pre-installed.',
+    template: 'openshift-4-17-gpu',
+    published: true,
+    allowedVersions: ['4.17.3', '4.18.0'],
+    fieldDefinitions: [
+      {
+        path: 'spec.node_sets.gpu-workers.size',
+        displayName: 'GPU worker node count',
+        editable: true,
+        default: { '@type': 'type.googleapis.com/google.protobuf.Int32Value', value: 2 },
+        validationSchema: '{"type":"integer","minimum":1,"maximum":4}',
+      },
+    ],
+  },
+]
+
+// ---------------------------------------------------------------------------
+// CaaS — Demo Clusters
+// ---------------------------------------------------------------------------
+
+export const DEMO_CLUSTERS: Cluster[] = [
+  {
+    id: 'cluster-northstar-prod-1',
+    metadata: {
+      name: 'northstar-prod-1',
+      createdAt: '2026-05-01T08:00:00Z',
+      tenants: ['northstar'],
+    },
+    spec: {
+      catalogItem: 'ocp-standard',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 6 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 2 },
+        infra: { hostType: 'baremetal-standard', size: 3 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-prod',
+        subnetRef: 'sn-prod-1a',
+        securityGroupRefs: ['sg-web', 'sg-mgmt'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_READY',
+      version: '4.17.3',
+      storageReady: true,
+      apiUrl: 'https://api.northstar-prod-1.example.com:6443',
+      consoleUrl: 'https://console-openshift-console.apps.northstar-prod-1.example.com',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 6 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 0 },
+        infra: { hostType: 'baremetal-standard', size: 3 },
+      },
+      network: {
+        apiPublicIp: '203.0.113.10',
+        ingressPublicIp: '203.0.113.11',
+        dnsRecords: [
+          'api.northstar-prod-1.example.com',
+          '*.apps.northstar-prod-1.example.com',
+        ],
+      },
+      storage: {
+        csiDriver: 'csi.vastdata.com',
+        storageClasses: [
+          { name: 'vast-standard', tier: 'tier-standard', isDefault: true, parameters: { backend: 'vast-prod', qos: 'standard-qos' } },
+          { name: 'vast-fast', tier: 'tier-fast', isDefault: false, parameters: { backend: 'vast-prod', qos: 'high-performance-qos' } },
+          { name: 'vast-archive', tier: 'tier-archive', isDefault: false, parameters: { backend: 'vast-prod', qos: 'low-qos' } },
+        ],
+        volumeSnapshotClasses: [
+          { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
+          { name: 'vast-snapshot-retain', driver: 'csi.vastdata.com', deletionPolicy: 'Retain', isDefault: false },
+        ],
+      },
+      conditions: [
+        {
+          type: 'CLUSTER_CONDITION_TYPE_AVAILABLE',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'AsExpected',
+          message: 'Cluster is available',
+          lastTransitionTime: '2026-05-01T09:30:00Z',
+        },
+      ],
+    },
+  },
+  {
+    id: 'cluster-northstar-dev-1',
+    metadata: {
+      name: 'northstar-dev-1',
+      createdAt: '2026-05-20T14:00:00Z',
+      tenants: ['northstar'],
+    },
+    spec: {
+      catalogItem: 'ocp-standard',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 3 },
+        infra: { hostType: 'baremetal-standard', size: 2 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-dev',
+        subnetRef: 'sn-dev-1a',
+        securityGroupRefs: ['sg-mgmt'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_PROGRESSING',
+      storageReady: false,
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 1 },
+        infra: { hostType: 'baremetal-standard', size: 0 },
+      },
+      conditions: [],
+    },
+  },
+  {
+    id: 'cluster-evergreen-prod-1',
+    metadata: {
+      name: 'evergreen-prod-1',
+      createdAt: '2026-04-15T10:00:00Z',
+      tenants: ['evergreen'],
+    },
+    spec: {
+      catalogItem: 'ocp-gpu',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 4 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 4 },
+        infra: { hostType: 'baremetal-standard', size: 2 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-prod',
+        subnetRef: 'sn-prod-1b',
+        securityGroupRefs: ['sg-web', 'sg-db'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_READY',
+      version: '4.17.3',
+      storageReady: true,
+      apiUrl: 'https://api.evergreen-prod-1.example.com:6443',
+      consoleUrl: 'https://console-openshift-console.apps.evergreen-prod-1.example.com',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 4 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 2 },
+        infra: { hostType: 'baremetal-standard', size: 2 },
+      },
+      network: {
+        apiPublicIp: '203.0.113.20',
+        ingressPublicIp: '203.0.113.21',
+        dnsRecords: [
+          'api.evergreen-prod-1.example.com',
+          '*.apps.evergreen-prod-1.example.com',
+        ],
+      },
+      storage: {
+        csiDriver: 'csi.vastdata.com',
+        storageClasses: [
+          { name: 'vast-standard', tier: 'tier-standard', isDefault: true, parameters: { backend: 'vast-prod', qos: 'standard-qos' } },
+        ],
+        volumeSnapshotClasses: [
+          { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
+        ],
+      },
+      conditions: [
+        {
+          type: 'CLUSTER_CONDITION_TYPE_AVAILABLE',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'AsExpected',
+          message: 'Cluster is available',
+          lastTransitionTime: '2026-04-15T11:30:00Z',
+        },
+      ],
+    },
+  },
+
+  // ── CLUSTER_STATE_FAILED ────────────────────────────────────────────────────
+  {
+    id: 'cluster-vertexa-prod-1',
+    metadata: {
+      name: 'vertexa-prod-1',
+      createdAt: '2026-05-28T09:00:00Z',
+      tenants: ['vertexa'],
+      creators: ['admin@vertexa.io'],
+      labels: { env: 'production', team: 'platform' },
+    },
+    spec: {
+      catalogItem: 'ocp-standard',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 4 },
+        infra: { hostType: 'baremetal-standard', size: 2 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-prod',
+        subnetRef: 'sn-prod-1a',
+        securityGroupRefs: ['sg-web', 'sg-mgmt'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_FAILED',
+      storageReady: false,
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 0 },
+        infra: { hostType: 'baremetal-standard', size: 0 },
+      },
+      conditions: [
+        {
+          type: 'CLUSTER_CONDITION_TYPE_FAILED',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'InsufficientBaremetalCapacity',
+          message: 'Could not allocate baremetal hosts: no available hosts matching profile "baremetal-standard" in zone eu-west-1a. Quota exhausted or all hosts are in use.',
+          lastTransitionTime: '2026-05-28T09:45:00Z',
+        },
+        {
+          type: 'CLUSTER_CONDITION_TYPE_READY',
+          status: 'CONDITION_STATUS_FALSE',
+          reason: 'ProvisioningFailed',
+          message: 'Cluster provisioning did not complete.',
+          lastTransitionTime: '2026-05-28T09:45:00Z',
+        },
+      ],
+    },
+  },
+
+  // ── CLUSTER_STATE_UPGRADING ─────────────────────────────────────────────────
+  {
+    id: 'cluster-northstar-staging-1',
+    metadata: {
+      name: 'northstar-staging-1',
+      createdAt: '2026-04-10T11:00:00Z',
+      tenants: ['northstar'],
+      creators: ['ops@northstar.io'],
+      labels: { env: 'staging' },
+    },
+    spec: {
+      catalogItem: 'ocp-standard',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 3 },
+        infra: { hostType: 'baremetal-standard', size: 2 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-dev',
+        subnetRef: 'sn-dev-1a',
+        securityGroupRefs: ['sg-mgmt'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_UPGRADING',
+      version: '4.16.8',
+      storageReady: true,
+      apiUrl: 'https://api.northstar-staging-1.example.com:6443',
+      consoleUrl: 'https://console-openshift-console.apps.northstar-staging-1.example.com',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 3 },
+        infra: { hostType: 'baremetal-standard', size: 2 },
+      },
+      conditions: [
+        {
+          type: 'CLUSTER_CONDITION_TYPE_PROGRESSING',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'RollingUpdate',
+          message: 'Upgrading cluster from 4.16.8 to 4.17.3. Worker nodes rolling update in progress: 1 of 3 nodes updated.',
+          lastTransitionTime: '2026-06-03T22:10:00Z',
+        },
+        {
+          type: 'CLUSTER_CONDITION_TYPE_READY',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'AsExpected',
+          message: 'Cluster API is reachable during upgrade.',
+          lastTransitionTime: '2026-04-10T12:30:00Z',
+        },
+      ],
+    },
+  },
+
+  // ── CLUSTER_STATE_UPGRADE_FAILED ────────────────────────────────────────────
+  {
+    id: 'cluster-evergreen-dev-1',
+    metadata: {
+      name: 'evergreen-dev-1',
+      createdAt: '2026-03-20T08:00:00Z',
+      tenants: ['evergreen'],
+      creators: ['dev@evergreen.io'],
+      labels: { env: 'dev', team: 'ml-platform' },
+    },
+    spec: {
+      catalogItem: 'ocp-gpu',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 2 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 2 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-dev',
+        subnetRef: 'sn-dev-1a',
+        securityGroupRefs: ['sg-mgmt'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_UPGRADE_FAILED',
+      version: '4.16.5',
+      storageReady: false,
+      storage: {
+        csiDriver: 'csi.vastdata.com',
+      },
+      apiUrl: 'https://api.evergreen-dev-1.example.com:6443',
+      consoleUrl: 'https://console-openshift-console.apps.evergreen-dev-1.example.com',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 2 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 2 },
+      },
+      conditions: [
+        {
+          type: 'CLUSTER_CONDITION_TYPE_FAILED',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'UpgradeOperatorTimeout',
+          message: 'Cluster upgrade to 4.17.3 failed: machine-config operator did not complete rollout within 60 minutes. Node "worker-2" is stuck in degraded state. Manual intervention may be required.',
+          lastTransitionTime: '2026-06-01T14:22:00Z',
+        },
+        {
+          type: 'CLUSTER_CONDITION_TYPE_DEGRADED',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'NodeDegraded',
+          message: 'Node worker-2 is reporting NotReady: kubelet stopped posting node status.',
+          lastTransitionTime: '2026-06-01T14:22:00Z',
+        },
+        {
+          type: 'CLUSTER_CONDITION_TYPE_READY',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'AsExpected',
+          message: 'Cluster API remains reachable.',
+          lastTransitionTime: '2026-03-20T09:00:00Z',
+        },
+      ],
+    },
+  },
+
+  // ── CLUSTER_STATE_READY (vertexa, multi-nodeset, healthy) ───────────────────
+  {
+    id: 'cluster-vertexa-ml-1',
+    metadata: {
+      name: 'vertexa-ml-1',
+      createdAt: '2026-05-05T16:00:00Z',
+      tenants: ['vertexa'],
+      creators: ['ml-team@vertexa.io'],
+      labels: { env: 'production', team: 'ml', workload: 'training' },
+    },
+    spec: {
+      catalogItem: 'ocp-gpu',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 3 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 8 },
+        infra: { hostType: 'baremetal-standard', size: 3 },
+      },
+      network: {
+        virtualNetworkRef: 'vn-prod',
+        subnetRef: 'sn-prod-1b',
+        securityGroupRefs: ['sg-web', 'sg-mgmt'],
+        podCidr: '10.128.0.0/14',
+        serviceCidr: '172.30.0.0/16',
+      },
+    },
+    status: {
+      state: 'CLUSTER_STATE_READY',
+      version: '4.17.3',
+      storageReady: true,
+      apiUrl: 'https://api.vertexa-ml-1.example.com:6443',
+      consoleUrl: 'https://console-openshift-console.apps.vertexa-ml-1.example.com',
+      nodeSets: {
+        workers: { hostType: 'baremetal-standard', size: 3 },
+        'gpu-workers': { hostType: 'baremetal-gpu', size: 8 },
+        infra: { hostType: 'baremetal-standard', size: 3 },
+      },
+      network: {
+        apiPublicIp: '203.0.113.40',
+        ingressPublicIp: '203.0.113.41',
+        dnsRecords: [
+          'api.vertexa-ml-1.example.com',
+          '*.apps.vertexa-ml-1.example.com',
+        ],
+      },
+      storage: {
+        csiDriver: 'csi.vastdata.com',
+        storageClasses: [
+          { name: 'vast-standard', tier: 'tier-standard', isDefault: true, parameters: { backend: 'vast-prod', qos: 'standard-qos' } },
+          { name: 'vast-fast', tier: 'tier-fast', isDefault: false, parameters: { backend: 'vast-prod', qos: 'high-performance-qos' } },
+        ],
+        volumeSnapshotClasses: [
+          { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Retain', isDefault: true },
+        ],
+      },
+      conditions: [
+        {
+          type: 'CLUSTER_CONDITION_TYPE_READY',
+          status: 'CONDITION_STATUS_TRUE',
+          reason: 'AsExpected',
+          message: 'Cluster is ready.',
+          lastTransitionTime: '2026-05-05T17:30:00Z',
+        },
+      ],
+    },
+  },
+]
+
+// ---------------------------------------------------------------------------
+// CaaS — Demo Agents
+// ---------------------------------------------------------------------------
+
+export const DEMO_AGENTS: Agent[] = [
+  // northstar-prod-1: 3 provisioned workers
+  {
+    id: 'agent-001',
+    metadata: { name: 'agent-001', createdAt: '2026-03-01T00:00:00Z' },
+    state: 'AGENT_STATE_PROVISIONED',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: 'cluster-northstar-prod-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  {
+    id: 'agent-002',
+    metadata: { name: 'agent-002', createdAt: '2026-03-01T00:00:00Z' },
+    state: 'AGENT_STATE_PROVISIONED',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: 'cluster-northstar-prod-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  {
+    id: 'agent-003',
+    metadata: { name: 'agent-003', createdAt: '2026-03-01T00:00:00Z' },
+    state: 'AGENT_STATE_PROVISIONED',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: 'cluster-northstar-prod-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  // evergreen-prod-1: 2 GPU workers provisioned
+  {
+    id: 'agent-005',
+    metadata: { name: 'agent-005', createdAt: '2026-04-01T00:00:00Z' },
+    state: 'AGENT_STATE_PROVISIONED',
+    hardwareProfile: 'baremetal-gpu-16c-128g-a100',
+    clusterRef: 'cluster-evergreen-prod-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  {
+    id: 'agent-006',
+    metadata: { name: 'agent-006', createdAt: '2026-04-01T00:00:00Z' },
+    state: 'AGENT_STATE_PROVISIONED',
+    hardwareProfile: 'baremetal-gpu-16c-128g-a100',
+    clusterRef: 'cluster-evergreen-prod-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  // northstar-staging-1: 1 provisioning in progress
+  {
+    id: 'agent-007',
+    metadata: { name: 'agent-007', createdAt: '2026-06-03T08:00:00Z' },
+    state: 'AGENT_STATE_PROVISIONING',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: 'cluster-northstar-staging-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  // vertexa-prod-1: 1 deprovisioning (cluster failed, being torn down)
+  {
+    id: 'agent-008',
+    metadata: { name: 'agent-008', createdAt: '2026-05-10T00:00:00Z' },
+    state: 'AGENT_STATE_DEPROVISIONING',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: 'cluster-vertexa-prod-1',
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  // Unassigned — available for provisioning
+  {
+    id: 'agent-004',
+    metadata: { name: 'agent-004', createdAt: '2026-04-01T00:00:00Z' },
+    state: 'AGENT_STATE_AVAILABLE',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: undefined,
+    inventoryBackend: 'aap-inventory-prod',
+  },
+  {
+    id: 'agent-009',
+    metadata: { name: 'agent-009', createdAt: '2026-05-15T00:00:00Z' },
+    state: 'AGENT_STATE_AVAILABLE',
+    hardwareProfile: 'baremetal-gpu-16c-128g-a100',
+    clusterRef: undefined,
+    inventoryBackend: 'esi-inventory-prod',
+  },
+  // Unavailable — hardware fault
+  {
+    id: 'agent-010',
+    metadata: { name: 'agent-010', createdAt: '2026-02-01T00:00:00Z' },
+    state: 'AGENT_STATE_UNAVAILABLE',
+    hardwareProfile: 'baremetal-standard-48c-192g',
+    clusterRef: undefined,
+    inventoryBackend: 'esi-inventory-prod',
+  },
+]
+
+export const DEMO_INVENTORY_BACKENDS: InventoryBackend[] = [
+  {
+    id: 'aap-inventory-prod',
+    name: 'AAP Inventory (Production)',
+    status: 'CONNECTED',
+    endpointUrl: 'https://aap.vertexa.internal/api/v2',
+    lastSyncTime: '2026-06-03T17:00:00Z',
+  },
+  {
+    id: 'esi-inventory-prod',
+    name: 'ESI Inventory (Production)',
+    status: 'DISCONNECTED',
+    endpointUrl: 'https://esi.vertexa.internal/api/v1',
+    lastSyncTime: '2026-06-02T09:30:00Z',
+  },
+]
+
+// ---------------------------------------------------------------------------
+// CaaS — Demo Storage Tiers
+// ---------------------------------------------------------------------------
+
+export const DEMO_STORAGE_TIERS: StorageTier[] = [
+  {
+    id: 'tier-standard',
+    name: 'Standard',
+    qosClass: 'standard-qos',
+    vipPool: 'vip-pool-main',
+    storageClassName: 'vast-standard',
+    available: true,
+    availableTenantIds: [],
+  },
+  {
+    id: 'tier-fast',
+    name: 'Fast',
+    qosClass: 'high-performance-qos',
+    vipPool: 'vip-pool-fast',
+    storageClassName: 'vast-fast',
+    available: true,
+    availableTenantIds: ['northstar'],
+  },
+  {
+    id: 'tier-archive',
+    name: 'Archive',
+    qosClass: 'low-qos',
+    vipPool: 'vip-pool-archive',
+    storageClassName: 'vast-archive',
+    available: true,
+    availableTenantIds: ['northstar'],
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Demo networking resources
+// ---------------------------------------------------------------------------
+
+export const DEMO_VIRTUAL_NETWORKS: VirtualNetwork[] = [
+  {
+    id: 'vn-prod',
+    metadata: { name: 'prod-network', createdAt: '2025-01-10T09:00:00Z' },
+    spec: {
+      networkClass: 'udn-net',
+      ipv4Cidr: '10.0.0.0/16',
+      capabilities: { enableIpv4: true },
+    },
+    status: { state: 'VIRTUAL_NETWORK_STATE_READY' },
+  },
+  {
+    id: 'vn-dev',
+    metadata: { name: 'dev-network', createdAt: '2025-02-15T11:00:00Z' },
+    spec: {
+      networkClass: 'udn-net',
+      ipv4Cidr: '10.1.0.0/16',
+      capabilities: { enableIpv4: true },
+    },
+    status: { state: 'VIRTUAL_NETWORK_STATE_READY' },
+  },
+  {
+    id: 'vn-mgmt',
+    metadata: { name: 'management-network', createdAt: '2025-03-01T08:00:00Z' },
+    spec: {
+      networkClass: 'phys-net',
+      ipv4Cidr: '192.168.0.0/24',
+      ipv6Cidr: 'fd00::/64',
+      capabilities: { enableIpv4: true, enableIpv6: true, enableDualStack: true },
+    },
+    status: { state: 'VIRTUAL_NETWORK_STATE_READY' },
+  },
+]
+
+export const DEMO_SUBNETS: Subnet[] = [
+  {
+    id: 'subnet-prod-a',
+    metadata: { name: 'prod-subnet-a', createdAt: '2025-01-10T09:10:00Z' },
+    spec: { virtualNetwork: 'vn-prod', ipv4Cidr: '10.0.1.0/24' },
+    status: { state: 'SUBNET_STATE_READY' },
+  },
+  {
+    id: 'subnet-prod-b',
+    metadata: { name: 'prod-subnet-b', createdAt: '2025-01-10T09:15:00Z' },
+    spec: { virtualNetwork: 'vn-prod', ipv4Cidr: '10.0.2.0/24' },
+    status: { state: 'SUBNET_STATE_READY' },
+  },
+  {
+    id: 'subnet-dev-a',
+    metadata: { name: 'dev-subnet-a', createdAt: '2025-02-15T11:10:00Z' },
+    spec: { virtualNetwork: 'vn-dev', ipv4Cidr: '10.1.1.0/24' },
+    status: { state: 'SUBNET_STATE_READY' },
+  },
+  {
+    id: 'subnet-mgmt-a',
+    metadata: { name: 'mgmt-subnet-a', createdAt: '2025-03-01T08:10:00Z' },
+    spec: { virtualNetwork: 'vn-mgmt', ipv4Cidr: '192.168.0.0/25', ipv6Cidr: 'fd00::1:0/112' },
+    status: { state: 'SUBNET_STATE_READY' },
+  },
+]
+
+export const DEMO_SECURITY_GROUPS: SecurityGroup[] = [
+  {
+    id: 'sg-web',
+    metadata: { name: 'web-sg', createdAt: '2025-01-10T09:20:00Z' },
+    spec: {
+      virtualNetwork: 'vn-prod',
+      ingress: [
+        { protocol: 'PROTOCOL_TCP', portFrom: 80, portTo: 80, ipv4Cidr: '0.0.0.0/0' },
+        { protocol: 'PROTOCOL_TCP', portFrom: 443, portTo: 443, ipv4Cidr: '0.0.0.0/0' },
+        { protocol: 'PROTOCOL_TCP', portFrom: 22, portTo: 22, ipv4Cidr: '10.0.0.0/8' },
+      ],
+      egress: [{ protocol: 'PROTOCOL_ALL', ipv4Cidr: '0.0.0.0/0' }],
+    },
+    status: { state: 'SECURITY_GROUP_STATE_READY' },
+  },
+  {
+    id: 'sg-db',
+    metadata: { name: 'db-sg', createdAt: '2025-01-10T09:25:00Z' },
+    spec: {
+      virtualNetwork: 'vn-prod',
+      ingress: [
+        { protocol: 'PROTOCOL_TCP', portFrom: 5432, portTo: 5432, ipv4Cidr: '10.0.0.0/16' },
+        { protocol: 'PROTOCOL_TCP', portFrom: 3306, portTo: 3306, ipv4Cidr: '10.0.0.0/16' },
+      ],
+      egress: [{ protocol: 'PROTOCOL_ALL', ipv4Cidr: '0.0.0.0/0' }],
+    },
+    status: { state: 'SECURITY_GROUP_STATE_READY' },
+  },
+  {
+    id: 'sg-mgmt',
+    metadata: { name: 'mgmt-sg', createdAt: '2025-03-01T08:20:00Z' },
+    spec: {
+      virtualNetwork: 'vn-mgmt',
+      ingress: [
+        { protocol: 'PROTOCOL_TCP', portFrom: 22, portTo: 22, ipv4Cidr: '0.0.0.0/0' },
+        { protocol: 'PROTOCOL_ICMP', ipv4Cidr: '0.0.0.0/0' },
+      ],
+      egress: [{ protocol: 'PROTOCOL_ALL', ipv4Cidr: '0.0.0.0/0' }],
+    },
+    status: { state: 'SECURITY_GROUP_STATE_READY' },
+  },
+]
+
+export const DEMO_NETWORK_CLASSES: NetworkClass[] = [
+  {
+    id: 'udn-net',
+    metadata: { name: 'udn-net', createdAt: '2025-01-01T00:00:00Z' },
+    title: 'UDN Network',
+    description:
+      'User-Defined Networks backed by OpenShift UDN. Provides tenant-isolated L3 networking with flexible CIDR allocation. Recommended for most workloads.',
+    capabilities: { supportsIpv4: true, supportsIpv6: true, supportsDualStack: true },
+    status: { state: 'NETWORK_CLASS_STATE_READY' },
+    isDefault: true,
+  },
+  {
+    id: 'phys-net',
+    metadata: { name: 'phys-net', createdAt: '2025-01-01T00:00:00Z' },
+    title: 'Physical Network',
+    description:
+      'Networks backed by physical network infrastructure. Provides high-performance connectivity for latency-sensitive workloads. Requires pre-provisioned VLANs.',
+    capabilities: { supportsIpv4: true, supportsIpv6: true, supportsDualStack: true },
+    status: { state: 'NETWORK_CLASS_STATE_READY' },
+    isDefault: false,
+  },
+]
+
+export const DEMO_PUBLIC_IP_POOLS: PublicIPPool[] = [
+  {
+    id: 'pool-public-main',
+    metadata: { name: 'main-pool', createdAt: '2025-01-01T00:00:00Z' },
+    spec: { cidr: '203.0.113.0/24' },
+    status: { state: 'READY', availableCount: 200 },
+  },
+  {
+    id: 'pool-public-edge',
+    metadata: { name: 'edge-pool', createdAt: '2025-06-01T00:00:00Z' },
+    spec: { cidr: '198.51.100.0/26' },
+    status: { state: 'READY', availableCount: 60 },
+  },
+]
+
+export const DEMO_PUBLIC_IPS: PublicIP[] = [
+  {
+    id: 'pip-1',
+    metadata: { name: 'web-frontend-ip', createdAt: '2025-03-10T10:00:00Z' },
+    spec: { pool: 'pool-public-main', computeInstance: 'ci-001' },
+    status: { state: 'PUBLIC_IP_STATE_ATTACHED', address: '203.0.113.10', pool: 'pool-public-main' },
+  },
+  {
+    id: 'pip-2',
+    metadata: { name: 'spare-ip', createdAt: '2025-04-01T14:00:00Z' },
+    spec: { pool: 'pool-public-main' },
+    status: { state: 'PUBLIC_IP_STATE_ALLOCATED', address: '203.0.113.25', pool: 'pool-public-main' },
+  },
+  {
+    id: 'pip-3',
+    metadata: { name: 'pending-ip', createdAt: '2025-05-20T09:00:00Z' },
+    spec: { pool: 'pool-public-edge' },
+    status: { state: 'PUBLIC_IP_STATE_PENDING', pool: 'pool-public-edge' },
+  },
+]

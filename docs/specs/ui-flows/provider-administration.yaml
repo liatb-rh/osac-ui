@@ -22,6 +22,23 @@ rbac:
       view_security_placeholder: view_infrastructure
     pad_platform_settings_placeholder:
       view_platform_settings_placeholder: view_infrastructure
+    pad_agent_management:
+      view_agents: view_agents
+      provision_agent: manage_agents
+      deprovision_agent: manage_agents
+    pad_cluster_offerings:
+      view_cluster_catalog_items: view_cluster_catalog_items
+      create_cluster_offering: manage_cluster_offerings
+      edit_cluster_offering: manage_cluster_offerings
+      publish_cluster_offering: manage_cluster_offerings
+      delete_cluster_offering: manage_cluster_offerings
+    pad_storage_tiers:
+      view_storage_tiers: view_storage_tiers
+      edit_storage_tier: manage_storage_tiers
+    pad_all_clusters:
+      view_all_clusters: view_clusters
+    pad_network_classes:
+      view_network_classes: view_infrastructure
 
 applies_when: >-
   Authenticated shell with demoShellRole providerAdmin and Vertexa (vertexa) tenant context after
@@ -188,6 +205,319 @@ steps:
     interactions:
       - Read only.
 
+  - id: pad_agent_management
+    title: Agent management
+    goal: >-
+      Manage infrastructure agents — view state, hardware profile, inventory backend assignment.
+      Provision and deprovision agents. Monitor inventory backend health.
+
+    ui:
+      components:
+        - PageSection
+        - PageHeader
+        - Title
+        - Table
+        - Thead
+        - Tbody
+        - Tr
+        - Th
+        - Td
+        - Label
+        - Button
+        - Alert
+        - Card
+        - CardTitle
+        - CardBody
+        - DescriptionList
+        - DescriptionListGroup
+        - DescriptionListTerm
+        - DescriptionListDescription
+        - Spinner
+    ui_policy:
+      prefer_patternfly_primitives: true
+      minimize_raw_div_wrappers: true
+      max_raw_div_wrappers: 1
+
+    states:
+      - loading
+      - populated
+      - empty_no_agents
+      - error_load_failed
+      - provisioning_agent
+
+    interactions:
+      - >-
+        Page header "Agent Management" with subtitle "Provision and manage infrastructure agents for
+        OpenShift cluster deployment."
+      - >-
+        Agents table columns: Agent ID, State (Label: AVAILABLE green / PROVISIONING blue+Spinner /
+        PROVISIONED green / DEPROVISIONING yellow / UNAVAILABLE red), Hardware Profile, Cluster Ref
+        (linked cluster name or "—"), Inventory Backend, Actions (kebab: Provision / Deprovision).
+        Provision action calls POST /api/fulfillment/v1/agents/{id}/provision.
+        Deprovision action calls POST /api/fulfillment/v1/agents/{id}/deprovision; disabled unless
+        agent state is PROVISIONED.
+      - >-
+        Inventory Backends section (below agents table): Card per backend showing name, status
+        (Connected green / Disconnected red), endpoint URL, last sync time. Read-only in this phase.
+      - Error state: inline danger Alert with Retry.
+
+    design_system_alignment:
+      accessibility_policy:
+        - Agent state Labels include visually-hidden state text for screen readers.
+
+  - id: pad_cluster_offerings
+    title: Cluster offerings management
+    goal: >-
+      Provider CRUD for ClusterCatalogItems — create, edit, publish/unpublish, delete.
+      Configure allowed OCP versions and which fields are editable by tenant users.
+
+    ui:
+      components:
+        - PageSection
+        - PageHeader
+        - Title
+        - Table
+        - Thead
+        - Tbody
+        - Tr
+        - Th
+        - Td
+        - Label
+        - Switch
+        - Button
+        - ActionsColumn
+        - Modal
+        - ModalHeader
+        - ModalBody
+        - ModalFooter
+        - Form
+        - FormGroup
+        - TextInput
+        - TextArea
+        - NumberInput
+        - ChipGroup
+        - Chip
+        - Select
+        - SelectOption
+        - Alert
+    ui_policy:
+      prefer_patternfly_primitives: true
+      minimize_raw_div_wrappers: true
+      max_raw_div_wrappers: 1
+
+    states:
+      - loading
+      - populated
+      - empty_no_offerings
+      - error_load_failed
+      - creating_offering
+      - editing_offering
+
+    interactions:
+      - >-
+        Page header "Cluster Offerings" with subtitle "Define the OpenShift cluster types available
+        for tenant provisioning."
+      - >-
+        Table columns: ID/Name, Description, Template, Allowed Versions (comma-separated), Published
+        (Switch toggle), Actions (kebab: Edit, Delete).
+        Published toggle calls PATCH /api/fulfillment/v1/cluster_catalog_items/{id} with { published }.
+        Delete calls DELETE /api/fulfillment/v1/cluster_catalog_items/{id} with confirm modal.
+      - >-
+        "Create offering" primary button opens a create modal with:
+          ID (required TextInput; slug format)
+          Title (required TextInput)
+          Description (TextArea)
+          Template (TextInput; OpenShift cluster template identifier)
+          Allowed Versions (multi-select ChipGroup; semver strings like "4.17.3", "4.18.0")
+          Published (Switch; default off)
+          Field Definitions section: table of editable fields with path, display_name, default value,
+          validation_schema editor.
+        Submit calls POST /api/fulfillment/v1/cluster_catalog_items.
+      - >-
+        Edit opens the same modal pre-filled with existing values.
+        Submit calls PATCH /api/fulfillment/v1/cluster_catalog_items/{id}.
+
+    design_system_alignment:
+      accessibility_policy:
+        - Published Switch has aria-label="Toggle published state for {item.title}".
+        - Create/Edit modal has aria-labelledby.
+
+  - id: pad_storage_tiers
+    title: Storage tiers
+    goal: >-
+      Monitor VAST environment status and manage storage tier definitions. Configure QoS, VIP pools,
+      StorageClass names, per-tenant availability, and per-cluster storage readiness.
+
+    ui:
+      components:
+        - PageSection
+        - PageHeader
+        - Title
+        - Card
+        - CardTitle
+        - CardBody
+        - Table
+        - Thead
+        - Tbody
+        - Tr
+        - Th
+        - Td
+        - Label
+        - Switch
+        - Button
+        - Modal
+        - ModalHeader
+        - ModalBody
+        - ModalFooter
+        - Form
+        - FormGroup
+        - TextInput
+        - ChipGroup
+        - Chip
+        - Select
+        - SelectOption
+        - Alert
+    ui_policy:
+      prefer_patternfly_primitives: true
+      minimize_raw_div_wrappers: true
+      max_raw_div_wrappers: 2
+
+    states:
+      - loading
+      - populated
+      - error_load_failed
+      - editing_tier
+
+    interactions:
+      - >-
+        Page header "Storage Tiers" with subtitle "Manage VAST storage tier definitions for cluster
+        persistent storage."
+      - >-
+        VAST Environment Status Card (top): connectivity indicator (Connected green / Disconnected red),
+        endpoint URL, VAST version, last sync timestamp. Read-only.
+      - >-
+        Storage Tiers table columns: Name, QoS Class, VIP Pool, StorageClass Name, Enabled For,
+        Available (Switch toggle). "Enabled For" shows the count of tenants this tier is available
+        to (e.g. "2 tenants" or "All tenants" when available_tenant_ids is empty).
+        Toggle calls PATCH /api/fulfillment/v1/storage_tiers/{id} with { available }.
+        "Edit" action opens modal to update tier properties.
+      - >-
+        Edit tier modal fields: Name (TextInput), QoS Class (TextInput), VIP Pool (TextInput),
+        StorageClass Name (TextInput), Tenant Availability (multi-select ChipGroup — select which
+        tenant orgs have this tier enabled; empty selection means available to all tenants).
+        Submit calls PATCH /api/fulfillment/v1/storage_tiers/{id} with { available_tenant_ids }.
+      - >-
+        Per-Cluster Storage Readiness grid (below tiers table): table of all clusters (cross-tenant)
+        with columns Cluster Name, Tenant, Compute State (Label), Storage Readiness (Label:
+        Ready / Provisioning / Not provisioned). "Provisioning" means the cluster is
+        CLUSTER_STATE_READY but storageReady !== true (CSI install in progress or not yet triggered).
+        Read-only; sourced from GET /api/fulfillment/v1/clusters (providerAdmin scoped).
+
+    design_system_alignment:
+      accessibility_policy:
+        - Availability Switch has aria-label="Toggle availability for tier {tier.name}".
+
+  - id: pad_all_clusters
+    title: All clusters
+    goal: >-
+      Cross-tenant clusters overview for provider admin. Read-only table of all clusters across all
+      tenants with filtering by status, tenant, and OCP version.
+
+    ui:
+      components:
+        - PageSection
+        - PageHeader
+        - Title
+        - Table
+        - Thead
+        - Tbody
+        - Tr
+        - Th
+        - Td
+        - Label
+        - Spinner
+        - Toolbar
+        - ToolbarContent
+        - ToolbarItem
+        - SearchInput
+        - Select
+        - SelectOption
+        - Alert
+    ui_policy:
+      prefer_patternfly_primitives: true
+      minimize_raw_div_wrappers: true
+      max_raw_div_wrappers: 1
+
+    states:
+      - loading
+      - populated
+      - empty_no_clusters
+      - error_load_failed
+
+    interactions:
+      - >-
+        Page header "All Clusters" with subtitle "Cross-tenant OpenShift cluster overview."
+      - >-
+        Toolbar with search (filter by name), status filter Select (All / Provisioning / Ready /
+        Failed / Upgrading), and tenant filter Select (All / Northstar / Evergreen / ...).
+      - >-
+        Table columns: Name, Tenant, Status (Label+Spinner same as tenant user list), Storage Readiness,
+        OCP Version, Virtual Network, Worker Count, Created.
+        Read-only; no row actions in this phase.
+      - Error state: inline danger Alert with Retry.
+
+    design_system_alignment:
+      accessibility_policy:
+        - Toolbar filter Selects have aria-label descriptors.
+        - Status Labels include visually-hidden state text.
+
+  - id: pad_network_classes
+    title: Network classes
+    goal: >-
+      Read-only catalog of available NetworkClasses that tenants can use when creating
+      VirtualNetworks; shows capabilities and operational state.
+
+    ui:
+      components:
+        - PageSection
+        - PageHeader
+        - Gallery
+        - Card
+        - CardHeader
+        - CardTitle
+        - CardBody
+        - CardFooter
+        - Label
+        - LabelGroup
+        - Spinner
+        - EmptyState
+        - EmptyStateBody
+        - Alert
+    ui_policy:
+      prefer_patternfly_primitives: true
+      minimize_raw_div_wrappers: true
+      max_raw_div_wrappers: 1
+
+    states:
+      - loading
+      - populated
+      - empty_no_network_classes
+      - error_load_failed
+
+    interactions:
+      - >-
+        Page header: "Network Classes" with subtitle "Available network backends for virtual network
+        provisioning."
+      - >-
+        Card gallery (minWidths 280px) — one card per NetworkClass.
+        Card header: title + isDefault badge ("Default" blue Label).
+        Card body: description (Markdown rendered as plain text in prototype).
+        Card footer: capability Labels (IPv4, IPv6, Dual-stack) as LabelGroup; State Label
+        (green=READY, blue=PENDING, red=FAILED).
+      - >-
+        Read-only — no create/edit/delete actions (provider configures NetworkClasses via operator).
+      - Error state: inline danger Alert with Retry.
+
 transitions:
   - from: auth_post_login_transition
     action: complete login as provider admin
@@ -225,5 +555,26 @@ transitions:
   - from: shell_primary_workspace
     action: select platform settings nav under system
     to: pad_platform_settings_placeholder
+  - from: pad_dashboard_home
+    action: navigate to agent management tile
+    to: pad_agent_management
+  - from: shell_primary_workspace
+    action: select agents nav under CaaS
+    to: pad_agent_management
+  - from: shell_primary_workspace
+    action: select cluster offerings nav under CaaS
+    to: pad_cluster_offerings
+  - from: shell_primary_workspace
+    action: select storage tiers nav under CaaS
+    to: pad_storage_tiers
+  - from: shell_primary_workspace
+    action: select all clusters nav under CaaS
+    to: pad_all_clusters
+  - from: shell_primary_workspace
+    action: select network classes nav under Management
+    to: pad_network_classes
 
-validation_rules: []
+validation_rules:
+  - Deprovision action requires agent to be in PROVISIONED state.
+  - Cluster offering IDs must be unique slugs.
+  - allowed_versions must be valid semver strings.

@@ -10,6 +10,9 @@ context:
   catalogItemId: null
   clusterName: null
   listPollActive: false
+  selectedVirtualNetworkId: null
+  upgradeTargetVersion: null
+  kubeconfigDownloading: false
 
 initial: csc_clusters_list
 
@@ -41,6 +44,11 @@ states:
           - DELETE /api/fulfillment/v1/clusters/{id}
           - invalidate clusters query key
           - clear selectedClusterId if matches deleted id
+      CLICK_UPGRADE_CLUSTER:
+        target: csc_upgrade_cluster_modal
+        guard: can(role, "upgrade_cluster")
+        actions:
+          - assign selectedClusterId from clicked row
       POLL_TICK:
         target: csc_clusters_list
         guard: listPollActive === true
@@ -57,11 +65,16 @@ states:
       - view_clusters
       - scale_cluster_nodes
       - delete_cluster
+      - upgrade_cluster
+      - download_kubeconfig
     substates:
-      tab_overview_active: DescriptionList of cluster fields
+      tab_overview_active: DescriptionList of cluster fields including OCP version
       tab_node_sets_active: Table of spec.node_sets and status.node_sets with inline scale control
+      tab_networking_active: DescriptionList of VN/subnet/SGs and status network IPs and DNS
+      tab_storage_active: StorageReadiness label, CSI driver field, StorageClasses table
       tab_conditions_active: Table of status.conditions
       scaling_node_set: PATCH in-flight; row shows Spinner; scale input disabled
+      kubeconfig_downloading: GET /clusters/{id}/kubeconfig in-flight; download button shows Spinner
     on:
       CLOSE_DRAWER:
         target: csc_clusters_list
@@ -77,10 +90,23 @@ states:
         actions:
           - PATCH /api/fulfillment/v1/clusters/{id} with updated spec.node_sets entry
           - invalidate clusters query key on success
+      CLICK_UPGRADE_CLUSTER:
+        target: csc_upgrade_cluster_modal
+        guard: can(role, "upgrade_cluster")
+        guard_condition: cluster.status.state === "CLUSTER_STATE_READY" && hasNewerAllowedVersion
+      CLICK_DOWNLOAD_KUBECONFIG:
+        target: csc_cluster_detail_drawer
+        guard: can(role, "download_kubeconfig")
+        guard_condition: cluster.status.state === "CLUSTER_STATE_READY"
+        actions:
+          - assign kubeconfigDownloading = true
+          - GET /api/fulfillment/v1/clusters/{id}/kubeconfig
+          - trigger browser file download as kubeconfig.yaml
+          - assign kubeconfigDownloading = false on complete or error
       CONFIRM_DELETE_CLUSTER:
         target: csc_clusters_list
         guard: can(role, "delete_cluster")
-        guard_condition: cluster.status.state !== "CLUSTER_STATE_PROGRESSING"
+        guard_condition: cluster.status.state !== "CLUSTER_STATE_PROGRESSING" && cluster.status.state !== "CLUSTER_STATE_UPGRADING"
         actions:
           - DELETE /api/fulfillment/v1/clusters/{id}
           - close drawer
@@ -95,6 +121,7 @@ states:
       catalog_loaded: catalog items rendered as selectable cards
       catalog_error: catalog fetch failed; danger Alert inside modal; Cancel or Retry available
       catalog_item_selected: user picked a catalog item; form fields rendered from field_definitions
+      networking_virtualnetwork_selected: VirtualNetwork chosen; subnet select repopulates from subnets API
       form_invalid: client validation failed on submit; field-level errors shown
       submitting: POST in-flight; primary button shows Spinner; inputs disabled
       submit_error: POST returned error; danger Alert inside modal; inputs re-enabled
@@ -103,6 +130,7 @@ states:
         target: csc_clusters_list
         actions:
           - assign catalogItemId = null
+          - assign selectedVirtualNetworkId = null
           - clear form state
       SELECT_CATALOG_ITEM:
         target: csc_create_cluster_modal
@@ -114,12 +142,19 @@ states:
         target: csc_create_cluster_modal
         actions:
           - assign catalogItemId = null
+          - assign selectedVirtualNetworkId = null
           - clear form state
+      SELECT_VIRTUAL_NETWORK:
+        target: csc_create_cluster_modal
+        actions:
+          - assign selectedVirtualNetworkId from form selection
+          - clear subnet selection
+          - refetch GET /api/fulfillment/v1/subnets?virtual_network_id={selectedVirtualNetworkId}
       SUBMIT_CREATE_CLUSTER:
         target: csc_clusters_list
-        guard: can(role, "open_create_cluster") && form is valid
+        guard: can(role, "open_create_cluster") && form is valid && virtualNetworkId is set && subnetId is set
         actions:
-          - POST /api/fulfillment/v1/clusters (body includes spec.catalog_item, metadata.name, user field values)
+          - POST /api/fulfillment/v1/clusters (body includes spec.catalog_item, metadata.name, user field values, spec.network)
           - on success close modal, invalidate clusters query key, show provisioning row
           - on error stay in csc_create_cluster_modal with submit_error substate
       RETRY_CATALOG_LOAD:
@@ -127,20 +162,51 @@ states:
         actions:
           - refetch GET /api/fulfillment/v1/cluster_catalog_items
 
+  csc_upgrade_cluster_modal:
+    permissions:
+      - upgrade_cluster
+    substates:
+      open: upgrade form displayed with current and target version
+      submitting: POST /clusters/{id}/upgrade in-flight; button shows Spinner; inputs disabled
+      submit_error: POST returned error; danger Alert inside modal; inputs re-enabled
+    on:
+      CANCEL_UPGRADE_MODAL:
+        target: csc_clusters_list
+        actions:
+          - assign upgradeTargetVersion = null
+      SELECT_UPGRADE_VERSION:
+        target: csc_upgrade_cluster_modal
+        actions:
+          - assign upgradeTargetVersion from form selection
+      SUBMIT_UPGRADE_CLUSTER:
+        target: csc_clusters_list
+        guard: can(role, "upgrade_cluster") && upgradeTargetVersion is set
+        actions:
+          - POST /api/fulfillment/v1/clusters/{id}/upgrade with { target_version: upgradeTargetVersion }
+          - on success close modal, invalidate clusters query key, show upgrading row
+          - on error stay in csc_upgrade_cluster_modal with submit_error substate
+
 ai-hints:
   summary: >-
-    Cluster list/detail/create machine for tenantUser. List polls every 15s while any cluster is
-    PROGRESSING; polling stops when all READY or FAILED. Detail drawer is an inline Drawer (not a
-    modal); tabs share a single TanStack Query cluster cache entry (GET by id refetched on open).
-    Create modal is two-step: catalog selection → form; no BFF session needed (stateless modal form).
-    Delete blocked on PROGRESSING state with disabled action and tooltip. Node scaling is inline PATCH
-    on the Node Sets tab. No clone or migrate actions in this phase.
+    Cluster list/detail/create/upgrade machine for tenantUser. List polls every 15s while any cluster is
+    PROGRESSING or UPGRADING; polling stops when all READY, FAILED, or UPGRADE_FAILED. Detail drawer is
+    an inline Drawer (not a modal); tabs share a single TanStack Query cluster cache entry. Create modal
+    is two-step: catalog selection → form (with networking); no BFF session needed (stateless modal form).
+    Upgrade modal requires READY state and an available newer allowed_version. Delete blocked on PROGRESSING
+    or UPGRADING state. Node scaling is inline PATCH on the Node Sets tab.
   query_keys:
     clusters_list: ["clusters", tenantId]
     cluster_detail: ["clusters", id]
     cluster_catalog_items: ["cluster_catalog_items"]
+    virtual_networks: ["virtual_networks"]
+    subnets: ["subnets", virtualNetworkId]
+    security_groups: ["security_groups"]
   poll_interval_ms: 15000
   impossibleStates:
     - csc_cluster_detail_drawer with selectedClusterId=null
     - SUBMIT_CREATE_CLUSTER guard true with catalogItemId=null
     - CONFIRM_DELETE_CLUSTER when cluster.status.state === "CLUSTER_STATE_PROGRESSING"
+    - CONFIRM_DELETE_CLUSTER when cluster.status.state === "CLUSTER_STATE_UPGRADING"
+    - SUBMIT_UPGRADE_CLUSTER with upgradeTargetVersion=null
+    - CLICK_DOWNLOAD_KUBECONFIG when cluster.status.state !== "CLUSTER_STATE_READY"
+    - networking_virtualnetwork_selected with selectedVirtualNetworkId=null

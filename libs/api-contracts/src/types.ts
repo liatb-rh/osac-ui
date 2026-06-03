@@ -139,8 +139,47 @@ export interface OsacEvent {
 }
 
 // ---------------------------------------------------------------------------
-// Organizations
+// Organizations & Identity
 // ---------------------------------------------------------------------------
+
+export type IdpType = 'LDAP' | 'ActiveDirectory' | 'OIDC' | 'SAML'
+export type IdpStatus = 'CONNECTED' | 'DEGRADED' | 'DISCONNECTED' | 'UNCONFIGURED'
+
+export interface IdentityProvider {
+  type: IdpType
+  /** OIDC issuer URL or LDAP host endpoint */
+  issuerUrl?: string
+  /** OIDC client ID only */
+  clientId?: string
+  status: IdpStatus
+  lastHealthCheck?: string
+}
+
+export interface OrgProject {
+  id: string
+  name: string
+  /** e.g. osac-org-northstar-project-default */
+  openshiftNamespace: string
+  createdAt: string
+}
+
+export interface TenantAdmin {
+  id: string
+  email: string
+  /** true = stored directly in Keycloak, not routed via org IdP */
+  isBreakGlass: boolean
+  createdAt: string
+}
+
+export type OsacSystemRole = 'cloud-provider-admin' | 'cloud-provider-reader' | 'catalog-curator'
+export type OsacOrgRole = 'tenant-admin' | 'tenant-reader' | 'tenant-user'
+
+export interface RoleAssignment {
+  /** User email or IdP group name */
+  subject: string
+  role: OsacSystemRole | OsacOrgRole
+  source: 'break-glass' | 'idp-group'
+}
 
 export interface Organization {
   id: string
@@ -149,6 +188,12 @@ export interface Organization {
   description?: string
   status?: string
   vmCount?: number
+  /** Keycloak realm name for this organization */
+  realm?: string
+  idp?: IdentityProvider
+  tenantAdmins?: TenantAdmin[]
+  projects?: OrgProject[]
+  clusterCount?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -184,18 +229,315 @@ export type DemoShellRole = 'providerAdmin' | 'tenantAdmin' | 'tenantUser'
 export type OsType = 'rhel' | 'windows' | 'linux'
 
 // ---------------------------------------------------------------------------
-// Network topology (UI-level)
+// Networking resources (proto-aligned)
 // ---------------------------------------------------------------------------
+
+export interface ResourceMetadata {
+  name: string
+  labels?: Record<string, string>
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type VirtualNetworkState =
+  | 'VIRTUAL_NETWORK_STATE_UNSPECIFIED'
+  | 'VIRTUAL_NETWORK_STATE_PENDING'
+  | 'VIRTUAL_NETWORK_STATE_READY'
+  | 'VIRTUAL_NETWORK_STATE_FAILED'
+
+export interface VirtualNetworkCapabilities {
+  enableIpv4?: boolean
+  enableIpv6?: boolean
+  enableDualStack?: boolean
+}
+
+export interface VirtualNetworkSpec {
+  networkClass?: string
+  ipv4Cidr?: string
+  ipv6Cidr?: string
+  capabilities?: VirtualNetworkCapabilities
+}
+
+export interface VirtualNetworkStatus {
+  state: VirtualNetworkState
+  message?: string
+}
 
 export interface VirtualNetwork {
   id: string
-  name: string
-  cidr?: string
-  subnets?: Subnet[]
+  metadata: ResourceMetadata
+  spec: VirtualNetworkSpec
+  status: VirtualNetworkStatus
+}
+
+export type SubnetState =
+  | 'SUBNET_STATE_UNSPECIFIED'
+  | 'SUBNET_STATE_PENDING'
+  | 'SUBNET_STATE_READY'
+  | 'SUBNET_STATE_FAILED'
+  | 'SUBNET_STATE_DELETING'
+  | 'SUBNET_STATE_DELETE_FAILED'
+
+export interface SubnetSpec {
+  virtualNetwork: string
+  ipv4Cidr?: string
+  ipv6Cidr?: string
+}
+
+export interface SubnetStatus {
+  state: SubnetState
+  message?: string
 }
 
 export interface Subnet {
   id: string
+  metadata: ResourceMetadata
+  spec: SubnetSpec
+  status: SubnetStatus
+}
+
+export type Protocol = 'PROTOCOL_UNSPECIFIED' | 'PROTOCOL_TCP' | 'PROTOCOL_UDP' | 'PROTOCOL_ICMP' | 'PROTOCOL_ALL'
+
+export interface SecurityRule {
+  protocol: Protocol
+  portFrom?: number
+  portTo?: number
+  ipv4Cidr?: string
+  ipv6Cidr?: string
+}
+
+export type SecurityGroupState =
+  | 'SECURITY_GROUP_STATE_UNSPECIFIED'
+  | 'SECURITY_GROUP_STATE_PENDING'
+  | 'SECURITY_GROUP_STATE_READY'
+  | 'SECURITY_GROUP_STATE_FAILED'
+  | 'SECURITY_GROUP_STATE_DELETING'
+  | 'SECURITY_GROUP_STATE_DELETE_FAILED'
+
+export interface SecurityGroupSpec {
+  virtualNetwork: string
+  ingress?: SecurityRule[]
+  egress?: SecurityRule[]
+}
+
+export interface SecurityGroupStatus {
+  state: SecurityGroupState
+  message?: string
+}
+
+export interface SecurityGroup {
+  id: string
+  metadata: ResourceMetadata
+  spec: SecurityGroupSpec
+  status: SecurityGroupStatus
+}
+
+export type NetworkClassState =
+  | 'NETWORK_CLASS_STATE_UNSPECIFIED'
+  | 'NETWORK_CLASS_STATE_PENDING'
+  | 'NETWORK_CLASS_STATE_READY'
+  | 'NETWORK_CLASS_STATE_FAILED'
+
+export interface NetworkClassCapabilities {
+  supportsIpv4?: boolean
+  supportsIpv6?: boolean
+  supportsDualStack?: boolean
+}
+
+export interface NetworkClass {
+  id: string
+  metadata: ResourceMetadata
+  title: string
+  description?: string
+  capabilities: NetworkClassCapabilities
+  status: { state: NetworkClassState; message?: string }
+  isDefault?: boolean
+}
+
+export type PublicIPState =
+  | 'PUBLIC_IP_STATE_UNSPECIFIED'
+  | 'PUBLIC_IP_STATE_PENDING'
+  | 'PUBLIC_IP_STATE_ALLOCATED'
+  | 'PUBLIC_IP_STATE_ATTACHING'
+  | 'PUBLIC_IP_STATE_ATTACHED'
+  | 'PUBLIC_IP_STATE_RELEASING'
+  | 'PUBLIC_IP_STATE_FAILED'
+
+export interface PublicIPSpec {
+  pool: string
+  computeInstance?: string
+}
+
+export interface PublicIPStatus {
+  state: PublicIPState
+  message?: string
+  address?: string
+  pool?: string
+}
+
+export interface PublicIP {
+  id: string
+  metadata: ResourceMetadata
+  spec: PublicIPSpec
+  status: PublicIPStatus
+}
+
+export interface PublicIPPool {
+  id: string
+  metadata: ResourceMetadata
+  spec: { cidr?: string }
+  status: { state?: string; availableCount?: number }
+}
+
+// ---------------------------------------------------------------------------
+// Clusters (CaaS)
+// ---------------------------------------------------------------------------
+
+export type ClusterState =
+  | 'CLUSTER_STATE_PROGRESSING'
+  | 'CLUSTER_STATE_READY'
+  | 'CLUSTER_STATE_FAILED'
+  | 'CLUSTER_STATE_UPGRADING'
+  | 'CLUSTER_STATE_UPGRADE_FAILED'
+  | 'CLUSTER_STATE_UNSPECIFIED'
+
+export interface ClusterNodeSet {
+  hostType?: string
+  size: number
+}
+
+export interface ClusterSpecNetwork {
+  podCidr?: string
+  serviceCidr?: string
+  virtualNetworkRef?: string
+  subnetRef?: string
+  securityGroupRefs?: string[]
+}
+
+export interface ClusterSpec {
+  catalogItem?: string
+  template?: string
+  templateParameters?: Record<string, unknown>
+  nodeSets?: Record<string, ClusterNodeSet>
+  releaseImage?: string
+  sshPublicKey?: string
+  network?: ClusterSpecNetwork
+}
+
+export interface ClusterCondition {
+  type: string
+  status: string
+  reason?: string
+  message?: string
+  lastTransitionTime?: string
+}
+
+export interface ClusterStatusNetwork {
+  apiPublicIp?: string
+  ingressPublicIp?: string
+  dnsRecords?: string[]
+}
+
+export interface ClusterStorageClass {
   name: string
-  cidr?: string
+  /** StorageTier id this class was created for (e.g. "fast", "standard", "archive"). */
+  tier?: string
+  isDefault?: boolean
+  parameters?: Record<string, string>
+}
+
+export interface VolumeSnapshotClass {
+  name: string
+  driver?: string
+  /** "Retain" or "Delete" */
+  deletionPolicy?: string
+  isDefault?: boolean
+}
+
+export interface ClusterStorageStatus {
+  csiDriver?: string
+  storageClasses?: ClusterStorageClass[]
+  volumeSnapshotClasses?: VolumeSnapshotClass[]
+}
+
+export interface ClusterStatus {
+  state: ClusterState
+  conditions?: ClusterCondition[]
+  apiUrl?: string
+  consoleUrl?: string
+  nodeSets?: Record<string, ClusterNodeSet>
+  version?: string
+  upgradeState?: string
+  storageReady?: boolean
+  storage?: ClusterStorageStatus
+  network?: ClusterStatusNetwork
+}
+
+export interface Cluster {
+  id: string
+  metadata: Metadata
+  spec: ClusterSpec
+  status: ClusterStatus
+}
+
+export interface ClusterFieldDefinition {
+  path: string
+  displayName: string
+  editable: boolean
+  default?: unknown
+  validationSchema?: string
+}
+
+export interface ClusterCatalogItem {
+  id: string
+  metadata?: Metadata
+  title: string
+  description?: string
+  template?: string
+  published: boolean
+  allowedVersions?: string[]
+  fieldDefinitions?: ClusterFieldDefinition[]
+}
+
+// ---------------------------------------------------------------------------
+// Agents (CaaS infrastructure)
+// ---------------------------------------------------------------------------
+
+export type AgentState =
+  | 'AGENT_STATE_AVAILABLE'
+  | 'AGENT_STATE_PROVISIONING'
+  | 'AGENT_STATE_PROVISIONED'
+  | 'AGENT_STATE_DEPROVISIONING'
+  | 'AGENT_STATE_UNAVAILABLE'
+
+export interface Agent {
+  id: string
+  metadata?: Metadata
+  state: AgentState
+  hardwareProfile?: string
+  clusterRef?: string
+  inventoryBackend?: string
+}
+
+export interface InventoryBackend {
+  id: string
+  name: string
+  status: 'CONNECTED' | 'DISCONNECTED'
+  endpointUrl?: string
+  lastSyncTime?: string
+}
+
+// ---------------------------------------------------------------------------
+// Storage tiers (CaaS VAST storage)
+// ---------------------------------------------------------------------------
+
+export interface StorageTier {
+  id: string
+  name: string
+  qosClass?: string
+  vipPool?: string
+  storageClassName?: string
+  available: boolean
+  /** Tenant IDs for which this tier is enabled. Empty = available to all tenants. */
+  availableTenantIds?: string[]
 }

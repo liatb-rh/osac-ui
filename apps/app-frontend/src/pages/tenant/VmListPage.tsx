@@ -100,7 +100,7 @@ function VmInlineDetailField({ label, value }: { label: string; value: string })
       <span
         style={{
           fontWeight: 500,
-          color: 'rgba(32, 37, 43, 0.82)',
+          color: 'var(--pf-t--global--text--color--subtle)',
         }}
       >
         {label}
@@ -120,8 +120,8 @@ function VmDetailField({ label, value }: { label: string; value: string }) {
             margin: 0,
             textTransform: 'uppercase',
             letterSpacing: '0.02em',
-            fontWeight: 500,
-            color: 'rgba(32, 37, 43, 0.82)',
+          fontWeight: 500,
+          color: 'var(--pf-t--global--text--color--subtle)',
           }}
         >
           {label}

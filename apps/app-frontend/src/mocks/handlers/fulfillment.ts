@@ -1,11 +1,41 @@
 import { http, HttpResponse } from 'msw'
 import {
+  DEMO_NETWORK_CLASSES,
   DEMO_ORGANIZATIONS,
+  DEMO_PUBLIC_IP_POOLS,
+  DEMO_PUBLIC_IPS,
+  DEMO_SECURITY_GROUPS,
+  DEMO_SUBNETS,
+  DEMO_VIRTUAL_NETWORKS,
   VM_TEMPLATES,
   normalizeComputeInstance,
 } from '@osac/api-contracts'
-import type { ComputeInstance } from '@osac/api-contracts'
+import type { ComputeInstance, NetworkClass, PublicIP, SecurityGroup, Subnet, VirtualNetwork } from '@osac/api-contracts'
 import { vmStore } from '../vm-store'
+import {
+  agentStore,
+  catalogItemStore,
+  clusterStore,
+  generateKubeconfig,
+  scheduleClusterProgressing,
+  scheduleClusterUpgrade,
+  storageTierStore,
+} from '../cluster-store'
+
+// ---------------------------------------------------------------------------
+// In-memory networking stores (initialized from DEMO data)
+// ---------------------------------------------------------------------------
+
+const vnStore = new Map<string, VirtualNetwork>(DEMO_VIRTUAL_NETWORKS.map((vn) => [vn.id, vn]))
+const subnetStore = new Map<string, Subnet>(DEMO_SUBNETS.map((s) => [s.id, s]))
+const sgStore = new Map<string, SecurityGroup>(DEMO_SECURITY_GROUPS.map((sg) => [sg.id, sg]))
+const networkClassStore = new Map<string, NetworkClass>(DEMO_NETWORK_CLASSES.map((nc) => [nc.id, nc]))
+const publicIPStore = new Map<string, PublicIP>(DEMO_PUBLIC_IPS.map((pip) => [pip.id, pip]))
+
+let _idCounter = 1000
+function nextId(prefix: string): string {
+  return `${prefix}-${++_idCounter}`
+}
 
 const PREFIX = '/api/fulfillment/v1'
 
@@ -130,39 +160,380 @@ export const fulfillmentHandlers = [
     }),
   ),
 
+  // ---------------------------------------------------------------------------
   // Clusters
-  http.get(`${PREFIX}/clusters`, () => {
-    const items = DEMO_ORGANIZATIONS.map((o) => ({ id: o.id, name: o.displayName }))
-    return HttpResponse.json({ size: items.length, total: items.length, items })
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/clusters`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get('limit') ?? '100', 10)
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const all = Array.from(clusterStore.values())
+    const page = all.slice(offset, offset + limit)
+    return HttpResponse.json({ size: page.length, total: all.length, items: page })
   }),
 
+  http.get(`${PREFIX}/clusters/:id`, ({ params }) => {
+    const cluster = clusterStore.get(params.id as string)
+    if (!cluster) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(cluster)
+  }),
+
+  http.post(`${PREFIX}/clusters`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>
+    const id = `cluster-${Date.now()}`
+    const cluster = {
+      id,
+      metadata: {
+        name: (asNestedRecord(body.metadata).name as string) ?? id,
+        createdAt: new Date().toISOString(),
+      },
+      spec: body.spec ?? {},
+      status: { state: 'CLUSTER_STATE_PROGRESSING', conditions: [] },
+    }
+    clusterStore.set(id, cluster as Parameters<typeof clusterStore.set>[1])
+    scheduleClusterProgressing(id)
+    return HttpResponse.json(cluster, { status: 201 })
+  }),
+
+  http.patch(`${PREFIX}/clusters/:id`, async ({ params, request }) => {
+    const id = params.id as string
+    const existing = clusterStore.get(id)
+    if (!existing) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = (await request.json()) as Record<string, unknown>
+    const updated = {
+      ...existing,
+      spec: { ...existing.spec, ...(asNestedRecord(body.spec)) },
+      metadata: { ...existing.metadata, ...(asNestedRecord(body.metadata)) },
+    }
+    clusterStore.set(id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  http.delete(`${PREFIX}/clusters/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!clusterStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    clusterStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post(`${PREFIX}/clusters/:id/upgrade`, async ({ params, request }) => {
+    const id = params.id as string
+    const cluster = clusterStore.get(id)
+    if (!cluster) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = (await request.json()) as { target_version?: string }
+    const targetVersion = body.target_version ?? ''
+    const upgraded = {
+      ...cluster,
+      status: { ...cluster.status, state: 'CLUSTER_STATE_UPGRADING' as const, upgradeState: `Upgrading to ${targetVersion}` },
+    }
+    clusterStore.set(id, upgraded)
+    scheduleClusterUpgrade(id, targetVersion)
+    return HttpResponse.json(upgraded)
+  }),
+
+  http.get(`${PREFIX}/clusters/:id/kubeconfig`, ({ params }) => {
+    const cluster = clusterStore.get(params.id as string)
+    if (!cluster) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return new HttpResponse(generateKubeconfig(cluster), {
+      headers: { 'Content-Type': 'application/yaml' },
+    })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Cluster catalog items
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/cluster_catalog_items`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const includeUnpublished = url.searchParams.get('include_unpublished') === 'true'
+    const all = Array.from(catalogItemStore.values()).filter(
+      (c) => includeUnpublished || c.published,
+    )
+    const page = all.slice(offset, offset + limit)
+    return HttpResponse.json({ size: page.length, total: all.length, items: page })
+  }),
+
+  http.get(`${PREFIX}/cluster_catalog_items/:id`, ({ params }) => {
+    const item = catalogItemStore.get(params.id as string)
+    if (!item) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Agents
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/agents`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get('limit') ?? '100', 10)
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const all = Array.from(agentStore.values())
+    const page = all.slice(offset, offset + limit)
+    return HttpResponse.json({ size: page.length, total: all.length, items: page })
+  }),
+
+  http.post(`${PREFIX}/agents/:id/provision`, ({ params }) => {
+    const id = params.id as string
+    const agent = agentStore.get(id)
+    if (!agent) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const updated = { ...agent, state: 'AGENT_STATE_AVAILABLE' as const }
+    agentStore.set(id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  http.post(`${PREFIX}/agents/:id/deprovision`, ({ params }) => {
+    const id = params.id as string
+    const agent = agentStore.get(id)
+    if (!agent) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const updated = { ...agent, state: 'AGENT_STATE_UNAVAILABLE' as const, clusterRef: undefined }
+    agentStore.set(id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Storage tiers
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/storage_tiers`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get('limit') ?? '100', 10)
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const all = Array.from(storageTierStore.values())
+    const page = all.slice(offset, offset + limit)
+    return HttpResponse.json({ size: page.length, total: all.length, items: page })
+  }),
+
+  http.patch(`${PREFIX}/storage_tiers/:id`, async ({ params, request }) => {
+    const id = params.id as string
+    const tier = storageTierStore.get(id)
+    if (!tier) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = (await request.json()) as Record<string, unknown>
+    const updated = { ...tier, ...body }
+    storageTierStore.set(id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  // ---------------------------------------------------------------------------
   // Virtual networks
+  // ---------------------------------------------------------------------------
+
   http.get(`${PREFIX}/virtual_networks`, () => {
-    const items = [
-      { id: 'vn-prod', name: 'prod-network', cidr: '10.10.0.0/16' },
-      { id: 'vn-dev', name: 'dev-network', cidr: '10.20.0.0/16' },
-      { id: 'vn-mgmt', name: 'mgmt-network', cidr: '10.30.0.0/16' },
-    ]
+    const items = Array.from(vnStore.values())
     return HttpResponse.json({ size: items.length, total: items.length, items })
   }),
 
+  http.get(`${PREFIX}/virtual_networks/:id`, ({ params }) => {
+    const vn = vnStore.get(params.id as string)
+    if (!vn) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(vn)
+  }),
+
+  http.post(`${PREFIX}/virtual_networks`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const meta = asNestedRecord(body.metadata)
+    const spec = asNestedRecord(body.spec)
+    const id = nextId('vn')
+    const vn: VirtualNetwork = {
+      id,
+      metadata: { name: String(meta.name ?? ''), createdAt: new Date().toISOString() },
+      spec: {
+        networkClass: spec.network_class ? String(spec.network_class) : undefined,
+        ipv4Cidr: spec.ipv4_cidr ? String(spec.ipv4_cidr) : undefined,
+        ipv6Cidr: spec.ipv6_cidr ? String(spec.ipv6_cidr) : undefined,
+      },
+      status: { state: 'VIRTUAL_NETWORK_STATE_PENDING' },
+    }
+    vnStore.set(id, vn)
+    // Transition to READY after short delay (mock only)
+    setTimeout(() => {
+      const existing = vnStore.get(id)
+      if (existing) vnStore.set(id, { ...existing, status: { state: 'VIRTUAL_NETWORK_STATE_READY' } })
+    }, 2000)
+    return HttpResponse.json(vn, { status: 201 })
+  }),
+
+  http.delete(`${PREFIX}/virtual_networks/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!vnStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    vnStore.delete(id)
+    // Cascade: remove subnets and SGs belonging to this VN
+    for (const [sid, s] of subnetStore) {
+      if (s.spec.virtualNetwork === id) subnetStore.delete(sid)
+    }
+    for (const [sgid, sg] of sgStore) {
+      if (sg.spec.virtualNetwork === id) sgStore.delete(sgid)
+    }
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ---------------------------------------------------------------------------
   // Subnets
-  http.get(`${PREFIX}/subnets`, () => {
-    const items = [
-      { id: 'sn-prod-1a', name: 'prod-east-1a', cidr: '10.10.1.0/24' },
-      { id: 'sn-prod-1b', name: 'prod-east-1b', cidr: '10.10.2.0/24' },
-      { id: 'sn-dev-1a', name: 'dev-east-1a', cidr: '10.20.1.0/24' },
-    ]
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/subnets`, ({ request }) => {
+    const url = new URL(request.url)
+    const vnId = url.searchParams.get('virtual_network_id')
+    const all = Array.from(subnetStore.values())
+    const items = vnId ? all.filter((s) => s.spec.virtualNetwork === vnId) : all
     return HttpResponse.json({ size: items.length, total: items.length, items })
   }),
 
+  http.get(`${PREFIX}/subnets/:id`, ({ params }) => {
+    const s = subnetStore.get(params.id as string)
+    if (!s) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(s)
+  }),
+
+  http.post(`${PREFIX}/subnets`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const meta = asNestedRecord(body.metadata)
+    const spec = asNestedRecord(body.spec)
+    const id = nextId('subnet')
+    const subnet: Subnet = {
+      id,
+      metadata: { name: String(meta.name ?? ''), createdAt: new Date().toISOString() },
+      spec: {
+        virtualNetwork: String(spec.virtual_network ?? ''),
+        ipv4Cidr: spec.ipv4_cidr ? String(spec.ipv4_cidr) : undefined,
+        ipv6Cidr: spec.ipv6_cidr ? String(spec.ipv6_cidr) : undefined,
+      },
+      status: { state: 'SUBNET_STATE_READY' },
+    }
+    subnetStore.set(id, subnet)
+    return HttpResponse.json(subnet, { status: 201 })
+  }),
+
+  http.delete(`${PREFIX}/subnets/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!subnetStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    subnetStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ---------------------------------------------------------------------------
   // Security groups
+  // ---------------------------------------------------------------------------
+
   http.get(`${PREFIX}/security_groups`, () => {
-    const items = [
-      { id: 'sg-web', name: 'web-servers', description: 'HTTP/HTTPS inbound' },
-      { id: 'sg-db', name: 'database', description: 'DB port inbound from app tier' },
-      { id: 'sg-mgmt', name: 'management', description: 'SSH from bastion only' },
-    ]
+    const items = Array.from(sgStore.values())
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  http.get(`${PREFIX}/security_groups/:id`, ({ params }) => {
+    const sg = sgStore.get(params.id as string)
+    if (!sg) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(sg)
+  }),
+
+  http.post(`${PREFIX}/security_groups`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const meta = asNestedRecord(body.metadata)
+    const spec = asNestedRecord(body.spec)
+    const id = nextId('sg')
+    const sg: SecurityGroup = {
+      id,
+      metadata: { name: String(meta.name ?? ''), createdAt: new Date().toISOString() },
+      spec: {
+        virtualNetwork: String(spec.virtual_network ?? ''),
+        ingress: [],
+        egress: [],
+      },
+      status: { state: 'SECURITY_GROUP_STATE_READY' },
+    }
+    sgStore.set(id, sg)
+    return HttpResponse.json(sg, { status: 201 })
+  }),
+
+  http.delete(`${PREFIX}/security_groups/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!sgStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    sgStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Network classes (read-only)
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/network_classes`, () => {
+    const items = Array.from(networkClassStore.values())
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Public IPs
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/public_ips`, () => {
+    const items = Array.from(publicIPStore.values())
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  http.get(`${PREFIX}/public_ips/:id`, ({ params }) => {
+    const pip = publicIPStore.get(params.id as string)
+    if (!pip) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(pip)
+  }),
+
+  http.post(`${PREFIX}/public_ips`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const meta = asNestedRecord(body.metadata)
+    const spec = asNestedRecord(body.spec)
+    const id = nextId('pip')
+    const pip: PublicIP = {
+      id,
+      metadata: { name: String(meta.name ?? ''), createdAt: new Date().toISOString() },
+      spec: { pool: String(spec.pool ?? '') },
+      status: { state: 'PUBLIC_IP_STATE_PENDING', pool: String(spec.pool ?? '') },
+    }
+    publicIPStore.set(id, pip)
+    // Transition to ALLOCATED after short delay
+    setTimeout(() => {
+      const existing = publicIPStore.get(id)
+      if (existing) {
+        publicIPStore.set(id, {
+          ...existing,
+          status: { ...existing.status, state: 'PUBLIC_IP_STATE_ALLOCATED', address: `203.0.113.${50 + _idCounter % 200}` },
+        })
+      }
+    }, 3000)
+    return HttpResponse.json(pip, { status: 201 })
+  }),
+
+  http.patch(`${PREFIX}/public_ips/:id`, async ({ params, request }) => {
+    const pip = publicIPStore.get(params.id as string)
+    if (!pip) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = asNestedRecord(await request.json())
+    const spec = asNestedRecord(body.spec)
+    const newComputeInstance = spec.compute_instance === null ? undefined : spec.compute_instance as string | undefined
+    const newState = newComputeInstance
+      ? 'PUBLIC_IP_STATE_ATTACHED' as const
+      : 'PUBLIC_IP_STATE_ALLOCATED' as const
+    const updated: PublicIP = {
+      ...pip,
+      spec: { ...pip.spec, computeInstance: newComputeInstance },
+      status: { ...pip.status, state: newState },
+    }
+    publicIPStore.set(pip.id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  http.delete(`${PREFIX}/public_ips/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!publicIPStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    publicIPStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Public IP pools (read-only)
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/public_ip_pools`, () => {
+    const items = DEMO_PUBLIC_IP_POOLS
     return HttpResponse.json({ size: items.length, total: items.length, items })
   }),
 ]

@@ -191,6 +191,42 @@ permissions:
     risk: high
     flows:
       - cluster-service-catalog
+  - id: upgrade_cluster
+    label: Upgrade an existing cluster to a new OCP version
+    risk: high
+    flows:
+      - cluster-service-catalog
+  - id: download_kubeconfig
+    label: Download cluster kubeconfig
+    risk: medium
+    flows:
+      - cluster-service-catalog
+  - id: manage_cluster_offerings
+    label: Manage cluster catalog item offerings (enable/disable per org, edit defaults, provider CRUD)
+    risk: high
+    flows:
+      - tenant-administration
+      - provider-administration
+  - id: view_agents
+    label: View infrastructure agents
+    risk: low
+    flows:
+      - provider-administration
+  - id: manage_agents
+    label: Provision and deprovision infrastructure agents
+    risk: high
+    flows:
+      - provider-administration
+  - id: view_storage_tiers
+    label: View storage tier definitions
+    risk: low
+    flows:
+      - provider-administration
+  - id: manage_storage_tiers
+    label: Edit storage tier definitions and toggle availability
+    risk: high
+    flows:
+      - provider-administration
 
 role_permission_matrix:
   providerAdmin:
@@ -209,6 +245,13 @@ role_permission_matrix:
       - manage_global_templates
       - view_infrastructure
       - view_topology
+      - view_clusters
+      - view_cluster_catalog_items
+      - manage_cluster_offerings
+      - view_agents
+      - manage_agents
+      - view_storage_tiers
+      - manage_storage_tiers
   tenantAdmin:
     grants:
       - choose_persona
@@ -234,6 +277,7 @@ role_permission_matrix:
       - view_quota
       - view_topology
       - open_vm_from_topology
+      - manage_cluster_offerings
   tenantUser:
     grants:
       - choose_persona
@@ -259,6 +303,8 @@ role_permission_matrix:
       - view_cluster_catalog_items
       - scale_cluster_nodes
       - delete_cluster
+      - upgrade_cluster
+      - download_kubeconfig
 
 ai-hints:
   summary: >-

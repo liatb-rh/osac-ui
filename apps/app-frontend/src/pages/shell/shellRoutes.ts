@@ -31,11 +31,6 @@ export const PROVIDER_PLACEHOLDER_ROUTES: ShellPlaceholderRoute[] = [
     lede: 'Capacity pools, region quotas, and fair-share limits across tenants.',
   },
   {
-    path: '/provider/security',
-    title: 'Security & Compliance',
-    lede: 'Platform-wide policies, encryption standards, and audit exports.',
-  },
-  {
     path: '/provider/settings',
     title: 'Platform settings',
     lede: 'Feature flags, integrations, maintenance windows, and API endpoints.',

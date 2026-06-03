@@ -11,8 +11,23 @@ export type NavRow =
 
 const TENANT_USER_NAV: NavRow[] = [
   { kind: 'link', id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
-  { kind: 'link', id: 'compute-vms', label: 'My VMs', path: '/vms' },
-  { kind: 'link', id: 'catalog', label: 'Templates', path: '/templates' },
+  {
+    kind: 'expand',
+    label: 'Virtual Machines',
+    groupId: 'nav-tenant-vms',
+    children: [
+      { id: 'compute-vms', label: 'My List', path: '/vms' },
+      { id: 'catalog', label: 'Templates', path: '/templates' },
+    ],
+  },
+  {
+    kind: 'expand',
+    label: 'Clusters',
+    groupId: 'nav-tenant-clusters',
+    children: [
+      { id: 'clusters', label: 'My List', path: '/clusters' },
+    ],
+  },
 ]
 
 const TENANT_ADMIN_NAV: NavRow[] = [
@@ -25,6 +40,7 @@ const TENANT_ADMIN_NAV: NavRow[] = [
       { id: 'admin-users', label: 'Users', path: '/admin/users' },
       { id: 'admin-quota', label: 'Quota control', path: '/admin/quota' },
       { id: 'admin-templates', label: 'Template catalog', path: '/admin/templates' },
+      { id: 'admin-cluster-offerings', label: 'Cluster offerings', path: '/admin/cluster-offerings' },
     ],
   },
   {
@@ -33,6 +49,7 @@ const TENANT_ADMIN_NAV: NavRow[] = [
     groupId: 'nav-admin-infra',
     children: [
       { id: 'admin-networks', label: 'Networks', path: '/admin/networks' },
+      { id: 'admin-public-ips', label: 'Public IPs', path: '/admin/public-ips' },
       { id: 'admin-storage', label: 'Storage', path: '/admin/storage' },
     ],
   },
@@ -57,6 +74,18 @@ const PROVIDER_ADMIN_NAV: NavRow[] = [
       { id: 'provider-orgs', label: 'Tenant organizations', path: '/provider/organizations' },
       { id: 'provider-allocation', label: 'Resource allocation', path: '/provider/allocation' },
       { id: 'provider-templates', label: 'Global templates', path: '/provider/templates' },
+      { id: 'provider-network-classes', label: 'Network classes', path: '/provider/network-classes' },
+    ],
+  },
+  {
+    kind: 'expand',
+    label: 'CaaS',
+    groupId: 'nav-provider-caas',
+    children: [
+      { id: 'provider-clusters', label: 'All Clusters', path: '/provider/clusters' },
+      { id: 'provider-agents', label: 'Agents', path: '/provider/agents' },
+      { id: 'provider-cluster-offerings', label: 'Cluster offerings', path: '/provider/cluster-offerings' },
+      { id: 'provider-storage-tiers', label: 'Storage tiers', path: '/provider/storage-tiers' },
     ],
   },
   {
@@ -65,17 +94,20 @@ const PROVIDER_ADMIN_NAV: NavRow[] = [
     groupId: 'nav-provider-system',
     children: [
       { id: 'provider-infra', label: 'Infrastructure', path: '/provider/infrastructure' },
-      { id: 'provider-security', label: 'Security & Compliance', path: '/provider/security' },
+      { id: 'provider-security', label: 'Roles & Identity', path: '/provider/security' },
       { id: 'provider-settings', label: 'Platform settings', path: '/provider/settings' },
     ],
   },
 ]
 
 export const DEFAULT_EXPANDED_GROUP_IDS = [
+  'nav-tenant-vms',
+  'nav-tenant-clusters',
   'nav-admin-mgmt',
   'nav-admin-infra',
   'nav-admin-org',
   'nav-provider-mgmt',
+  'nav-provider-caas',
   'nav-provider-system',
 ]
 

@@ -8,13 +8,18 @@ rbac:
       view_clusters: view_clusters
       open_create_cluster_modal: open_create_cluster
       delete_cluster: delete_cluster
+      upgrade_cluster: upgrade_cluster
     csc_cluster_detail_drawer:
       view_cluster_detail: view_clusters
       scale_cluster_nodes: scale_cluster_nodes
       delete_cluster: delete_cluster
+      upgrade_cluster: upgrade_cluster
+      download_kubeconfig: download_kubeconfig
     csc_create_cluster_modal:
       select_catalog_item: view_cluster_catalog_items
       submit_create_cluster: open_create_cluster
+    csc_upgrade_cluster_modal:
+      submit_upgrade_cluster: upgrade_cluster
 
 applies_when: >-
   Authenticated shell with demoShellRole tenantUser after Northstar Bank or Bluestone Financial Group
@@ -29,8 +34,11 @@ backend:
     rules:
       - >-
         Cluster rows derive from GET /api/fulfillment/v1/clusters; each item carries a
-        ClusterState enum string (CLUSTER_STATE_PROGRESSING / CLUSTER_STATE_READY / CLUSTER_STATE_FAILED).
-      - Normalize snake_case wire fields to camelCase UI model: state, apiUrl, consoleUrl, createdAt, nodeSets.
+        ClusterState enum string (CLUSTER_STATE_PROGRESSING / CLUSTER_STATE_READY / CLUSTER_STATE_FAILED /
+        CLUSTER_STATE_UPGRADING / CLUSTER_STATE_UPGRADE_FAILED).
+      - >-
+        Normalize snake_case wire fields to camelCase UI model: state, apiUrl, consoleUrl, createdAt,
+        nodeSets, version, upgradeState, storageReady, network, storage.
       - >-
         Mock mode: BFF serves a clusterStore fixture with demo clusters for northstar and evergreen tenants;
         wire format uses CLUSTER_STATE_* string enums and snake_case keys identical to fulfillment wire.
@@ -44,8 +52,10 @@ backend:
         field_definitions drive which fields are shown and editable in the create-cluster modal;
         editable:false fields are pre-filled from the catalog item and cannot be changed by the user.
       - >-
+        allowed_versions is the set of OCP version strings permitted for upgrade on clusters using this item.
+      - >-
         Mock mode: BFF serves two demo catalog items (ocp-standard, ocp-gpu) with field_definitions
-        exposing worker node count as an editable integer field.
+        exposing worker node count as an editable integer field and allowed_versions listing 4.17 and 4.18.
   create_cluster:
     mock:
       description: >-
@@ -61,8 +71,33 @@ backend:
   cluster_polling:
     description: >-
       After cluster creation the SPA shows a "Provisioning" badge and polls GET clusters every 15 seconds
-      while at least one cluster remains in CLUSTER_STATE_PROGRESSING state. Polling stops when all
-      visible clusters are READY or FAILED. Reconnect with exponential backoff on network errors.
+      while at least one cluster remains in CLUSTER_STATE_PROGRESSING or CLUSTER_STATE_UPGRADING state,
+      OR while at least one READY cluster has storageReady !== true (storage provisioning in progress).
+      Polling stops when all visible clusters are READY/FAILED/UPGRADE_FAILED and all READY clusters
+      have storageReady === true. Reconnect with exponential backoff on network errors.
+      Constant: PENDING_CLUSTER_LIST_POLL_MS = 15_000 (applies to both compute and storage polling windows).
+  cluster_upgrade:
+    description: >-
+      POST /api/fulfillment/v1/clusters/{id}/upgrade with { target_version }. Returns updated Cluster
+      object in CLUSTER_STATE_UPGRADING. SPA polls list to track upgrade progress.
+      Mock mode: BFF transitions cluster to UPGRADING immediately then READY after 90s.
+  cluster_kubeconfig:
+    description: >-
+      GET /api/fulfillment/v1/clusters/{id}/kubeconfig returns the kubeconfig YAML string.
+      Only available when cluster state is CLUSTER_STATE_READY.
+      Mock mode: BFF returns a generated placeholder kubeconfig YAML.
+  virtual_networks:
+    description: >-
+      GET /api/fulfillment/v1/virtual_networks returns list of VirtualNetwork resources available to the tenant.
+      Used to populate the VirtualNetwork selector in Create Cluster modal.
+  subnets:
+    description: >-
+      GET /api/fulfillment/v1/subnets returns list of Subnet resources. Optionally filtered by
+      virtual_network_id query param to show only subnets within the selected VirtualNetwork.
+  security_groups:
+    description: >-
+      GET /api/fulfillment/v1/security_groups returns list of SecurityGroup resources for multi-select
+      in Create Cluster modal.
 
 steps:
   - id: csc_clusters_list
@@ -111,26 +146,35 @@ steps:
         Primary action button "Create cluster" opens the create-cluster modal; always visible even when the
         list is empty.
       - >-
-        Table columns: Name, Status, API URL, Worker Nodes, Created. Status column shows a PatternFly Label
-        component color-coded by state:
-          CLUSTER_STATE_PROGRESSING → blue Label + Spinner inline ("Provisioning")
+        Table columns: Name, Status, Storage, OCP Version, Worker Nodes, API URL, Created.
+        Status column shows a PatternFly Label color-coded by state:
+          CLUSTER_STATE_PROGRESSING → blue Label + Spinner ("Provisioning")
           CLUSTER_STATE_READY → green Label ("Ready")
           CLUSTER_STATE_FAILED → red Label ("Failed")
+          CLUSTER_STATE_UPGRADING → blue Label + Spinner ("Upgrading")
+          CLUSTER_STATE_UPGRADE_FAILED → red Label ("Upgrade Failed")
           CLUSTER_STATE_UNSPECIFIED → grey Label ("Unknown")
+        Storage column shows "Ready" (green) / "Provisioning" (blue) / "—" based on status.storageReady.
+        "Provisioning" covers both storageReady null (storage setup not yet triggered) and
+        storageReady false (VAST CSI driver and StorageClasses are being installed).
+        OCP Version column shows status.version (e.g. "4.17.3") or "—" if not yet set.
       - >-
         Clicking a row or the Name cell opens the cluster detail drawer (csc_cluster_detail_drawer) for that
         cluster. Keyboard-focusable with Enter/Space.
       - >-
-        Each row has an ActionsColumn kebab menu. Items: "View details" (opens drawer), "Delete" (confirm
-        modal then DELETE). Delete is disabled while cluster state is CLUSTER_STATE_PROGRESSING.
+        Each row has an ActionsColumn kebab menu. Items: "View details" (opens drawer), "Upgrade" (opens
+        csc_upgrade_cluster_modal; disabled when state is not CLUSTER_STATE_READY or cluster is already on
+        latest allowed version), "Delete" (confirm modal then DELETE; disabled when state is
+        CLUSTER_STATE_PROGRESSING or CLUSTER_STATE_UPGRADING).
       - >-
         Empty state shows a cubes icon, "No clusters yet" heading, "Create your first OpenShift cluster to
         get started." body text, and a "Create cluster" primary button.
       - >-
         Error state shows a PatternFly Alert (variant danger) inline below the header: "Failed to load
         clusters — please try again." with a Retry button.
-      - Polling indicator: when any cluster is in PROGRESSING state, a secondary Alert (variant info) reads
-        "One or more clusters are provisioning. This page refreshes automatically."
+      - >-
+        Polling indicator: when any cluster is in PROGRESSING or UPGRADING state, an info Alert reads
+        "One or more clusters are provisioning or upgrading. This page refreshes automatically."
 
     design_system_alignment:
       layout_guidance:
@@ -187,8 +231,11 @@ steps:
       - drawer_open
       - tab_overview_active
       - tab_node_sets_active
+      - tab_networking_active
+      - tab_storage_active
       - tab_conditions_active
       - scaling_node_set
+      - kubeconfig_downloading
 
     interactions:
       - Drawer panel opens from the right on row click from csc_clusters_list.
@@ -197,6 +244,7 @@ steps:
         **Overview tab** — DescriptionList fields:
           Name: metadata.name
           Status: ClusterState label (same color scheme as list)
+          OCP Version: status.version (show "—" if not yet set)
           API URL: ClipboardCopy of status.api_url (disabled / "Not available yet" when empty)
           Console URL: ClipboardCopy of status.console_url (disabled when empty)
           Created: metadata.creation_timestamp formatted as relative + absolute datetime
@@ -211,21 +259,66 @@ steps:
         Scale action (pencil icon button) opens an inline number input to update size; PATCH /api/fulfillment/v1/clusters/{id}
         with updated spec.node_sets key. Min size 1; disable scale-down below 1.
       - >-
+        **Networking tab** — DescriptionList fields:
+          Virtual Network: spec.network.virtualNetworkRef (show name resolved from virtualNetworks list, or "—")
+          Subnet: spec.network.subnetRef (show name resolved from subnets list, or "—")
+          Security Groups: spec.network.securityGroupRefs as comma-separated labels, or "None"
+          API Public IP: status.network.apiPublicIp (ClipboardCopy when available, "—" otherwise)
+          Ingress Public IP: status.network.ingressPublicIp (ClipboardCopy when available, "—" otherwise)
+          DNS Records: status.network.dnsRecords as a list of hostname entries, or "None configured"
+      - >-
+        **Storage tab** — Three sections:
+          Storage Readiness: status.storageReady displayed as a Label ("Ready" green / "Provisioning" blue / "—").
+          CSI Driver: status.storage.csiDriver (show "—" if not provisioned).
+          StorageClasses: Table with columns Name, Tier, Default, Parameters. The Tier column shows the
+          StorageTier id (e.g. "fast", "standard", "archive") this class was created for. Empty state
+          "No storage classes available" when list is empty or storage not yet provisioned.
+          VolumeSnapshotClasses: Table with columns Name, Driver, Deletion Policy, Default. Empty state
+          "No snapshot classes available." when volume_snapshot_classes is empty or absent.
+      - >-
         **Conditions tab** — Table with columns: Type, Status, Reason, Message, Last Transition.
         "No conditions reported." empty state when conditions array is empty or missing.
         Condition types are CLUSTER_CONDITION_TYPE_* enums; humanize by stripping prefix for display.
         Status values CONDITION_STATUS_TRUE / CONDITION_STATUS_FALSE / CONDITION_STATUS_UNKNOWN mapped to
         "True", "False", "Unknown" display text.
       - >-
-        Delete button in DrawerActions: opens a confirm modal naming the cluster. On confirm issues
-        DELETE /api/fulfillment/v1/clusters/{id}; on success closes drawer, refetches list, shows brief
-        success Alert. Disabled while state is CLUSTER_STATE_PROGRESSING with tooltip "Cannot delete while cluster is provisioning."
+        DrawerHead action buttons (right-aligned): "Upgrade" (opens csc_upgrade_cluster_modal; only enabled when
+        state is CLUSTER_STATE_READY and an allowed_version newer than current version is available),
+        "Download kubeconfig" (GET /api/fulfillment/v1/clusters/{id}/kubeconfig, triggers browser download
+        of kubeconfig.yaml; only enabled when state is CLUSTER_STATE_READY; shows Spinner while downloading),
+        "Delete" (confirm modal; disabled when state is CLUSTER_STATE_PROGRESSING or CLUSTER_STATE_UPGRADING).
 
     design_system_alignment:
+      ui:
+        components:
+          - Drawer
+          - DrawerPanelContent
+          - DrawerHead
+          - DrawerActions
+          - DrawerCloseButton
+          - Title
+          - Tabs
+          - Tab
+          - TabContent
+          - DescriptionList
+          - DescriptionListGroup
+          - DescriptionListTerm
+          - DescriptionListDescription
+          - Label
+          - Button
+          - Table
+          - Thead
+          - Tbody
+          - Tr
+          - Th
+          - Td
+          - ClipboardCopy
+          - Spinner
       accessibility_policy:
         - Drawer has aria-label="Cluster details — {name}".
         - ClipboardCopy components have descriptive aria-labels.
         - Tab panel has role="tabpanel" with matching aria-labelledby.
+        - Upgrade button has aria-disabled with tooltip when not available.
 
   - id: csc_create_cluster_modal
     title: Create cluster modal
@@ -243,10 +336,15 @@ steps:
         - ModalFooter
         - Form
         - FormGroup
+        - FormSection
         - FormSelect
         - FormSelectOption
         - TextInput
         - NumberInput
+        - ChipGroup
+        - Chip
+        - Select
+        - SelectOption
         - HelperText
         - HelperTextItem
         - Alert
@@ -268,6 +366,7 @@ steps:
       - catalog_loaded
       - catalog_error
       - catalog_item_selected
+      - networking_virtualnetwork_selected
       - form_invalid
       - submitting
       - submit_error
@@ -287,12 +386,19 @@ steps:
           string fields as TextInput. display_name used as FormGroup label. Default values pre-filled.
           SSH public key (optional TextInput; multi-line; helper text "Used to access worker nodes")
           Release image (optional TextInput; helper text "Leave blank to use template default")
+          Networking FormSection (always visible, not expandable):
+            Virtual Network (required FormSelect; options from GET /api/fulfillment/v1/virtual_networks)
+            Subnet (required FormSelect; initially disabled until a VN is selected; repopulates when VN
+            changes via GET /api/fulfillment/v1/subnets?virtual_network_id={id})
+            Security Groups (optional multi-select with ChipGroup display; options from
+            GET /api/fulfillment/v1/security_groups; helper text "Optional — leave empty to use defaults")
           Advanced networking (ExpandableSection, collapsed by default):
             Pod CIDR (optional TextInput; placeholder "10.128.0.0/14 (default)")
             Service CIDR (optional TextInput; placeholder "172.30.0.0/16 (default)")
       - >-
         "Back" button returns to catalog item selection. "Create cluster" primary button submits.
         Inline field validation on blur. Submit button shows Spinner and disabled state during submitting.
+        Virtual Network and Subnet are required — form cannot submit without selections.
       - >-
         On success: modal closes, list refetches, new cluster row appears with CLUSTER_STATE_PROGRESSING badge.
         A brief success Alert in the page header reads "Cluster '{name}' is being provisioned."
@@ -307,14 +413,71 @@ steps:
         - Modal has aria-labelledby pointing to the modal header.
         - Each FormGroup has id-linked label and input.
         - Spinner in submit button has aria-label="Creating cluster".
+        - Security Groups multi-select ChipGroup has aria-label="Selected security groups".
       mock_data_alignment:
         - >-
           BFF mock catalog_items endpoint returns:
-            { id: "ocp-standard", title: "OpenShift Standard", description: "A standard OpenShift 4.17 cluster with 3 worker nodes. Ideal for development and staging workloads.", template: "openshift-4-17", published: true, field_definitions: [{ path: "spec.node_sets.workers.size", display_name: "Worker node count", editable: true, default: { "@type": "type.googleapis.com/google.protobuf.Int32Value", "value": 3 }, validation_schema: '{"type":"integer","minimum":1,"maximum":10}' }] }
-            { id: "ocp-gpu", title: "OpenShift GPU-Accelerated", description: "OpenShift cluster with GPU worker nodes for AI/ML workloads.", template: "openshift-4-17-gpu", published: true, field_definitions: [{ path: "spec.node_sets.gpu-workers.size", display_name: "GPU worker node count", editable: true, default: { "@type": "type.googleapis.com/google.protobuf.Int32Value", "value": 2 }, validation_schema: '{"type":"integer","minimum":1,"maximum":4}' }] }
+            { id: "ocp-standard", title: "OpenShift Standard", description: "A standard OpenShift 4.17 cluster with 3 worker nodes. Ideal for development and staging workloads.", template: "openshift-4-17", published: true, allowed_versions: ["4.17.3", "4.18.0"], field_definitions: [{ path: "spec.node_sets.workers.size", display_name: "Worker node count", editable: true, default: { "@type": "type.googleapis.com/google.protobuf.Int32Value", "value": 3 }, validation_schema: '{"type":"integer","minimum":1,"maximum":10}' }] }
+            { id: "ocp-gpu", title: "OpenShift GPU-Accelerated", description: "OpenShift cluster with GPU worker nodes for AI/ML workloads.", template: "openshift-4-17-gpu", published: true, allowed_versions: ["4.17.3", "4.18.0"], field_definitions: [{ path: "spec.node_sets.gpu-workers.size", display_name: "GPU worker node count", editable: true, default: { "@type": "type.googleapis.com/google.protobuf.Int32Value", "value": 2 }, validation_schema: '{"type":"integer","minimum":1,"maximum":4}' }] }
         - >-
           BFF mock cluster create: POST /api/fulfillment/v1/clusters appends new Cluster to clusterStore
           with state CLUSTER_STATE_PROGRESSING. After 60s (simulated), mock auto-transitions to CLUSTER_STATE_READY.
+
+- id: csc_upgrade_cluster_modal
+  title: Upgrade cluster modal
+  goal: >-
+    Modal dialog for upgrading an existing OpenShift cluster to a new version. Shows current version,
+    target version select, warning callout, and submit. Polls cluster status after submission.
+
+  ui:
+    components:
+      - Modal
+      - ModalHeader
+      - ModalBody
+      - ModalFooter
+      - Form
+      - FormGroup
+      - FormSelect
+      - FormSelectOption
+      - DescriptionList
+      - DescriptionListGroup
+      - DescriptionListTerm
+      - DescriptionListDescription
+      - Alert
+      - Button
+      - Spinner
+  ui_policy:
+    prefer_patternfly_primitives: true
+    minimize_raw_div_wrappers: true
+    max_raw_div_wrappers: 1
+
+  states:
+    - open
+    - submitting
+    - submit_error
+
+  interactions:
+    - >-
+      Modal opens from "Upgrade" button in list row kebab or drawer header. Shows:
+        Current version: status.version (read-only DescriptionList item)
+        Target version: FormSelect populated from catalog_item.allowed_versions, filtered to versions
+        strictly greater than current version. Placeholder "Select target version".
+        Warning callout (variant=warning): "Upgrading the cluster may cause brief API downtime. Ensure
+        your workloads can tolerate a restart."
+    - >-
+      "Upgrade" primary button submits POST /api/fulfillment/v1/clusters/{id}/upgrade with body
+      { target_version }. While submitting, button shows Spinner and is disabled.
+    - >-
+      On success: modal closes; cluster list polls (UPGRADING badge); brief info Alert on page
+      "Cluster '{name}' upgrade to {version} started."
+    - >-
+      On error: submit_error Alert inside modal: "Failed to start upgrade — {message}. Please try again."
+
+  design_system_alignment:
+    accessibility_policy:
+      - Modal has aria-labelledby pointing to the modal header.
+      - FormSelect for target version has id-linked label.
+      - Warning Alert has role="alert".
 
 transitions:
   - from: shell_primary_workspace
@@ -326,17 +489,29 @@ transitions:
   - from: csc_clusters_list
     action: click Create cluster button
     to: csc_create_cluster_modal
+  - from: csc_clusters_list
+    action: click Upgrade in row kebab menu
+    to: csc_upgrade_cluster_modal
   - from: csc_cluster_detail_drawer
     action: close drawer
     to: csc_clusters_list
   - from: csc_cluster_detail_drawer
     action: confirm delete cluster
     to: csc_clusters_list
+  - from: csc_cluster_detail_drawer
+    action: click Upgrade in drawer header
+    to: csc_upgrade_cluster_modal
   - from: csc_create_cluster_modal
     action: cancel modal
     to: csc_clusters_list
   - from: csc_create_cluster_modal
     action: submit create cluster success
+    to: csc_clusters_list
+  - from: csc_upgrade_cluster_modal
+    action: cancel modal
+    to: csc_clusters_list
+  - from: csc_upgrade_cluster_modal
+    action: submit upgrade success
     to: csc_clusters_list
 
 validation_rules:
@@ -344,7 +519,11 @@ validation_rules:
   - Node count must satisfy validation_schema from the selected catalog item field_definition.
   - Pod CIDR and service CIDR must be valid CIDR notation when provided.
   - Catalog item must have published: true to appear in the modal gallery.
-  - Delete action must be disabled while cluster state is CLUSTER_STATE_PROGRESSING.
+  - Delete action must be disabled while cluster state is CLUSTER_STATE_PROGRESSING or CLUSTER_STATE_UPGRADING.
+  - Upgrade action must be disabled when state is not CLUSTER_STATE_READY or no newer allowed_version exists.
+  - Virtual Network selection is required when creating a cluster.
+  - Subnet selection is required and depends on Virtual Network selection.
+  - Target version for upgrade must be strictly greater than current version.
 
 ai-hints:
   route: /clusters
@@ -357,25 +536,38 @@ ai-hints:
   normalization_model: >-
     UI-facing Cluster shape: { id, metadata: { name, createdAt, creators, tenants, version },
     spec: { catalogItem, template, templateParameters, nodeSets: { [key]: { hostType, size } },
-    releaseImage?, sshPublicKey?, network?: { podCidr?, serviceCidr? } },
-    status: { state (ClusterState), conditions[], apiUrl, consoleUrl,
+    releaseImage?, sshPublicKey?, network?: { podCidr?, serviceCidr?, virtualNetworkRef?, subnetRef?,
+    securityGroupRefs?: string[] } },
+    status: { state (ClusterState), conditions[], apiUrl, consoleUrl, version?,
+    upgradeState?, storageReady?,
+    storage?: { csiDriver?, storageClasses: Array<{ name, tier, isDefault, parameters }>,
+    volumeSnapshotClasses: Array<{ name, driver, deletionPolicy, isDefault }> },
+    network?: { apiPublicIp?, ingressPublicIp?, dnsRecords?: string[] },
     nodeSets: { [key]: { hostType, size } } } }
   cluster_states:
     CLUSTER_STATE_PROGRESSING: Provisioning (blue, spinner)
     CLUSTER_STATE_READY: Ready (green)
     CLUSTER_STATE_FAILED: Failed (red)
+    CLUSTER_STATE_UPGRADING: Upgrading (blue, spinner)
+    CLUSTER_STATE_UPGRADE_FAILED: Upgrade Failed (red)
     CLUSTER_STATE_UNSPECIFIED: Unknown (grey)
   create_constraint: >-
     POST /api/fulfillment/v1/clusters is marked system-only in the fulfillment proto. In mock mode the BFF
     handles create locally. In dev mode document as requiring a platform token or BFF-mediated order; track
     in backend-fulfillment.yaml contract_note_cluster_create. Do not block UI implementation on this.
   polling_strategy: >-
-    useClustersList query: refetchOnMount always; while any cluster in clusterStore has PROGRESSING state,
-    poll every PENDING_CLUSTER_LIST_POLL_MS = 15_000. Stop polling when all clusters are READY or FAILED.
-    Exponential backoff on consecutive network errors (max 60s interval).
+    useClustersList query: refetchOnMount always; poll every PENDING_CLUSTER_LIST_POLL_MS = 15_000 while
+    any cluster has PROGRESSING or UPGRADING state, OR while any READY cluster has storageReady !== true.
+    Stop polling when all clusters are READY/FAILED/UPGRADE_FAILED and all READY clusters have
+    storageReady === true. Exponential backoff on consecutive network errors (max 60s interval).
   delete_constraint: >-
-    Clusters in CLUSTER_STATE_PROGRESSING cannot be deleted; disable the delete action and show a tooltip.
-  phase_scope: >-
-    Phase 1 (this spec): list, create, detail drawer, delete, node-set scaling via PATCH.
-    Phase 2 (future): kubeconfig download (GET /api/fulfillment/v1/clusters/{id}/kubeconfig),
-    console URL deep link, storage class management (VAST CSI driver status).
+    Clusters in CLUSTER_STATE_PROGRESSING or CLUSTER_STATE_UPGRADING cannot be deleted; disable the delete
+    action and show a tooltip explaining the constraint.
+  upgrade_constraint: >-
+    Upgrade is only available when cluster state is CLUSTER_STATE_READY and catalog item allowed_versions
+    contains at least one version strictly greater than status.version. Disable button otherwise.
+  kubeconfig_constraint: >-
+    kubeconfig download is only available when cluster state is CLUSTER_STATE_READY.
+  networking_dependency: >-
+    Subnet selector in create modal must be reset and repopulated whenever the VirtualNetwork selection changes.
+    Build subnets query key as ["subnets", virtualNetworkId] and only enable when virtualNetworkId is set.

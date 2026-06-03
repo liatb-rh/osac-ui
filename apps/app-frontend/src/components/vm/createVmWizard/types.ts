@@ -24,6 +24,8 @@ export interface WizardState {
   templateMemoryGib: string
   /** Fulfillment REST `run_strategy`: `Always` or `Halted`. */
   templateRunStrategy: string
+  /** Optional virtual network fulfillment id; used to filter subnets in the UI. */
+  templateVirtualNetworkId?: string
   /** Optional subnet fulfillment id; maps to `spec.subnet`. */
   templateSubnetId: string
   /** Comma-separated security group fulfillment ids; maps to `spec.security_groups`. */
