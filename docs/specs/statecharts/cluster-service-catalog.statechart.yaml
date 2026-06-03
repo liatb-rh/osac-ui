@@ -1,0 +1,146 @@
+id: cluster-service-catalog
+title: Cluster Service Catalog Statechart
+source_flow: ../ui-flows/cluster-service-catalog.yaml
+rbac_ref: ../rbac.yaml
+
+context:
+  role: null
+  tenantId: null
+  selectedClusterId: null
+  catalogItemId: null
+  clusterName: null
+  listPollActive: false
+
+initial: csc_clusters_list
+
+states:
+  csc_clusters_list:
+    permissions:
+      - view_clusters
+      - open_create_cluster
+      - delete_cluster
+    substates:
+      loading: initial fetch in progress; Table replaced by skeleton rows
+      empty_no_clusters: list returned size=0; EmptyState shown with "Create cluster" CTA
+      populated: one or more clusters rendered in Table rows
+      error_load_failed: GET failed; inline danger Alert with Retry button
+      provisioning_in_progress: at least one cluster in CLUSTER_STATE_PROGRESSING; info Alert shown; polling active
+    on:
+      SELECT_CLUSTER_ROW:
+        target: csc_cluster_detail_drawer
+        guard: can(role, "view_clusters")
+        actions:
+          - assign selectedClusterId from clicked row
+      CLICK_CREATE_CLUSTER:
+        target: csc_create_cluster_modal
+        guard: can(role, "open_create_cluster")
+      CONFIRM_DELETE_CLUSTER:
+        target: csc_clusters_list
+        guard: can(role, "delete_cluster")
+        actions:
+          - DELETE /api/fulfillment/v1/clusters/{id}
+          - invalidate clusters query key
+          - clear selectedClusterId if matches deleted id
+      POLL_TICK:
+        target: csc_clusters_list
+        guard: listPollActive === true
+        actions:
+          - refetch GET /api/fulfillment/v1/clusters
+          - stop polling when all clusters are READY or FAILED
+      RETRY_LOAD:
+        target: csc_clusters_list
+        actions:
+          - refetch GET /api/fulfillment/v1/clusters
+
+  csc_cluster_detail_drawer:
+    permissions:
+      - view_clusters
+      - scale_cluster_nodes
+      - delete_cluster
+    substates:
+      tab_overview_active: DescriptionList of cluster fields
+      tab_node_sets_active: Table of spec.node_sets and status.node_sets with inline scale control
+      tab_conditions_active: Table of status.conditions
+      scaling_node_set: PATCH in-flight; row shows Spinner; scale input disabled
+    on:
+      CLOSE_DRAWER:
+        target: csc_clusters_list
+        actions:
+          - assign selectedClusterId = null
+      SWITCH_TAB:
+        target: csc_cluster_detail_drawer
+        actions:
+          - update active tab in context
+      SUBMIT_NODE_SCALE:
+        target: csc_cluster_detail_drawer
+        guard: can(role, "scale_cluster_nodes")
+        actions:
+          - PATCH /api/fulfillment/v1/clusters/{id} with updated spec.node_sets entry
+          - invalidate clusters query key on success
+      CONFIRM_DELETE_CLUSTER:
+        target: csc_clusters_list
+        guard: can(role, "delete_cluster")
+        guard_condition: cluster.status.state !== "CLUSTER_STATE_PROGRESSING"
+        actions:
+          - DELETE /api/fulfillment/v1/clusters/{id}
+          - close drawer
+          - invalidate clusters query key
+
+  csc_create_cluster_modal:
+    permissions:
+      - view_cluster_catalog_items
+      - open_create_cluster
+    substates:
+      catalog_loading: GET /api/fulfillment/v1/cluster_catalog_items in-flight; Gallery skeleton shown
+      catalog_loaded: catalog items rendered as selectable cards
+      catalog_error: catalog fetch failed; danger Alert inside modal; Cancel or Retry available
+      catalog_item_selected: user picked a catalog item; form fields rendered from field_definitions
+      form_invalid: client validation failed on submit; field-level errors shown
+      submitting: POST in-flight; primary button shows Spinner; inputs disabled
+      submit_error: POST returned error; danger Alert inside modal; inputs re-enabled
+    on:
+      CANCEL_MODAL:
+        target: csc_clusters_list
+        actions:
+          - assign catalogItemId = null
+          - clear form state
+      SELECT_CATALOG_ITEM:
+        target: csc_create_cluster_modal
+        guard: can(role, "view_cluster_catalog_items")
+        actions:
+          - assign catalogItemId from selected card
+          - pre-fill form defaults from field_definitions[].default values
+      BACK_TO_CATALOG:
+        target: csc_create_cluster_modal
+        actions:
+          - assign catalogItemId = null
+          - clear form state
+      SUBMIT_CREATE_CLUSTER:
+        target: csc_clusters_list
+        guard: can(role, "open_create_cluster") && form is valid
+        actions:
+          - POST /api/fulfillment/v1/clusters (body includes spec.catalog_item, metadata.name, user field values)
+          - on success close modal, invalidate clusters query key, show provisioning row
+          - on error stay in csc_create_cluster_modal with submit_error substate
+      RETRY_CATALOG_LOAD:
+        target: csc_create_cluster_modal
+        actions:
+          - refetch GET /api/fulfillment/v1/cluster_catalog_items
+
+ai-hints:
+  summary: >-
+    Cluster list/detail/create machine for tenantUser. List polls every 15s while any cluster is
+    PROGRESSING; polling stops when all READY or FAILED. Detail drawer is an inline Drawer (not a
+    modal); tabs share a single TanStack Query cluster cache entry (GET by id refetched on open).
+    Create modal is two-step: catalog selection → form; no BFF session needed (stateless modal form).
+    Delete blocked on PROGRESSING state with disabled action and tooltip. Node scaling is inline PATCH
+    on the Node Sets tab. No clone or migrate actions in this phase.
+  query_keys:
+    clusters_list: ["clusters", tenantId]
+    cluster_detail: ["clusters", id]
+    cluster_catalog_items: ["cluster_catalog_items"]
+  poll_interval_ms: 15000
+  impossibleStates:
+    - csc_cluster_detail_drawer with selectedClusterId=null
+    - SUBMIT_CREATE_CLUSTER guard true with catalogItemId=null
+    - CONFIRM_DELETE_CLUSTER when cluster.status.state === "CLUSTER_STATE_PROGRESSING"

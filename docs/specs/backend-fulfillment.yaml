@@ -383,6 +383,26 @@ context:
           stop sets run_strategy Halted + COMPUTE_INSTANCE_STATE_STOPPED.
         - GET /api/events/v1/events mock pagination
         - GET /api/osac/public/v1/console/.../access envelope
+        - >-
+          GET /api/fulfillment/v1/clusters — returns page envelope with demo clusterStore fixtures;
+          wire format uses CLUSTER_STATE_* enums and snake_case field names. Tenant-scoped: filter
+          by tenants array matching signed-in persona (northstar or evergreen).
+        - >-
+          GET /api/fulfillment/v1/clusters/{id} — returns single cluster from clusterStore; 404 when missing.
+        - >-
+          POST /api/fulfillment/v1/clusters — mock BFF appends to clusterStore with CLUSTER_STATE_PROGRESSING;
+          returns new Cluster object. Validates metadata.name (non-empty, unique in store); 409 on duplicate.
+        - >-
+          PATCH /api/fulfillment/v1/clusters/{id} — updates spec.node_sets in clusterStore; returns updated
+          Cluster. 400 if node count < 1; 404 when id missing.
+        - >-
+          DELETE /api/fulfillment/v1/clusters/{id} — removes from clusterStore; 404 when missing; 409 when
+          state is CLUSTER_STATE_PROGRESSING (fulfillment policy enforced in mock).
+        - >-
+          GET /api/fulfillment/v1/cluster_catalog_items — returns page envelope with two demo catalog items
+          (ocp-standard, ocp-gpu); both published: true. Wire format uses snake_case keys.
+        - >-
+          GET /api/fulfillment/v1/cluster_catalog_items/{id} — returns single catalog item; 404 when missing.
       dev_proxy_coverage:
         - Upstream URL joins FULFILLMENT_API_URL with request path for fulfillment, events, and osac public prefixes
         - DELETE /api/fulfillment/v1/compute_instances/{id} forwarded with method, path, and Authorization (same as GET/PATCH)
@@ -468,6 +488,31 @@ context:
           note: Wizard + catalog alignment with fulfillment VM templates
         - method: GET
           path: /api/fulfillment/v1/compute_instance_templates/{id}
+        - method: GET
+          path: /api/fulfillment/v1/clusters
+          hooks: [listClusters, useClusters]
+          note: Poll every 15s while any cluster in PROGRESSING state; stop when all READY or FAILED
+        - method: GET
+          path: /api/fulfillment/v1/clusters/{id}
+          hooks: [getCluster, useCluster]
+        - method: POST
+          path: /api/fulfillment/v1/clusters
+          hooks: [createCluster, useCreateCluster]
+          note: Mock BFF only; dev mode requires platform token — see contract_note_cluster_create
+        - method: PATCH
+          path: /api/fulfillment/v1/clusters/{id}
+          hooks: [patchCluster, usePatchCluster]
+          note: Used for node set scaling; send spec.node_sets map with updated size
+        - method: DELETE
+          path: /api/fulfillment/v1/clusters/{id}
+          hooks: [deleteCluster, useDeleteCluster]
+        - method: GET
+          path: /api/fulfillment/v1/cluster_catalog_items
+          hooks: [listClusterCatalogItems, useClusterCatalogItems]
+          note: UI filters client-side on published:true; or pass filter param to server
+        - method: GET
+          path: /api/fulfillment/v1/cluster_catalog_items/{id}
+          hooks: [getClusterCatalogItem, useClusterCatalogItem]
       existing_operations_to_fix:
         - >-
           POST /api/fulfillment/v1/compute_instances: HTTP+JSON unmarshaler expects **ComputeInstance** at the JSON
@@ -676,6 +721,37 @@ context:
             - GET /api/fulfillment/v1/virtual_networks
             - GET /api/fulfillment/v1/subnets
             - GET /api/fulfillment/v1/security_groups
+      - name: ClustersPage
+        description: >-
+          Tenant user cluster list, detail drawer, and create modal. Route /clusters; tenantUser only.
+          See docs/specs/ui-flows/cluster-service-catalog.yaml for full flow spec.
+        data_requirements:
+          list:
+            - GET /api/fulfillment/v1/clusters (paginated; poll every 15s while any PROGRESSING)
+          detail:
+            - GET /api/fulfillment/v1/clusters/{id} (on drawer open; refetch on node scale)
+          catalog:
+            - GET /api/fulfillment/v1/cluster_catalog_items (on create modal open; filter published:true)
+            - GET /api/fulfillment/v1/cluster_catalog_items/{id} (optional; for single-item form hydration)
+          create:
+            - POST /api/fulfillment/v1/clusters (mock BFF; or system-token dev path — see contract_note_cluster_create)
+          scale:
+            - PATCH /api/fulfillment/v1/clusters/{id} with spec.node_sets update
+          delete:
+            - DELETE /api/fulfillment/v1/clusters/{id}
+          mock_data:
+            clusters:
+              - id: northstar-prod-1; state: CLUSTER_STATE_READY; tenant: northstar; workers: 3
+              - id: northstar-dev-1; state: CLUSTER_STATE_PROGRESSING; tenant: northstar; workers: 1
+              - id: evergreen-prod-1; state: CLUSTER_STATE_READY; tenant: evergreen; workers: 3
+            catalog_items:
+              - id: ocp-standard; title: OpenShift Standard; published: true; editable: workers.size (1-10)
+              - id: ocp-gpu; title: OpenShift GPU-Accelerated; published: true; editable: gpu-workers.size (1-4)
+          normalization:
+            - normalizeCluster(raw) + normalizeClusterList(page) in libs/api-contracts
+            - Maps snake_case wire fields to camelCase: catalog_item→catalogItem, api_url→apiUrl, console_url→consoleUrl, node_sets→nodeSets, creation_timestamp→createdAt
+            - Maps CLUSTER_STATE_* wire enum to ClusterState UI type
+            - Maps CLUSTER_CONDITION_TYPE_* and CONDITION_STATUS_* for condition display
 
   flows:
     - name: institutional-sign-in
@@ -826,6 +902,19 @@ requirements:
     security: TLS everywhere in production; Bearer auth; tenant isolation via authz layer
     observability: true
 
+contract_note_cluster_create: >
+  Proto comments on Clusters.Create state: "Note that this operation is not allowed for regular users,
+  only for the server. Regular users create clusters indirectly, creating a cluster order that will
+  eventually result in the system creating a cluster." The grpcurl README output references
+  osac.public.v1.ClusterOrders service, but no cluster_orders_service.proto exists in the analyzed
+  main-branch public protos — it may be removed or unpublished. Demo implementations MUST:
+  (a) In OSAC_API_MODE=mock — BFF accepts POST /api/fulfillment/v1/clusters from tenant users and
+      appends to a clusterStore fixture, returning state CLUSTER_STATE_PROGRESSING.
+  (b) In OSAC_API_MODE=dev — document that a platform token (system/provider_admin JWT) is required
+      or that a ClusterOrders API must be added; block dev cluster creation behind a feature flag or
+      BFF-mediated order until upstream publishes a tenant-facing create path.
+  Track this constraint and remove when a public order API ships.
+
 contract_note_compute_instance_create: >
   Proto comments state POST /compute_instances is not for regular end users; users
   should create via an order/async path. The historical README still mentions
@@ -923,6 +1012,156 @@ reusable_schemas:
         type: array
         items:
           type: string
+  ClusterNodeSet:
+    type: object
+    description: >-
+      Wire JSON from fulfillment uses snake_case: host_type, size. UI model maps to hostType, size.
+    properties:
+      host_type:
+        type: string
+        description: Wire alias; UI model field is hostType after normalize
+      hostType:
+        type: string
+      size:
+        type: integer
+        format: int32
+
+  ClusterNetwork:
+    type: object
+    properties:
+      pod_cidr:
+        type: string
+        description: CIDR for cluster pod network; wire snake_case; default 10.128.0.0/14
+      service_cidr:
+        type: string
+        description: CIDR for cluster service network; wire snake_case; default 172.30.0.0/16
+
+  ClusterCondition:
+    type: object
+    properties:
+      type:
+        type: string
+        description: CLUSTER_CONDITION_TYPE_* enum string; humanize by stripping prefix for display
+      status:
+        type: string
+        description: CONDITION_STATUS_TRUE / CONDITION_STATUS_FALSE / CONDITION_STATUS_UNKNOWN
+      last_transition_time:
+        type: string
+        format: date-time
+      reason:
+        type: string
+      message:
+        type: string
+
+  Cluster:
+    type: object
+    description: >-
+      Wire JSON from fulfillment uses snake_case keys and CLUSTER_STATE_* enum strings. UI model (after
+      normalizeCluster) uses camelCase. ClusterSpec.pull_secret is write-only: redacted as "***" in GET.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/Metadata'
+      spec:
+        type: object
+        properties:
+          template:
+            type: string
+            description: Mutually exclusive with catalog_item
+          catalog_item:
+            type: string
+            description: >-
+              Wire field; references a ClusterCatalogItem id. Mutually exclusive with template.
+              UI model field: catalogItem after normalize.
+          template_parameters:
+            type: object
+            description: Map of protobuf Any values; rarely set by tenant users
+          node_sets:
+            type: object
+            additionalProperties:
+              $ref: '#/reusable_schemas/ClusterNodeSet'
+            description: Map keyed by node set id (e.g. "workers"); wire and UI both use the same map structure
+          pull_secret:
+            type: string
+            description: Write-only; redacted as "***" in GET responses
+          ssh_public_key:
+            type: string
+          release_image:
+            type: string
+          network:
+            $ref: '#/reusable_schemas/ClusterNetwork'
+      status:
+        type: object
+        properties:
+          state:
+            type: string
+            description: >-
+              Wire CLUSTER_STATE_* enum; UI maps to ClusterState:
+                CLUSTER_STATE_PROGRESSING → "Provisioning" (blue + spinner)
+                CLUSTER_STATE_READY → "Ready" (green)
+                CLUSTER_STATE_FAILED → "Failed" (red)
+                CLUSTER_STATE_UNSPECIFIED → "Unknown" (grey)
+          conditions:
+            type: array
+            items:
+              $ref: '#/reusable_schemas/ClusterCondition'
+          api_url:
+            type: string
+            description: Wire snake_case; UI model field: apiUrl after normalize
+          console_url:
+            type: string
+            description: Wire snake_case; UI model field: consoleUrl after normalize
+          node_sets:
+            type: object
+            additionalProperties:
+              $ref: '#/reusable_schemas/ClusterNodeSet'
+            description: Current node set sizes from the system; may differ from spec.node_sets during scaling
+
+  FieldDefinition:
+    type: object
+    description: Defines a user-configurable field for a catalog item (clusters or compute instances).
+    properties:
+      path:
+        type: string
+        description: Dot-notation path referencing a field in the resource spec (e.g. "spec.node_sets.workers.size")
+      display_name:
+        type: string
+      editable:
+        type: boolean
+        description: If false, user cannot change this field; it is pre-filled from the default value
+      default:
+        type: object
+        description: >-
+          protobuf Value; for JSON may appear as primitive or as { "@type": "...", "value": ... } for wrapper types
+      validation_schema:
+        type: string
+        description: JSON Schema (draft 2020-12) string for validating editable fields
+
+  ClusterCatalogItem:
+    type: object
+    description: A curated infrastructure offering that tenants select when creating clusters.
+    properties:
+      id:
+        type: string
+      metadata:
+        $ref: '#/reusable_schemas/Metadata'
+      title:
+        type: string
+      description:
+        type: string
+        description: Markdown-formatted long description
+      template:
+        type: string
+        description: Underlying cluster template id
+      published:
+        type: boolean
+        description: Only published items are shown to tenant users
+      field_definitions:
+        type: array
+        items:
+          $ref: '#/reusable_schemas/FieldDefinition'
+
   ClusterTemplateSummary:
     type: object
     properties:
@@ -1434,12 +1673,14 @@ apis:
           $ref: '#/reusable_schemas/PageOfT'
 
   - name: clusters_list_get
-    description: Managed clusters inventory (kubeconfig/password are separate routes).
+    description: >-
+      Managed clusters inventory for the signed-in tenant or provider. Tenant users see only their
+      organization's clusters; provider admins see all. Kubeconfig and password are separate routes.
     endpoint: /api/fulfillment/v1/clusters
     method: GET
     auth:
       required: true
-      roles_allowed: [provider_admin, tenant_admin, viewer]
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
     request:
       schema:
         allOf:
@@ -1448,7 +1689,307 @@ apis:
       success:
         status: 200
         schema:
-          $ref: '#/reusable_schemas/PageOfT'
+          type: object
+          properties:
+            size: { type: integer }
+            total: { type: integer }
+            items:
+              type: array
+              items:
+                $ref: '#/reusable_schemas/Cluster'
+      errors:
+        - code: 401_UNAUTHORIZED
+          description: Missing or invalid bearer token
+        - code: 403_FORBIDDEN
+          description: Insufficient scope
+    example_requests:
+      - |
+        curl -sS -H "Authorization: Bearer $TOKEN" \
+          'https://fulfillment.example/api/fulfillment/v1/clusters?limit=20'
+    example_responses:
+      - |
+        {
+          "size": 2, "total": 2,
+          "items": [
+            {
+              "id": "northstar-prod-1",
+              "metadata": { "name": "northstar-prod-1", "creation_timestamp": "2026-05-01T10:00:00Z", "creators": ["tenant-northstar"], "tenants": ["northstar"] },
+              "spec": { "catalog_item": "ocp-standard", "node_sets": { "workers": { "host_type": "dell-r640", "size": 3 } } },
+              "status": {
+                "state": "CLUSTER_STATE_READY",
+                "conditions": [{ "type": "CLUSTER_CONDITION_TYPE_READY", "status": "CONDITION_STATUS_TRUE", "last_transition_time": "2026-05-01T14:00:00Z" }],
+                "api_url": "https://api.northstar-prod-1.osac.example.com:6443",
+                "console_url": "https://console-openshift-console.apps.northstar-prod-1.osac.example.com",
+                "node_sets": { "workers": { "host_type": "dell-r640", "size": 3 } }
+              }
+            },
+            {
+              "id": "northstar-dev-1",
+              "metadata": { "name": "northstar-dev-1", "creation_timestamp": "2026-06-01T08:00:00Z", "creators": ["tenant-northstar"], "tenants": ["northstar"] },
+              "spec": { "catalog_item": "ocp-standard", "node_sets": { "workers": { "host_type": "dell-r640", "size": 1 } } },
+              "status": {
+                "state": "CLUSTER_STATE_PROGRESSING",
+                "conditions": [{ "type": "CLUSTER_CONDITION_TYPE_PROGRESSING", "status": "CONDITION_STATUS_TRUE", "last_transition_time": "2026-06-01T08:00:00Z", "message": "Cluster is being provisioned" }],
+                "api_url": "", "console_url": "",
+                "node_sets": { "workers": { "host_type": "dell-r640", "size": 0 } }
+              }
+            }
+          ]
+        }
+
+  - name: clusters_get
+    description: Cluster detail for the detail drawer. Kubeconfig and password are accessed via separate endpoints.
+    endpoint: /api/fulfillment/v1/clusters/{id}
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    request:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            required: true
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/Cluster'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Unknown cluster id
+
+  - name: clusters_update
+    description: >-
+      Partial update for tenant-allowed fields. Primary use case: update spec.node_sets[key].size for
+      worker node scaling. Client sends only the fields to update (implicit FieldMask via HTTP+JSON).
+      NOT used to update status — status is system-owned.
+    endpoint: /api/fulfillment/v1/clusters/{id}
+    method: PATCH
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, system]
+    request:
+      schema:
+        type: object
+        description: Partial Cluster; only present fields are updated.
+        properties:
+          spec:
+            type: object
+            properties:
+              node_sets:
+                type: object
+                description: >-
+                  Send the full updated node_sets map (or the specific key being scaled) per fulfillment
+                  FieldMask semantics. Only size field may be updated by tenant users; host_type is immutable.
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/Cluster'
+      errors:
+        - code: 400_BAD_REQUEST
+          description: Invalid node count (below 1 or above permitted maximum)
+        - code: 403_FORBIDDEN
+          description: Attempted to modify a system-owned field
+        - code: 412_PRECONDITION_FAILED
+          description: Optimistic lock version mismatch when lock=true
+    example_requests:
+      - |
+        curl -sS -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+          https://fulfillment.example/api/fulfillment/v1/clusters/northstar-prod-1 \
+          -d '{"spec":{"node_sets":{"workers":{"host_type":"dell-r640","size":5}}}}'
+    spa_integration:
+      client: apps/app-frontend/src/api/client.ts — patchClusterNodeSets(id, nodeSets)
+      hook: usePatchCluster — invalidates clusters query keys on success
+      ui: ClusterDetailDrawer Node Sets tab — inline scale input + confirm button
+
+  - name: clusters_delete
+    description: >-
+      Delete a cluster. Disabled in UI while cluster state is CLUSTER_STATE_PROGRESSING.
+      Mock BFF removes entry from clusterStore; dev proxies DELETE to fulfillment with Authorization.
+    endpoint: /api/fulfillment/v1/clusters/{id}
+    method: DELETE
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, system]
+    request:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            required: true
+    response:
+      success:
+        status: 200
+        schema:
+          type: object
+          properties: {}
+      errors:
+        - code: 404_NOT_FOUND
+          description: Unknown cluster id
+        - code: 409_CONFLICT
+          description: Delete rejected while provisioning is in progress (fulfillment policy)
+    example_requests:
+      - |
+        curl -sS -X DELETE -H "Authorization: Bearer $TOKEN" \
+          https://fulfillment.example/api/fulfillment/v1/clusters/northstar-dev-1
+    spa_integration:
+      client: apps/app-frontend/src/api/client.ts — deleteCluster(id)
+      hook: useDeleteCluster — invalidates clusters query key on success
+      ui: ClustersPage + ClusterDetailDrawer — confirm modal; disabled when PROGRESSING
+
+  - name: clusters_create
+    description: >-
+      Create a cluster. NOTE: the fulfillment proto marks this as system-only — regular tenant users
+      should create via an async order path. In mock mode the BFF handles create locally (clusterStore).
+      In dev mode document as requiring a platform token or BFF-mediated order. See contract_note_cluster_create.
+    endpoint: /api/fulfillment/v1/clusters
+    method: POST
+    auth:
+      required: true
+      roles_allowed: [system, provider_admin]
+      demo_note: >-
+        Mock BFF accepts this call from tenant users for demo purposes. Dev mode requires platform token
+        or an unimplemented ClusterOrders API; track as technical debt until an order API ships.
+    request:
+      schema:
+        description: >-
+          Body is Cluster at the root. Required: spec.catalog_item (xor spec.template) and metadata.name.
+          Optional: spec.ssh_public_key, spec.release_image, spec.network, editable spec fields per
+          catalog item field_definitions.
+        allOf:
+          - $ref: '#/reusable_schemas/Cluster'
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/Cluster'
+          description: Returns the created Cluster with state CLUSTER_STATE_PROGRESSING
+      errors:
+        - code: 400_BAD_REQUEST
+          description: Missing required fields or invalid CIDR notation
+        - code: 403_FORBIDDEN
+          description: Non-system caller in dev/production mode
+        - code: 409_CONFLICT
+          description: Name or id collision
+    example_requests:
+      - |
+        curl -sS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+          https://fulfillment.example/api/fulfillment/v1/clusters \
+          -d '{
+            "metadata": { "name": "my-cluster" },
+            "spec": {
+              "catalog_item": "ocp-standard",
+              "node_sets": { "workers": { "host_type": "dell-r640", "size": 3 } }
+            }
+          }'
+    spa_integration:
+      client: apps/app-frontend/src/api/client.ts — createCluster(payload)
+      hook: useCreateCluster — invalidates clusters query key; adds provisional PROGRESSING row to cache
+      ui: csc_create_cluster_modal — second form step; submit triggers useCreateCluster
+
+  - name: cluster_catalog_items_list
+    description: >-
+      Browse available cluster catalog offerings. Tenant users select a catalog item when creating a cluster.
+      Only published items (published: true) are shown to tenants in the UI.
+    endpoint: /api/fulfillment/v1/cluster_catalog_items
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    request:
+      schema:
+        allOf:
+          - $ref: '#/reusable_schemas/ListQuery'
+          - properties:
+              filter:
+                example: this.published == true
+    response:
+      success:
+        status: 200
+        schema:
+          type: object
+          properties:
+            size: { type: integer }
+            total: { type: integer }
+            items:
+              type: array
+              items:
+                $ref: '#/reusable_schemas/ClusterCatalogItem'
+      errors:
+        - code: 401_UNAUTHORIZED
+          description: Missing or invalid bearer token
+    example_requests:
+      - |
+        curl -sS -H "Authorization: Bearer $TOKEN" \
+          'https://fulfillment.example/api/fulfillment/v1/cluster_catalog_items?filter=this.published%3D%3Dtrue&limit=20'
+    example_responses:
+      - |
+        {
+          "size": 2, "total": 2,
+          "items": [
+            {
+              "id": "ocp-standard",
+              "metadata": { "name": "ocp-standard", "creation_timestamp": "2026-03-01T00:00:00Z" },
+              "title": "OpenShift Standard",
+              "description": "A standard OpenShift 4.17 cluster with 3 worker nodes. Ideal for development and staging workloads.",
+              "template": "openshift-4-17",
+              "published": true,
+              "field_definitions": [
+                {
+                  "path": "spec.node_sets.workers.size",
+                  "display_name": "Worker node count",
+                  "editable": true,
+                  "default": { "@type": "type.googleapis.com/google.protobuf.Int32Value", "value": 3 },
+                  "validation_schema": "{\"type\":\"integer\",\"minimum\":1,\"maximum\":10}"
+                }
+              ]
+            },
+            {
+              "id": "ocp-gpu",
+              "metadata": { "name": "ocp-gpu", "creation_timestamp": "2026-03-01T00:00:00Z" },
+              "title": "OpenShift GPU-Accelerated",
+              "description": "OpenShift cluster with GPU worker nodes for AI/ML workloads. Includes NVIDIA GPU Operator pre-installed.",
+              "template": "openshift-4-17-gpu",
+              "published": true,
+              "field_definitions": [
+                {
+                  "path": "spec.node_sets.gpu-workers.size",
+                  "display_name": "GPU worker node count",
+                  "editable": true,
+                  "default": { "@type": "type.googleapis.com/google.protobuf.Int32Value", "value": 2 },
+                  "validation_schema": "{\"type\":\"integer\",\"minimum\":1,\"maximum\":4}"
+                }
+              ]
+            }
+          ]
+        }
+
+  - name: cluster_catalog_items_get
+    description: Fetch a single cluster catalog item by id (used for modal form hydration).
+    endpoint: /api/fulfillment/v1/cluster_catalog_items/{id}
+    method: GET
+    auth:
+      required: true
+      roles_allowed: [tenant_user, tenant_admin, provider_admin, viewer]
+    request:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            required: true
+    response:
+      success:
+        status: 200
+        schema:
+          $ref: '#/reusable_schemas/ClusterCatalogItem'
+      errors:
+        - code: 404_NOT_FOUND
+          description: Unknown catalog item id
 
   - name: private_compute_instances_signal
     description: >

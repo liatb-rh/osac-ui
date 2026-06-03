@@ -166,6 +166,31 @@ permissions:
     risk: medium
     flows:
       - provider-administration
+  - id: view_clusters
+    label: View cluster list and details
+    risk: low
+    flows:
+      - cluster-service-catalog
+  - id: open_create_cluster
+    label: Open create cluster workflow and submit
+    risk: high
+    flows:
+      - cluster-service-catalog
+  - id: view_cluster_catalog_items
+    label: Browse cluster catalog items for provisioning
+    risk: low
+    flows:
+      - cluster-service-catalog
+  - id: scale_cluster_nodes
+    label: Scale worker node count on an existing cluster
+    risk: high
+    flows:
+      - cluster-service-catalog
+  - id: delete_cluster
+    label: Delete a cluster
+    risk: high
+    flows:
+      - cluster-service-catalog
 
 role_permission_matrix:
   providerAdmin:
@@ -229,6 +254,11 @@ role_permission_matrix:
       - operate_vm_power
       - clone_vm
       - launch_console
+      - view_clusters
+      - open_create_cluster
+      - view_cluster_catalog_items
+      - scale_cluster_nodes
+      - delete_cluster
 
 ai-hints:
   summary: >-

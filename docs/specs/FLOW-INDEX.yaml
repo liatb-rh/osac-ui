@@ -63,6 +63,8 @@ statechart_specs:
       file: statecharts/provider-administration.statechart.yaml
     - id: vm-console-standalone-demo
       file: statecharts/vm-console-standalone-demo.statechart.yaml
+    - id: cluster-service-catalog
+      file: statecharts/cluster-service-catalog.statechart.yaml
 
 implementation_specs:
   - id: osac-fullstack-demo-implementation
@@ -133,6 +135,12 @@ flows:
   - id: vm-console-standalone-demo
     file: ui-flows/vm-console-standalone-demo.yaml
     summary: Query-param driven full-page console demo (?demo=vm-console).
+  - id: cluster-service-catalog
+    file: ui-flows/cluster-service-catalog.yaml
+    summary: >-
+      Tenant user Clusters page — lists OpenShift clusters provisioned for the tenant organization
+      with status (PROGRESSING/READY/FAILED), detail drawer with conditions/node-sets tabs, and
+      a create-cluster modal backed by cluster_catalog_items. Route /clusters; tenantUser only.
 
 # Logical surfaces; implement with PatternFly 6 per design-system.yaml flow_component_mapping.
 reusable_components_across_flows:
@@ -221,6 +229,9 @@ canonical_step_ids:
     - pad_security_placeholder
     - pad_platform_settings_placeholder
     - vcd_console_page
+    - csc_clusters_list
+    - csc_cluster_detail_drawer
+    - csc_create_cluster_modal
 
 bonus_ux_gaps_and_edge_cases:
   - >-

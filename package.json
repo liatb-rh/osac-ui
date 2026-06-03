@@ -6,6 +6,7 @@
   "scripts": {
     "dev:backend": "OSAC_API_MODE=mock pnpm --filter @osac/app-backend run dev",
     "dev:frontend": "pnpm --filter @osac/app-frontend run dev",
+    "dev:standalone": "VITE_MSW=true pnpm --filter @osac/app-frontend run dev",
     "build": "pnpm -r run build",
     "lint": "eslint \"{apps,libs}/*/src/**\" && prettier --check \"{apps,libs}/*/src/**/*.{js,jsx,ts,tsx}\"",
     "format": "prettier --write \"{apps,libs}/*/src/**/*.{js,jsx,ts,tsx}\"",

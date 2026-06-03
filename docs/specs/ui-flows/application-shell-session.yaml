@@ -22,7 +22,7 @@ steps:
 
     role_variants:
       tenant_user:
-        sidebar_nav: Dashboard, My VMs, Templates (VMaaS workspace)
+        sidebar_nav: Dashboard, My VMs, Templates, Clusters (VMaaS + CaaS workspace)
         masthead: Tenant masthead logo; user display name; operating mode label for tenant user persona
         fleet_scope: Virtual machines for the signed-in tenant only (northstar or evergreen)
       tenant_admin:
