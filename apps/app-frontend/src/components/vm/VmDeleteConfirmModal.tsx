@@ -2,6 +2,7 @@
  * flow: manage-virtual-machines
  * step: mvm_list_view | mvm_detail_drawer
  */
+import { css } from '@emotion/css'
 import {
   Alert,
   Button,
@@ -23,6 +24,10 @@ interface VmDeleteConfirmModalProps {
   onClose: () => void
   onConfirm: () => void
 }
+
+const errorAlertCss = css`
+  margin-top: var(--pf-t--global--spacer--md);
+`
 
 export function VmDeleteConfirmModal({
   vm,
@@ -55,7 +60,7 @@ export function VmDeleteConfirmModal({
           <Alert
             variant="danger"
             title="Delete failed"
-            style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+            className={errorAlertCss}
           >
             {errorMessage}
           </Alert>

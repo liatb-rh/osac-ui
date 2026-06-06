@@ -93,6 +93,67 @@ body {
   max-width: 180px;
 }
 
+/* ---------------------------------------------------------------------------
+ * Shell sidebar nav — osac-pilot visual style
+ *
+ * Nav links become a flex icon+label row. Padding is left to PatternFly
+ * (only the flex alignment and accent colours are overridden).
+ * --------------------------------------------------------------------------- */
+
+/* Icon + label row */
+.osac-shell-nav .pf-v6-c-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--md);
+}
+
+/* Icon slot */
+.osac-shell-nav__item-icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: currentColor;
+  opacity: 0.7;
+  margin-inline-end: var(--pf-t--global--spacer--sm);
+}
+
+/* Active nav item — accent colour + bold */
+.osac-shell-nav .pf-v6-c-nav__link.pf-m-current {
+  color: #0066cc;
+  font-weight: 600;
+}
+
+/*
+ * Left-only accent bar on the active nav item.
+ * PF v6 already renders ::after as `position:absolute; inset:0` for its
+ * box-border.  We override it to a 3px left-only border; the link's own
+ * `padding-inline-start` (~16px) provides the natural gap between the bar
+ * and the icon+label content.
+ */
+.osac-shell-nav .pf-v6-c-nav__link.pf-m-current::after {
+  border-width: 0;
+  border-inline-start: 3px solid #0066cc;
+  border-radius: 0;
+}
+
+.osac-shell-nav .pf-v6-c-nav__link.pf-m-current .osac-shell-nav__item-icon {
+  opacity: 1;
+}
+
+/* Inactive items — match osac-pilot ink colour */
+.osac-shell-nav .pf-v6-c-nav__link:not(.pf-m-current) {
+  font-weight: 500;
+}
+
+/* Dark mode text & active accent */
+.pf-v6-theme-dark .osac-shell-nav .pf-v6-c-nav__link.pf-m-current {
+  color: var(--pf-t--global--active-color--100);
+}
+
+.pf-v6-theme-dark .osac-shell-nav .pf-v6-c-nav__link.pf-m-current::after {
+  border-inline-start-color: var(--pf-t--global--active-color--100);
+}
+
 /* Shell sidebar footer */
 .osac-shell-sidebar-footer {
   padding: var(--pf-t--global--spacer--md);
@@ -221,7 +282,11 @@ body {
   gap: var(--pf-t--global--spacer--sm);
 }
 
-/* Welcome page — full viewport, centered column (no Page “card” chrome) */
+/* ---------------------------------------------------------------------------
+ * Welcome page — base shell (shared across layouts)
+ * --------------------------------------------------------------------------- */
+
+/* Welcome page — full viewport, centered column (no Page "card" chrome) */
 .osac-welcome-page {
   position: relative;
   box-sizing: border-box;
@@ -235,6 +300,21 @@ body {
   padding: var(--pf-t--global--spacer--4xl) var(--pf-t--global--spacer--lg)
     var(--pf-t--global--spacer--2xl);
   background: var(--pf-t--global--background--color--primary--default);
+}
+
+/* Persona redesign — matches osac-pilot's airy blue-to-off-white canvas */
+.osac-welcome-page--personas {
+  background:
+    radial-gradient(1200px 600px at 90% -10%, #cfe3f7 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #d9f0e2 0%, transparent 55%),
+    linear-gradient(180deg, #f6f9fc 0%, #eef3f8 100%);
+}
+
+.pf-v6-theme-dark .osac-welcome-page--personas {
+  background:
+    radial-gradient(1200px 600px at 90% -10%, rgba(0, 60, 130, 0.22) 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(0, 80, 45, 0.18) 0%, transparent 55%),
+    var(--pf-t--global--background--color--primary--default);
 }
 
 .osac-welcome-page__toggle {
@@ -254,6 +334,7 @@ body {
   min-height: 0;
 }
 
+/* Default inner: centered (kept for backward compat) */
 .osac-welcome-page__inner {
   width: 100%;
   max-width: 1280px;
@@ -263,6 +344,16 @@ body {
   align-items: center;
   text-align: center;
   gap: var(--pf-t--global--spacer--lg);
+}
+
+/* Persona variant: left-aligned content */
+.osac-welcome-page__inner--personas {
+  max-width: 1180px;
+  padding-inline: var(--pf-t--global--spacer--lg);
+  padding-block: var(--pf-t--global--spacer--xl) var(--pf-t--global--spacer--4xl);
+  align-items: flex-start;
+  text-align: left;
+  gap: 0;
 }
 
 .osac-welcome-page__logo {
@@ -289,9 +380,98 @@ body {
   margin-inline: auto;
 }
 
-/* Welcome — three role columns (boxed grid + vertical dividers) */
+/* ---------------------------------------------------------------------------
+ * Welcome page — brand header (persona layout)
+ * --------------------------------------------------------------------------- */
+.osac-welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  margin-block-end: var(--pf-t--global--spacer--2xl);
+}
+
+.osac-welcome-brand__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0066cc, #143b66);
+  display: grid;
+  place-items: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.osac-welcome-brand__icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.osac-welcome-brand__name {
+  font-weight: 700;
+  color: var(--pf-t--global--text--color--regular);
+  line-height: 1.2;
+}
+
+.osac-welcome-brand__sub {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* ---------------------------------------------------------------------------
+ * Welcome page — hero typography (persona layout)
+ * --------------------------------------------------------------------------- */
+.osac-welcome-eyebrow {
+  display: block;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pf-t--global--active-color--100);
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  margin-block-end: var(--pf-t--global--spacer--xs);
+}
+
+.osac-welcome-hero-title {
+  font-size: 40px !important;
+  line-height: 1.1 !important;
+  margin: 8px 0 12px !important;
+  letter-spacing: -0.02em;
+}
+
+.osac-welcome-hero-sub {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--body--lg);
+  max-width: 720px;
+  margin: 0 !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Welcome page — persona card grid
+ * --------------------------------------------------------------------------- */
+
+/* Persona grid — exact osac-pilot layout (auto-fill 280px min, 16px gap) */
+.osac-persona-grid {
+  display: grid;
+  gap: 16px;
+  margin-block-start: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  width: 100%;
+}
+
+/* Persona card styles live in @osac/ui-components (oc-card-active.css) */
+
+/* ---------------------------------------------------------------------------
+ * Welcome page — footer (persona layout)
+ * --------------------------------------------------------------------------- */
+.osac-welcome-footer {
+  margin-block-start: var(--pf-t--global--spacer--3xl);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* ---------------------------------------------------------------------------
+ * Welcome page — three-column role grid (legacy, kept for reference)
+ * --------------------------------------------------------------------------- */
 .osac-welcome-role-grid {
-  /* Softer than --border--color--default so the box reads lightly in light and dark themes */
   --osac-welcome-role-border: color-mix(
     in srgb,
     var(--pf-t--global--border--color--default) 30%,
@@ -381,6 +561,8 @@ body {
   }
 }
 
+/* PF Gallery minWidths handles the responsive column collapse; no override needed. */
+
 /* Login page layouts */
 .osac-login-page {
   min-height: 100vh;
@@ -399,8 +581,13 @@ body {
 /* Template catalog gallery */
 .osac-template-gallery {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--pf-t--global--spacer--md);
+}
+
+/* Template catalog card — lighter border matching osac-pilot #e3e8ee */
+.tenant-vm-catalog-template-card-wrap .pf-v6-c-card {
+  border-color: var(--pf-t--global--border--color--50);
 }
 
 .osac-template-catalog-search {
@@ -577,8 +764,8 @@ body {
 
 .tenant-vm-catalog-template-card-wrap .pf-v6-c-card {
   height: 100%;
-  border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: var(--pf-t--global--border--radius--medium);
+  /* border: 1px solid var(--pf-t--global--border--color--default); */
+  /* border-radius: var(--pf-t--global--border--radius--medium); */
 }
 
 .tenant-vm-catalog-template-card-wrap:hover .pf-v6-c-card {

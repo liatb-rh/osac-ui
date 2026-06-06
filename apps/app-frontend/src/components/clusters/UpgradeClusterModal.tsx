@@ -2,6 +2,7 @@
  * flow: cluster-service-catalog
  * step: csc_upgrade_cluster_modal
  */
+import { css } from '@emotion/css'
 import { useState } from 'react'
 import {
   Alert,
@@ -21,7 +22,11 @@ import {
   Spinner,
 } from '@patternfly/react-core'
 import type { Cluster, ClusterCatalogItem } from '@osac/api-contracts'
-import { useUpgradeCluster } from '../../api/useUpgradeCluster'
+import { useUpgradeCluster } from '../../hooks/useUpgradeCluster'
+
+const marginBottomRemCss = css`
+  margin-bottom: 1rem;
+`
 
 interface UpgradeClusterModalProps {
   cluster: Cluster
@@ -71,7 +76,7 @@ export function UpgradeClusterModal({ cluster, catalogItem, onClose }: UpgradeCl
             variant="danger"
             title="Failed to start upgrade"
             isInline
-            style={{ marginBottom: '1rem' }}
+            className={marginBottomRemCss}
           >
             {submitError}. Please try again.
           </Alert>
@@ -80,11 +85,11 @@ export function UpgradeClusterModal({ cluster, catalogItem, onClose }: UpgradeCl
           variant="warning"
           title="Cluster upgrade may cause brief API downtime"
           isInline
-          style={{ marginBottom: '1rem' }}
+          className={marginBottomRemCss}
         >
           Ensure your workloads can tolerate a restart before proceeding.
         </Alert>
-        <DescriptionList style={{ marginBottom: '1rem' }}>
+        <DescriptionList className={marginBottomRemCss}>
           <DescriptionListGroup>
             <DescriptionListTerm>Current version</DescriptionListTerm>
             <DescriptionListDescription>{currentVersion || '—'}</DescriptionListDescription>

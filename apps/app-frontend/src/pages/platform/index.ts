@@ -1,0 +1,6 @@
+export { StorageTiersPage } from './StorageTiersPage'
+export { StorageTierDetailPage } from './StorageTierDetailPage'
+export { InfrastructureAgentsPage } from './InfrastructureAgentsPage'
+export { AgentDetailPage } from './AgentDetailPage'
+export { GlobalTemplatesPage } from './GlobalTemplatesPage'
+export { ProviderInfraTopologyPage } from './ProviderInfraTopologyPage'

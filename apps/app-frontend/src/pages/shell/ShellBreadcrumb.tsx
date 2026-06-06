@@ -1,9 +1,9 @@
 import { Breadcrumb, BreadcrumbItem, Button } from '@patternfly/react-core'
-import type { DemoShellRole } from '@osac/api-contracts'
+import type { OsacRole } from '@osac/api-contracts'
 
 interface ShellBreadcrumbProps {
   isRecentActivities: boolean
-  role: DemoShellRole
+  role: OsacRole
   onNavigate: (path: string) => void
 }
 

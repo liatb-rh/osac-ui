@@ -1,3 +1,4 @@
+import { css } from '@emotion/css'
 import { Card, CardBody, Content, Stack, StackItem, Title } from '@patternfly/react-core'
 
 interface DashboardMetricCardProps {
@@ -5,21 +6,30 @@ interface DashboardMetricCardProps {
   value: number
 }
 
+const cardCss = css`
+  min-width: 120px;
+`
+
+const valueTitleCss = css`
+  margin: 0;
+`
+
+const labelCss = css`
+  color: var(--pf-t--global--text--color--subtle);
+`
+
 export function DashboardMetricCard({ label, value }: DashboardMetricCardProps) {
   return (
-    <Card isCompact style={{ minWidth: 120 }}>
+    <Card isCompact className={cardCss}>
       <CardBody>
         <Stack>
           <StackItem>
-            <Title headingLevel="h3" size="3xl" style={{ margin: 0 }}>
+            <Title headingLevel="h3" size="3xl" className={valueTitleCss}>
               {value}
             </Title>
           </StackItem>
           <StackItem>
-            <Content
-              component="small"
-              style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-            >
+            <Content component="small" className={labelCss}>
               {label}
             </Content>
           </StackItem>

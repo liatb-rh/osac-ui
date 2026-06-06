@@ -28,7 +28,101 @@ import type { ComputeInstance } from '@osac/api-contracts'
 import linuxMascotUrl from '../../../../assets/guest-os-tux-linux.png'
 import { VmStatusLabel } from '@osac/ui-components'
 import { useMemo, useState } from 'react'
+import { css, cx } from '@emotion/css'
 import type { UpdateFn, WizardState } from '../types'
+
+const windowsIconCss = css`
+  width: 28px;
+  height: 28px;
+  color: #0078d4;
+`
+
+const redhatIconCss = css`
+  width: 28px;
+  height: 28px;
+  color: #ee0000;
+`
+
+const linuxMascotCss = css`
+  display: block;
+  object-fit: contain;
+`
+
+const detailFieldLabelCss = css`
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  color: rgba(32, 37, 43, 0.82);
+`
+
+const detailFieldValueCss = css`
+  margin: 0;
+  font-size: var(--pf-t--global--font--size--body--sm);
+`
+
+const inlineDetailFieldCss = css`
+  margin: 0;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  display: grid;
+  grid-template-columns: 96px minmax(120px, 1fr);
+  column-gap: 1.25rem;
+  align-items: center;
+`
+
+const inlineDetailFieldLabelCss = css`
+  font-weight: 500;
+  color: rgba(32, 37, 43, 0.82);
+`
+
+const inlineDetailFieldValueCss = css`
+  text-align: center;
+`
+
+const cloneSourceIntroCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  max-width: 720px;
+`
+
+const osFilterSelectCss = css`
+  min-width: 200px;
+`
+
+const stateFilterSelectCss = css`
+  min-width: 180px;
+`
+
+const searchFlexItemCss = css`
+  min-width: 220px;
+`
+
+const countPhraseCss = css`
+  margin: 0;
+  font-weight: 600;
+`
+
+const emptyResultsCss = css`
+  grid-column: 1 / -1;
+  margin: 0;
+`
+
+const cloneSourceCardHeaderCss = css`
+  flex-shrink: 0;
+`
+
+const cloneSourceCardHeaderFlexCss = css`
+  width: 100%;
+`
+
+const cloneSourceCardRadioStackCss = css`
+  align-items: flex-end;
+`
+
+const cloneSourceCardTitleCss = css`
+  font-weight: 600;
+  margin: 0;
+  font-size: 1rem;
+`
 
 interface CloneSourceStepProps {
   state: WizardState
@@ -53,16 +147,15 @@ const STATE_FILTER_OPTIONS = [
 ] as const
 
 function OsIcon({ os }: { os?: string }) {
-  const style = { width: 28, height: 28 } as const
-  if (os === 'windows') return <WindowsIcon style={{ ...style, color: '#0078D4' }} />
-  if (os === 'rhel') return <RedhatIcon style={{ ...style, color: '#EE0000' }} />
+  if (os === 'windows') return <WindowsIcon className={windowsIconCss} />
+  if (os === 'rhel') return <RedhatIcon className={redhatIconCss} />
   return (
     <img
       src={linuxMascotUrl}
       alt=""
       width={28}
       height={28}
-      style={{ display: 'block', objectFit: 'contain' }}
+      className={linuxMascotCss}
     />
   )
 }
@@ -96,13 +189,7 @@ function DetailField({ label, value }: { label: string; value: string }) {
       <StackItem>
         <Content
           component="small"
-          style={{
-            margin: 0,
-            textTransform: 'uppercase',
-            letterSpacing: '0.02em',
-            fontWeight: 500,
-            color: 'rgba(32, 37, 43, 0.82)',
-          }}
+          className={detailFieldLabelCss}
         >
           {label}
         </Content>
@@ -110,7 +197,7 @@ function DetailField({ label, value }: { label: string; value: string }) {
       <StackItem>
         <Content
           component="p"
-          style={{ margin: 0, fontSize: 'var(--pf-t--global--font--size--body--sm)' }}
+          className={detailFieldValueCss}
         >
           {value}
         </Content>
@@ -123,24 +210,12 @@ function InlineDetailField({ label, value }: { label: string; value: string }) {
   return (
     <Content
       component="p"
-      style={{
-        margin: 0,
-        fontSize: 'var(--pf-t--global--font--size--body--sm)',
-        display: 'grid',
-        gridTemplateColumns: '96px minmax(120px, 1fr)',
-        columnGap: '1.25rem',
-        alignItems: 'center',
-      }}
+      className={inlineDetailFieldCss}
     >
-      <span
-        style={{
-          fontWeight: 500,
-          color: 'rgba(32, 37, 43, 0.82)',
-        }}
-      >
+      <span className={inlineDetailFieldLabelCss}>
         {label}
       </span>
-      <span style={{ textAlign: 'center' }}>{value}</span>
+      <span className={inlineDetailFieldValueCss}>{value}</span>
     </Content>
   )
 }
@@ -181,8 +256,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
         </Title>
         <Content
           component="p"
-          className="pf-v6-u-color-text-subtle"
-          style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 720 }}
+          className={cx('pf-v6-u-color-text-subtle', cloneSourceIntroCss)}
         >
           Select a virtual machine to clone.
         </Content>
@@ -212,7 +286,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
               value={osFilter}
               onChange={(_e, v) => setOsFilter(v)}
               aria-label="Filter source VMs by operating system"
-              style={{ minWidth: 200 }}
+              className={osFilterSelectCss}
             >
               {OS_FILTER_OPTIONS.map((o) => (
                 <FormSelectOption key={o.value} value={o.value} label={o.label} />
@@ -225,7 +299,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
               value={stateFilter}
               onChange={(_e, v) => setStateFilter(v)}
               aria-label="Filter source VMs by state"
-              style={{ minWidth: 180 }}
+              className={stateFilterSelectCss}
             >
               {STATE_FILTER_OPTIONS.map((o) => (
                 <FormSelectOption key={o.value} value={o.value} label={o.label} />
@@ -237,7 +311,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
               Clear filters
             </Button>
           </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }} style={{ minWidth: 220 }}>
+          <FlexItem flex={{ default: 'flex_1' }} className={searchFlexItemCss}>
             <SearchInput
               id="clone-search"
               placeholder="Search source VMs…"
@@ -249,7 +323,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
         </Flex>
       </StackItem>
       <StackItem>
-        <Content component="p" style={{ margin: 0, fontWeight: 600 }}>
+        <Content component="p" className={countPhraseCss}>
           {countPhrase}
         </Content>
       </StackItem>
@@ -262,19 +336,28 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
           {filtered.length === 0 ? (
             <Content
               component="p"
-              className="pf-v6-u-color-text-subtle"
-              style={{ gridColumn: '1 / -1', margin: 0 }}
+              className={cx('pf-v6-u-color-text-subtle', emptyResultsCss)}
             >
               No virtual machines match your filters or search.
             </Content>
           ) : null}
           {filtered.map((vm) => {
             const selected = state.cloneSourceVmId === vm.id
+            const cloneSourceCardCss = css`
+              cursor: pointer;
+              box-sizing: border-box;
+              border-width: 1px;
+              border-style: solid;
+              border-color: ${selected
+                ? 'var(--pf-t--global--color--brand--default)'
+                : 'var(--pf-t--global--border--color--default)'};
+              border-radius: var(--pf-t--global--border--radius--medium);
+            `
             return (
               <div key={vm.id}>
                 <Card
                   id={`clone-source-card-${vm.id}`}
-                  className="osac-template-cards__card osac-clone-source-cards__card"
+                  className={cx('osac-template-cards__card osac-clone-source-cards__card', cloneSourceCardCss)}
                   isCompact
                   isClickable
                   isSelected={selected}
@@ -282,28 +365,18 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
                     update('cloneSourceVmId', vm.id)
                     update('cloneNewName', `${vm.metadata.name}-clone`)
                   }}
-                  style={{
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                    borderWidth: '1px',
-                    borderStyle: 'solid',
-                    borderColor: selected
-                      ? 'var(--pf-t--global--color--brand--default)'
-                      : 'var(--pf-t--global--border--color--default)',
-                    borderRadius: 'var(--pf-t--global--border--radius--medium)',
-                  }}
                 >
-                  <CardHeader style={{ flexShrink: 0 }}>
+                  <CardHeader className={cloneSourceCardHeaderCss}>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
                       alignItems={{ default: 'alignItemsFlexStart' }}
-                      style={{ width: '100%' }}
+                      className={cloneSourceCardHeaderFlexCss}
                     >
                       <FlexItem>
                         <OsIcon os={vm.os} />
                       </FlexItem>
                       <FlexItem>
-                        <Stack hasGutter={false} style={{ alignItems: 'flex-end' }}>
+                        <Stack hasGutter={false} className={cloneSourceCardRadioStackCss}>
                           <StackItem>
                             <Radio
                               id={`clone-source-radio-${vm.id}`}
@@ -328,7 +401,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
                       <StackItem>
                         <Content
                           component="h3"
-                          style={{ fontWeight: 600, margin: 0, fontSize: '1rem' }}
+                          className={cloneSourceCardTitleCss}
                         >
                           {vm.metadata.name}
                         </Content>

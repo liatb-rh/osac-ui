@@ -9,6 +9,7 @@ import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon'
  * Layout uses only PF primitives (Grid, Gallery, Stack, Flex) and PF design tokens.
  * No custom CSS classes — see design-system.yaml layout_and_shell.implementation_policy.
  */
+import { css } from '@emotion/css'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -34,7 +35,7 @@ import {
 } from '@patternfly/react-core'
 import { Chart, ChartAxis, ChartGroup, ChartLine } from '@patternfly/react-charts/victory'
 import { buildRecentActivities } from '@osac/api-contracts'
-import { useComputeInstances } from '../../api/hooks'
+import { useComputeInstances } from '../../hooks/hooks'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -95,6 +96,38 @@ function buildUtilizationData(
 // Metric configuration
 // ---------------------------------------------------------------------------
 
+const sectionCss = css`
+  margin-top: var(--pf-t--global--spacer--xl);
+`
+
+const headerFlexCss = css`
+  margin-bottom: var(--pf-t--global--spacer--md);
+`
+
+const sectionTitleCss = css`
+  margin: 0;
+`
+
+const chartSubtitleCss = css`
+  margin: 0 0 var(--pf-t--global--spacer--sm);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+`
+
+const chartContainerCss = css`
+  height: 180px;
+`
+
+const activityTimeCss = css`
+  color: var(--pf-t--global--text--color--subtle);
+`
+
+const activityMessageCss = css`
+  margin: 0;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  font-size: var(--pf-t--global--font--size--body--default);
+`
+
 const METRICS = [
   {
     key: 'cpu' as const,
@@ -153,7 +186,7 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
   return (
     <section
       aria-label="VM utilization trends and recent activities"
-      style={{ marginTop: 'var(--pf-t--global--spacer--xl)' }}
+      className={sectionCss}
     >
       <Grid hasGutter>
         {/* ---- Left: 4 line chart cards ---- */}
@@ -162,10 +195,10 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
             alignItems={{ default: 'alignItemsCenter' }}
             flexWrap={{ default: 'wrap' }}
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            className={headerFlexCss}
           >
             <FlexItem>
-              <Title headingLevel="h2" size="xl" style={{ margin: 0 }}>
+              <Title headingLevel="h2" size="xl" className={sectionTitleCss}>
                 VM utilization trends
               </Title>
             </FlexItem>
@@ -217,20 +250,13 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
                       <CardTitle component="h3">{m.title}</CardTitle>
                     </CardHeader>
                     <CardBody>
-                      <Content
-                        component="p"
-                        style={{
-                          margin: '0 0 var(--pf-t--global--spacer--sm)',
-                          fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                          color: 'var(--pf-t--global--text--color--subtle)',
-                        }}
-                      >
+                      <Content component="p" className={chartSubtitleCss}>
                         {m.subtitle}
                       </Content>
                       {/* pf-primitive-exception: Victory SVG requires an explicit pixel height;
                           no PatternFly primitive can provide a chart bounding box */}
                       <div
-                        style={{ height: 180 }}
+                        className={chartContainerCss}
                         role="img"
                         aria-label={`${m.title} — ${currentPeriod.label}, percent over time`}
                       >
@@ -302,10 +328,7 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
                               </Label>
                             </FlexItem>
                             <FlexItem>
-                              <Content
-                                component="small"
-                                style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-                              >
+                              <Content component="small" className={activityTimeCss}>
                                 {new Date(item.timestamp).toLocaleTimeString([], {
                                   hour: '2-digit',
                                   minute: '2-digit',
@@ -315,14 +338,7 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
                           </Flex>
                         </StackItem>
                         <StackItem>
-                          <Content
-                            component="p"
-                            style={{
-                              margin: 0,
-                              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                              fontSize: 'var(--pf-t--global--font--size--body--default)',
-                            }}
-                          >
+                          <Content component="p" className={activityMessageCss}>
                             {item.message ?? item.type}
                           </Content>
                         </StackItem>

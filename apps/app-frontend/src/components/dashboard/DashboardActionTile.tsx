@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { css } from '@emotion/css'
 import {
   Button,
   Card,
@@ -18,6 +19,10 @@ interface DashboardActionTileProps {
   actionLabel: string
   onAction: () => void
 }
+
+const descriptionCss = css`
+  color: var(--pf-t--global--text--color--subtle);
+`
 
 export function DashboardActionTile({
   icon,
@@ -40,7 +45,7 @@ export function DashboardActionTile({
         </CardTitle>
       </CardHeader>
       <CardBody>
-        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" className={descriptionCss}>
           {description}
         </Content>
       </CardBody>

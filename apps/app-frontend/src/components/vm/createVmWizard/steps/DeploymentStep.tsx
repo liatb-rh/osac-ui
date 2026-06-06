@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import { BlueprintIcon } from '@patternfly/react-icons/dist/esm/icons/blueprint-icon'
 import { CloneIcon } from '@patternfly/react-icons/dist/esm/icons/clone-icon'
 import { DesktopIcon } from '@patternfly/react-icons/dist/esm/icons/desktop-icon'
@@ -19,6 +20,40 @@ import {
   Title,
 } from '@patternfly/react-core'
 import type { DeploymentMode, UpdateFn, WizardState } from '../types'
+
+const deploymentIntroCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  max-width: 720px;
+`
+
+const deployCardHeaderCss = css`
+  flex-shrink: 0;
+`
+
+const deployCardHeaderFlexCss = css`
+  width: 100%;
+`
+
+const deployCardIconCss = css`
+  color: var(--pf-t--global--icon--color--subtle);
+  width: 28px;
+  height: 28px;
+`
+
+const deployCardTitleCss = css`
+  font-weight: 600;
+  margin: 0;
+  font-size: 1rem;
+`
+
+const deployCardDescriptionCss = css`
+  margin: 0;
+  font-size: var(--pf-t--global--font--size--body--sm);
+`
+
+const deployCardBodyStackCss = css`
+  flex: 1;
+`
 
 const OPTIONS: {
   value: DeploymentMode
@@ -55,8 +90,7 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
         </Title>
         <Content
           component="p"
-          className="pf-v6-u-color-text-subtle"
-          style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 720 }}
+          className={cx('pf-v6-u-color-text-subtle', deploymentIntroCss)}
         >
           Choose your preferred path to begin. We recommend creating from a template.
         </Content>
@@ -70,42 +104,36 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
           {OPTIONS.map((opt) => {
             const selected = state.mode === opt.value
             const Icon = opt.Icon
+            const deployCardCss = css`
+              cursor: pointer;
+              box-sizing: border-box;
+              border-width: 1px;
+              border-style: solid;
+              border-color: ${selected
+                ? 'var(--pf-t--global--color--brand--default)'
+                : 'var(--pf-t--global--border--color--default)'};
+              border-radius: var(--pf-t--global--border--radius--medium);
+            `
             return (
               <div key={opt.value} className="osac-deploy-options__cell">
                 <Card
                   id={`deploy-card-${opt.value}`}
-                  className="osac-deploy-options__card"
+                  className={cx('osac-deploy-options__card', deployCardCss)}
                   isCompact
                   isFullHeight
                   isClickable
                   isSelected={selected}
                   onClick={() => update('mode', opt.value)}
                   ouiaId={`deploy-option-${opt.value}`}
-                  style={{
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                    borderWidth: '1px',
-                    borderStyle: 'solid',
-                    borderColor: selected
-                      ? 'var(--pf-t--global--color--brand--default)'
-                      : 'var(--pf-t--global--border--color--default)',
-                    borderRadius: 'var(--pf-t--global--border--radius--medium)',
-                  }}
                 >
-                  <CardHeader style={{ flexShrink: 0 }}>
+                  <CardHeader className={deployCardHeaderCss}>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
                       alignItems={{ default: 'alignItemsFlexStart' }}
-                      style={{ width: '100%' }}
+                      className={deployCardHeaderFlexCss}
                     >
                       <FlexItem>
-                        <Icon
-                          style={{
-                            color: 'var(--pf-t--global--icon--color--subtle)',
-                            width: 28,
-                            height: 28,
-                          }}
-                        />
+                        <Icon className={deployCardIconCss} />
                       </FlexItem>
                       <FlexItem>
                         <Radio
@@ -119,11 +147,11 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
                     </Flex>
                   </CardHeader>
                   <CardBody>
-                    <Stack hasGutter style={{ flex: 1 }}>
+                    <Stack hasGutter className={deployCardBodyStackCss}>
                       <StackItem>
                         <Content
                           component="h3"
-                          style={{ fontWeight: 600, margin: 0, fontSize: '1rem' }}
+                          className={deployCardTitleCss}
                         >
                           {opt.title}
                         </Content>
@@ -140,11 +168,7 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
                       <StackItem>
                         <Content
                           component="p"
-                          className="pf-v6-u-color-text-subtle"
-                          style={{
-                            margin: 0,
-                            fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                          }}
+                          className={cx('pf-v6-u-color-text-subtle', deployCardDescriptionCss)}
                         >
                           {opt.description}
                         </Content>

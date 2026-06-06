@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import { RedhatIcon } from '@patternfly/react-icons/dist/esm/icons/redhat-icon'
 import { WindowsIcon } from '@patternfly/react-icons/dist/esm/icons/windows-icon'
 import {
@@ -18,6 +19,40 @@ import {
 import guestOsTuxLinuxUrl from '../../../../assets/guest-os-tux-linux.png'
 import { GUEST_OS_FAMILIES, OS_TYPES } from '../constants'
 import type { UpdateFn, WizardState } from '../types'
+
+const guestOsIntroCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  max-width: 720px;
+`
+
+const guestOsCardHeaderCss = css`
+  flex-shrink: 0;
+`
+
+const guestOsCardHeaderFlexCss = css`
+  width: 100%;
+`
+
+const guestOsLinuxMascotCss = css`
+  display: block;
+  object-fit: contain;
+  border-radius: var(--pf-t--global--border--radius--small);
+`
+
+const guestOsCardTitleCss = css`
+  font-weight: 600;
+  margin: 0;
+  font-size: 1rem;
+`
+
+const guestOsCardDescriptionCss = css`
+  margin: 0;
+  font-size: var(--pf-t--global--font--size--body--sm);
+`
+
+const guestOsCardBodyStackCss = css`
+  flex: 1;
+`
 
 const FAMILY_ICONS = {
   rhel: RedhatIcon,
@@ -44,8 +79,7 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
         </Title>
         <Content
           component="p"
-          className="pf-v6-u-color-text-subtle"
-          style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 720 }}
+          className={cx('pf-v6-u-color-text-subtle', guestOsIntroCss)}
         >
           Choose a platform, then pick a specific version from the list below.
         </Content>
@@ -55,11 +89,26 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
           {GUEST_OS_FAMILIES.map((opt) => {
             const selected = state.osFamilyNew === opt.id
             const PfIcon = opt.id === 'linux' ? null : FAMILY_ICONS[opt.id]
+            const guestOsCardCss = css`
+              cursor: pointer;
+              box-sizing: border-box;
+              border-width: 1px;
+              border-style: solid;
+              border-color: ${selected
+                ? 'var(--pf-t--global--color--brand--default)'
+                : 'var(--pf-t--global--border--color--default)'};
+              border-radius: var(--pf-t--global--border--radius--medium);
+            `
+            const familyIconCss = css`
+              color: ${FAMILY_ICON_COLORS[opt.id as keyof typeof FAMILY_ICON_COLORS]};
+              width: 28px;
+              height: 28px;
+            `
             return (
               <div key={opt.id} className="osac-deploy-options__cell">
                 <Card
                   id={`guest-os-card-${opt.id}`}
-                  className="osac-deploy-options__card"
+                  className={cx('osac-deploy-options__card', guestOsCardCss)}
                   isCompact
                   isFullHeight
                   isClickable
@@ -69,43 +118,23 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
                     update('osTypeNew', '')
                   }}
                   ouiaId={`guest-os-option-${opt.id}`}
-                  style={{
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                    borderWidth: '1px',
-                    borderStyle: 'solid',
-                    borderColor: selected
-                      ? 'var(--pf-t--global--color--brand--default)'
-                      : 'var(--pf-t--global--border--color--default)',
-                    borderRadius: 'var(--pf-t--global--border--radius--medium)',
-                  }}
                 >
-                  <CardHeader style={{ flexShrink: 0 }}>
+                  <CardHeader className={guestOsCardHeaderCss}>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
                       alignItems={{ default: 'alignItemsFlexStart' }}
-                      style={{ width: '100%' }}
+                      className={guestOsCardHeaderFlexCss}
                     >
                       <FlexItem>
                         {PfIcon ? (
-                          <PfIcon
-                            style={{
-                              color: FAMILY_ICON_COLORS[opt.id as keyof typeof FAMILY_ICON_COLORS],
-                              width: 28,
-                              height: 28,
-                            }}
-                          />
+                          <PfIcon className={familyIconCss} />
                         ) : (
                           <img
                             src={guestOsTuxLinuxUrl}
                             alt=""
                             width={28}
                             height={28}
-                            style={{
-                              display: 'block',
-                              objectFit: 'contain',
-                              borderRadius: 'var(--pf-t--global--border--radius--small)',
-                            }}
+                            className={guestOsLinuxMascotCss}
                           />
                         )}
                       </FlexItem>
@@ -124,11 +153,11 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
                     </Flex>
                   </CardHeader>
                   <CardBody>
-                    <Stack hasGutter style={{ flex: 1 }}>
+                    <Stack hasGutter className={guestOsCardBodyStackCss}>
                       <StackItem>
                         <Content
                           component="h3"
-                          style={{ fontWeight: 600, margin: 0, fontSize: '1rem' }}
+                          className={guestOsCardTitleCss}
                         >
                           {opt.title}
                         </Content>
@@ -139,11 +168,7 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
                       <StackItem>
                         <Content
                           component="p"
-                          className="pf-v6-u-color-text-subtle"
-                          style={{
-                            margin: 0,
-                            fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                          }}
+                          className={cx('pf-v6-u-color-text-subtle', guestOsCardDescriptionCss)}
                         >
                           {opt.description}
                         </Content>

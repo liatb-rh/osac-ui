@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import {
   Checkbox,
   Content,
@@ -12,7 +13,7 @@ import {
 } from '@patternfly/react-core'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { type ReactNode, useMemo, useState } from 'react'
-import { useComputeInstanceTemplates } from '../../../../api/hooks'
+import { useComputeInstanceTemplates } from '../../../../hooks/hooks'
 import {
   parseTemplateAdditionalDisksGibInput,
   parseTemplateBootDiskGibInput,
@@ -21,6 +22,11 @@ import {
   parseTemplateSecurityGroupsInput,
 } from '../constants'
 import type { UpdateFn, WizardState } from '../types'
+
+const introCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  max-width: 720px;
+`
 
 /*
 RESTORE for "new" path review:
@@ -225,8 +231,7 @@ export function ReviewStep({
         </Title>
         <Content
           component="p"
-          className="pf-v6-u-color-text-subtle"
-          style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 720 }}
+          className={cx('pf-v6-u-color-text-subtle', introCss)}
         >
           Confirm the choices below, then create the virtual machine.
         </Content>

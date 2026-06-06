@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { css, cx } from '@emotion/css'
 import { Content, Flex, FlexItem, Title } from '@patternfly/react-core'
 
 interface PageHeaderProps {
@@ -8,7 +9,28 @@ interface PageHeaderProps {
   actions?: ReactNode
 }
 
+const titleCss = css`
+  margin: 0;
+`
+
+const descriptionBaseCss = css`
+  margin: 0;
+  color: var(--pf-t--global--text--color--subtle);
+`
+
+const actionsCss = css`
+  flex-shrink: 0;
+`
+
 export function PageHeader({ title, description, descriptionMaxWidth, actions }: PageHeaderProps) {
+  const descriptionCss = descriptionMaxWidth
+    ? css`
+        margin: 0;
+        color: var(--pf-t--global--text--color--subtle);
+        max-width: ${descriptionMaxWidth};
+      `
+    : descriptionBaseCss
+
   return (
     <Flex
       className="osac-page-toolbar-sticky"
@@ -16,24 +38,17 @@ export function PageHeader({ title, description, descriptionMaxWidth, actions }:
       alignItems={actions ? { default: 'alignItemsFlexStart' } : undefined}
     >
       <FlexItem className="osac-page-toolbar-sticky__lead">
-        <Title headingLevel="h1" size="2xl" style={{ margin: 0 }}>
+        <Title headingLevel="h1" size="2xl" className={titleCss}>
           {title}
         </Title>
         {description && (
-          <Content
-            component="p"
-            style={{
-              margin: 0,
-              color: 'var(--pf-t--global--text--color--subtle)',
-              ...(descriptionMaxWidth ? { maxWidth: descriptionMaxWidth } : {}),
-            }}
-          >
+          <Content component="p" className={descriptionCss}>
             {description}
           </Content>
         )}
       </FlexItem>
       {actions && (
-        <FlexItem className="osac-page-toolbar-sticky__actions" style={{ flexShrink: 0 }}>
+        <FlexItem className={cx('osac-page-toolbar-sticky__actions', actionsCss)}>
           {actions}
         </FlexItem>
       )}

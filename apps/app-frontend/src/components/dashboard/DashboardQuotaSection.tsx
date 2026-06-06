@@ -8,6 +8,7 @@
  * Layout uses only PF primitives (Gallery, Flex) and PF design tokens.
  * No custom CSS classes — see design-system.yaml layout_and_shell.implementation_policy.
  */
+import { css } from '@emotion/css'
 import { useMemo } from 'react'
 import { ChartDonut } from '@patternfly/react-charts/victory'
 import {
@@ -29,6 +30,21 @@ interface DashboardQuotaSectionProps {
   selectedTenant: DemoTenantId | null
 }
 
+const sectionCss = css`
+  margin-top: var(--pf-t--global--spacer--xl);
+`
+
+const sectionTitleCss = css`
+  margin: 0 0 var(--pf-t--global--spacer--md);
+`
+
+const quotaDetailCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  text-align: center;
+`
+
 export function DashboardQuotaSection({ selectedTenant }: DashboardQuotaSectionProps) {
   const quota = useMemo(() => {
     if (!selectedTenant || selectedTenant === 'vertexa') return []
@@ -38,8 +54,8 @@ export function DashboardQuotaSection({ selectedTenant }: DashboardQuotaSectionP
   if (!quota.length) return null
 
   return (
-    <section aria-label="Resource quota" style={{ marginTop: 'var(--pf-t--global--spacer--xl)' }}>
-      <Title headingLevel="h2" size="xl" style={{ margin: '0 0 var(--pf-t--global--spacer--md)' }}>
+    <section aria-label="Resource quota" className={sectionCss}>
+      <Title headingLevel="h2" size="xl" className={sectionTitleCss}>
         Resource quota
       </Title>
 
@@ -82,15 +98,7 @@ export function DashboardQuotaSection({ selectedTenant }: DashboardQuotaSectionP
                       />
                     </FlexItem>
                     <FlexItem>
-                      <Content
-                        component="p"
-                        style={{
-                          marginTop: 'var(--pf-t--global--spacer--sm)',
-                          fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                          color: 'var(--pf-t--global--text--color--subtle)',
-                          textAlign: 'center',
-                        }}
-                      >
+                      <Content component="p" className={quotaDetailCss}>
                         {entry.used} / {entry.limit} {entry.unit}
                       </Content>
                     </FlexItem>

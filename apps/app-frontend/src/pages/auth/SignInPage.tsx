@@ -8,7 +8,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useSession } from '../../contexts/SessionContext'
-import { InstitutionalSignInPage } from '../../components/login/InstitutionalSignInPage'
+import { InstitutionalSignInPage } from './InstitutionalSignInPage'
 import { getFulfillmentCapabilities } from '../../api/client'
 import { setAccessToken } from '../../api/authToken'
 

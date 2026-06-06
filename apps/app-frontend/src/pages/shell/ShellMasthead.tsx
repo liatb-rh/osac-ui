@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon'
 import { BellIcon } from '@patternfly/react-icons/dist/esm/icons/bell-icon'
 import { CogIcon } from '@patternfly/react-icons/dist/esm/icons/cog-icon'
@@ -26,12 +27,36 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core'
 import type { MouseEvent } from 'react'
-import type { DemoShellRole, DemoTenantId, TenantSovereignty } from '@osac/api-contracts'
+import type { OsacRole, DemoTenantId, TenantSovereignty } from '@osac/api-contracts'
 import { demoOperatingModeLabel } from '@osac/api-contracts'
+
+const brandTitleCss = css`
+  margin: 0;
+  white-space: nowrap;
+`
+
+const contentRailCss = css`
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+`
+
+const regionFlagCss = css`
+  margin: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+`
+
+const regionLineCss = css`
+  margin: 0;
+  line-height: 1.2;
+  display: inline-block;
+`
 
 interface ShellMastheadProps {
   selectedTenant: DemoTenantId | null
-  role: DemoShellRole
+  role: OsacRole
   displayName: string
   sovereignty: TenantSovereignty | null
   isUserMenuOpen: boolean
@@ -60,7 +85,7 @@ export function ShellMasthead({
         </MastheadToggle>
         <MastheadLogo>
           <MastheadBrand>
-            <Title headingLevel="h4" size="lg" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+            <Title headingLevel="h4" size="lg" className={brandTitleCss}>
               {selectedTenant === 'vertexa'
                 ? '✦ Vertexa Cloud'
                 : selectedTenant === 'northstar'
@@ -73,7 +98,7 @@ export function ShellMasthead({
 
       <MastheadContent className="osac-masthead-content">
         <Flex
-          className="osac-masthead-content-rail"
+          className={cx('osac-masthead-content-rail', contentRailCss)}
           direction={{ default: 'row' }}
           flexWrap={{ default: 'wrap' }}
           alignItems={{ default: 'alignItemsCenter' }}
@@ -81,7 +106,6 @@ export function ShellMasthead({
             default: sovereignty ? 'justifyContentSpaceBetween' : 'justifyContentFlexEnd',
           }}
           spaceItems={{ default: 'spaceItemsMd' }}
-          style={{ width: '100%', minWidth: 0, flex: 1 }}
         >
           {sovereignty ? (
             <Flex
@@ -98,18 +122,16 @@ export function ShellMasthead({
               >
                 <Content
                   component="small"
-                  className="osac-masthead-region-flag"
+                  className={cx('osac-masthead-region-flag', regionFlagCss)}
                   role="img"
                   aria-label={sovereignty.regionAriaLabel}
-                  style={{ margin: 0, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
                 >
                   {sovereignty.regionEmoji}
                 </Content>
                 <Content
                   component="small"
-                  className="osac-masthead-region-line"
+                  className={cx('osac-masthead-region-line', regionLineCss)}
                   title={sovereignty.regionLine}
-                  style={{ margin: 0, lineHeight: 1.2, display: 'inline-block' }}
                 >
                   {sovereignty.regionLine}
                 </Content>

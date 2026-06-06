@@ -2,6 +2,7 @@
  * flow: manage-virtual-machines
  * step: mvm_list_view
  */
+import { css } from '@emotion/css'
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import { resolveVmOsForUi } from '@osac/api-contracts'
@@ -19,6 +20,10 @@ interface VmTableProps {
   onDelete?: (vm: ComputeInstance) => void
   /* RESTORE when fulfillment supports clone: onClone?: (vm: ComputeInstance) => void */
 }
+
+const osCellCss = css`
+  text-transform: capitalize;
+`
 
 export function VmTable({
   vms,
@@ -58,7 +63,7 @@ export function VmTable({
               <Td dataLabel="Status">
                 <VmStatusLabel state={state} />
               </Td>
-              <Td dataLabel="OS" style={{ textTransform: 'capitalize' }}>
+              <Td dataLabel="OS" className={osCellCss}>
                 {resolveVmOsForUi(vm)}
               </Td>
               <Td dataLabel="vCPU">{vm.spec.cores ?? '—'}</Td>

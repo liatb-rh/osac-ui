@@ -1,4 +1,4 @@
-import type { DemoShellRole } from '@osac/api-contracts'
+import type { OsacRole } from '@osac/api-contracts'
 
 export interface ShellPlaceholderRoute {
   path: string
@@ -35,10 +35,15 @@ export const PROVIDER_PLACEHOLDER_ROUTES: ShellPlaceholderRoute[] = [
     title: 'Platform settings',
     lede: 'Feature flags, integrations, maintenance windows, and API endpoints.',
   },
+  {
+    path: '/provider/security',
+    title: 'Roles & Identity',
+    lede: 'Platform-level RBAC, identity providers, and service accounts.',
+  },
 ]
 
-export function defaultRouteForRole(role: DemoShellRole): string {
-  if (role === 'providerAdmin') return '/provider/dashboard'
+export function defaultRouteForRole(role: OsacRole): string {
+  if (role === 'providerAdmin') return '/agents'
   if (role === 'tenantAdmin') return '/admin/dashboard'
   return '/dashboard'
 }

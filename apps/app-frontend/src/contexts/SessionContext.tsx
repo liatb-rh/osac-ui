@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
-import type { DemoShellRole, DemoTenantId } from '@osac/api-contracts'
+import type { ReactNode } from 'react'
+import type { OsacRole, DemoTenantId } from '@osac/api-contracts'
 import { demoLoginEmailForRole } from '@osac/api-contracts'
 import { clearAccessToken } from '../api/authToken'
 
@@ -7,11 +8,11 @@ import { clearAccessToken } from '../api/authToken'
 // Query-param helpers (run once at startup)
 // ---------------------------------------------------------------------------
 
-function readOsacEntry(): { tenant: DemoTenantId; role: DemoShellRole } | null {
+function readOsacEntry(): { tenant: DemoTenantId; role: OsacRole } | null {
   if (typeof window === 'undefined') return null
   const p = new URLSearchParams(window.location.search)
   const raw = p.get('osac-entry')?.trim().toLowerCase() ?? ''
-  const map: Record<string, { tenant: DemoTenantId; role: DemoShellRole }> = {
+  const map: Record<string, { tenant: DemoTenantId; role: OsacRole }> = {
     'northstar-user': { tenant: 'northstar', role: 'tenantUser' },
     'northstar-admin': { tenant: 'northstar', role: 'tenantAdmin' },
     'evergreen-user': { tenant: 'evergreen', role: 'tenantUser' },
@@ -31,7 +32,7 @@ export interface TopologyVmDetailRequest {
 
 interface SessionContextValue {
   selectedTenant: DemoTenantId | null
-  role: DemoShellRole
+  role: OsacRole
   isLoggedIn: boolean
   isLoginLoading: boolean
   isDarkTheme: boolean
@@ -39,7 +40,7 @@ interface SessionContextValue {
   loginEmail: string
   // Actions
   selectProviderAdmin: () => void
-  selectTenantPersona: (tenant: DemoTenantId, role: DemoShellRole) => void
+  selectTenantPersona: (tenant: DemoTenantId, role: OsacRole) => void
   loginSuccess: (email: string, password: string) => void
   logout: () => void
   setIsDarkTheme: (dark: boolean) => void
@@ -56,8 +57,8 @@ const SessionContext = createContext<SessionContextValue | null>(null)
 // ---------------------------------------------------------------------------
 
 interface SessionProviderProps {
-  children: React.ReactNode
-  onNavigateAfterLogin: (role: DemoShellRole) => void
+  children: ReactNode
+  onNavigateAfterLogin: (role: OsacRole) => void
   onNavigateToWelcome: () => void
 }
 
@@ -72,7 +73,7 @@ export function SessionProvider({
   const [selectedTenant, setSelectedTenant] = useState<DemoTenantId | null>(
     () => osacEntry.current?.tenant ?? null,
   )
-  const [role, setRole] = useState<DemoShellRole>(() => osacEntry.current?.role ?? 'tenantUser')
+  const [role, setRole] = useState<OsacRole>(() => osacEntry.current?.role ?? 'tenantUser')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoginLoading, setIsLoginLoading] = useState(false)
   const [isDarkTheme, setIsDarkTheme] = useState(false)
@@ -105,7 +106,7 @@ export function SessionProvider({
     setRole('providerAdmin')
   }, [])
 
-  const selectTenantPersona = useCallback((tenant: DemoTenantId, r: DemoShellRole) => {
+  const selectTenantPersona = useCallback((tenant: DemoTenantId, r: OsacRole) => {
     if (tenant === 'vertexa') return
     setSelectedTenant(tenant)
     setRole(r)

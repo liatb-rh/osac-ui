@@ -225,7 +225,7 @@ export interface FulfillmentCapabilities {
 // ---------------------------------------------------------------------------
 
 export type DemoTenantId = 'vertexa' | 'northstar' | 'evergreen'
-export type DemoShellRole = 'providerAdmin' | 'tenantAdmin' | 'tenantUser'
+export type OsacRole = 'providerAdmin' | 'tenantAdmin' | 'tenantUser'
 export type OsType = 'rhel' | 'windows' | 'linux'
 
 // ---------------------------------------------------------------------------

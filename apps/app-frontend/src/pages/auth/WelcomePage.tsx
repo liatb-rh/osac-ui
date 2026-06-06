@@ -1,32 +1,44 @@
-import { CrownIcon } from '@patternfly/react-icons/dist/esm/icons/crown-icon'
-import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
-import { UsersIcon } from '@patternfly/react-icons/dist/esm/icons/users-icon'
 /**
  * flow: welcome-and-role-selection
  * step: wrs_welcome_landing
  */
-import { type ReactNode, useLayoutEffect } from 'react'
+import { css } from '@emotion/css'
+import { useLayoutEffect, type ElementType } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Alert, Button, Content, Flex, FlexItem, Title } from '@patternfly/react-core'
-import type { DemoShellRole, DemoTenantId } from '@osac/api-contracts'
-import { DEMO_TENANT_LABEL } from '@osac/api-contracts'
-import { LightDarkToggle } from '@osac/ui-components'
+import { Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core'
+import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
+import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt-icon'
+import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
+import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
+import type { OsacRole, DemoTenantId } from '@osac/api-contracts'
+import { LightDarkToggle, OcCardActive, type OcCardActiveTone } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
 
-const RH_LOGO_SRC = `${import.meta.env.BASE_URL}red-hat-logo.svg`
+// ---------------------------------------------------------------------------
+// Persona definitions
+// ---------------------------------------------------------------------------
 
-function RoleIconCircle({ children }: { children: ReactNode }) {
-  return (
-    <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      justifyContent={{ default: 'justifyContentCenter' }}
-      className="osac-welcome-role-icon"
-      aria-hidden
-    >
-      {children}
-    </Flex>
-  )
+interface Persona {
+  id: string
+  badge: string
+  orgName: string
+  roleLabel: string
+  tone: OcCardActiveTone
+  accentColor: string
+  desc: string
+  Icon: ElementType
+  onSelect: () => void
 }
+
+function personaIconCss(accentColor: string) {
+  return css`
+    color: ${accentColor};
+  `
+}
+
+// ---------------------------------------------------------------------------
+// WelcomePage
+// ---------------------------------------------------------------------------
 
 export function WelcomePage() {
   const navigate = useNavigate()
@@ -41,28 +53,86 @@ export function WelcomePage() {
   } = useSession()
 
   useLayoutEffect(() => {
-    document.title = 'Red Hat OSAC Prototypes'
+    document.title = 'OSAC Prototypes'
   }, [])
 
+  // Honor deep-link ?osac-entry= — skip this screen when already resolved
   useLayoutEffect(() => {
     if (!selectedTenant || isLoggedIn) return
     if (!consumeInitialOsacEntryDeepLinkRedirect()) return
     navigate('/sign-in')
   }, [selectedTenant, isLoggedIn, consumeInitialOsacEntryDeepLinkRedirect, navigate])
 
-  function handleProviderAdmin() {
-    selectProviderAdmin()
+  function go(select: () => void) {
+    select()
     navigate('/sign-in')
   }
 
-  function handleTenantEntry(tenant: DemoTenantId, role: DemoShellRole) {
-    selectTenantPersona(tenant, role)
-    navigate('/sign-in')
+  function tenantEntry(tenant: DemoTenantId, role: OsacRole) {
+    return () => go(() => selectTenantPersona(tenant, role))
   }
+
+  const personas: Persona[] = [
+    {
+      id: 'provider-admin',
+      badge: 'Platform Operator',
+      orgName: 'Vertexa Cloud Services',
+      roleLabel: 'Provider Admin',
+      tone: 'provider',
+      accentColor: '#6753c2',
+      desc: 'Govern sovereign infrastructure, tenant organizations, storage tiers and global templates.',
+      Icon: ShieldAltIcon,
+      onSelect: () => go(selectProviderAdmin),
+    },
+    {
+      id: 'northstar-admin',
+      badge: 'Tenant Organization',
+      orgName: 'Northstar Bank',
+      roleLabel: 'Tenant Admin',
+      tone: 'northstar',
+      accentColor: '#003f87',
+      desc: 'Administer users, quota, networks, and cluster offerings for a regulated institution.',
+      Icon: BuildingIcon,
+      onSelect: tenantEntry('northstar', 'tenantAdmin'),
+    },
+    {
+      id: 'northstar-user',
+      badge: 'Tenant Organization',
+      orgName: 'Northstar Bank',
+      roleLabel: 'Tenant User',
+      tone: 'northstar',
+      accentColor: '#003f87',
+      desc: 'Provision VMs, manage workloads and provision OpenShift clusters as a workspace operator.',
+      Icon: UserIcon,
+      onSelect: tenantEntry('northstar', 'tenantUser'),
+    },
+    {
+      id: 'bluestone-admin',
+      badge: 'Tenant Organization',
+      orgName: 'Bluestone Financial Group',
+      roleLabel: 'Tenant Admin',
+      tone: 'bluestone',
+      accentColor: '#1f7a4d',
+      desc: 'Administer users, quota, networks, and cluster offerings for Bluestone teams.',
+      Icon: BuildingIcon,
+      onSelect: tenantEntry('evergreen', 'tenantAdmin'),
+    },
+    {
+      id: 'bluestone-user',
+      badge: 'Tenant Organization',
+      orgName: 'Bluestone Financial Group',
+      roleLabel: 'Tenant User',
+      tone: 'bluestone',
+      accentColor: '#1f7a4d',
+      desc: 'Operate the VM and cluster lifecycle inside the Bluestone workspace.',
+      Icon: UserIcon,
+      onSelect: tenantEntry('evergreen', 'tenantUser'),
+    },
+  ]
 
   return (
     // pf-primitive-exception: full-viewport welcome outside PF Page (#root scrollport)
-    <div className="osac-welcome-page">
+    <div className="osac-welcome-page osac-welcome-page--personas">
       {/* pf-primitive-exception: fixed theme toggle slot */}
       <div className="osac-welcome-page__toggle">
         <LightDarkToggle isDark={isDarkTheme} onChange={setIsDarkTheme} aria-label="Toggle theme" />
@@ -70,160 +140,66 @@ export function WelcomePage() {
 
       {/* pf-primitive-exception: welcome primary landmark */}
       <main className="osac-welcome-page__main">
-        {/* pf-primitive-exception: centered content column */}
-        <div className="osac-welcome-page__inner">
-          <img
-            src={RH_LOGO_SRC}
-            alt=""
-            width={96}
-            height={96}
-            className="osac-welcome-page__logo"
-          />
+        <div className="osac-welcome-page__inner osac-welcome-page__inner--personas">
 
-          <Title headingLevel="h1" size="4xl" className="osac-welcome-page__title">
-            Red Hat OSAC Prototypes
-          </Title>
-
-          <Content
-            component="p"
-            className="osac-welcome-page__lede"
-            style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+          {/* Brand header */}
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            spaceItems={{ default: 'spaceItemsSm' }}
+            className="osac-welcome-brand"
           >
-            Choose a role, then pick an organization where applicable.
-          </Content>
-
-          <Alert
-            variant="info"
-            isInline
-            title="Demo entry — not a customer sign-in page"
-            className="osac-welcome-page__alert"
-          >
-            <Content component="p">
-              This screen is for booth operators to pick a persona. In production, end users open
-              their organization-branded URL and sign in through the identity provider configured
-              during onboarding.
-            </Content>
-            <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
-              Each column simulates a separate persona path so you can show multi-tenant isolation
-              in the VM workspace.
-            </Content>
-          </Alert>
-
-          {/* pf-primitive-exception: three-column role layout */}
-          <div className="osac-welcome-role-grid">
-            {/* pf-primitive-exception: provider admin column */}
-            <div className="osac-welcome-role-col" data-osac-welcome-role="providerAdmin">
-              <RoleIconCircle>
-                <CrownIcon />
-              </RoleIconCircle>
-              <Title headingLevel="h2" size="lg" className="osac-welcome-role-title">
-                Provider Admin
-              </Title>
-              <Content
-                component="p"
-                className="osac-welcome-role-copy"
-                style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-              >
-                Manage platform services, tenants, and global policies for the OSAC environment.
+            <FlexItem>
+              <div className="osac-welcome-brand__icon" aria-hidden>
+                <CloudIcon />
+              </div>
+            </FlexItem>
+            <FlexItem>
+              <Content component="p" className="osac-welcome-brand__name">OSAC</Content>
+              <Content component="small" className="osac-welcome-brand__sub">
+                Open Sovereign AI Cloud
               </Content>
-              <Flex
-                justifyContent={{ default: 'justifyContentCenter' }}
-                className="osac-welcome-role-actions"
-              >
-                <FlexItem>
-                  <Button
-                    variant="primary"
-                    className="osac-welcome-role-btn"
-                    onClick={handleProviderAdmin}
-                  >
-                    Enter
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </div>
+            </FlexItem>
+          </Flex>
 
-            {/* pf-primitive-exception: tenant admin column */}
-            <div className="osac-welcome-role-col" data-osac-welcome-role="tenantAdmin">
-              <RoleIconCircle>
-                <UsersIcon />
-              </RoleIconCircle>
-              <Title headingLevel="h2" size="lg" className="osac-welcome-role-title">
-                Tenant Admin
+          {/* Hero text */}
+          <Stack className="osac-welcome-hero">
+            <StackItem>
+              <span className="osac-welcome-eyebrow" aria-hidden>OSAC Console</span>
+            </StackItem>
+            <StackItem>
+              <Title headingLevel="h1" size="4xl" className="osac-welcome-hero-title">
+                Choose how you want to enter the cloud.
               </Title>
-              <Content
-                component="p"
-                className="osac-welcome-role-copy"
-                style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-              >
-                Configure organization resources, users, quotas, and shared services.
+            </StackItem>
+            <StackItem>
+              <Content component="p" className="osac-welcome-hero-sub">
+                Every persona below applies a tenant and role, then routes through institutional
+                sign-in. Permissions, navigation, and capabilities are derived from the canonical
+                OSAC role-based access matrix.
               </Content>
-              <Flex
-                direction={{ default: 'column' }}
-                spaceItems={{ default: 'spaceItemsMd' }}
-                className="osac-welcome-role-actions osac-welcome-role-actions--stack"
-              >
-                <FlexItem>
-                  <Button
-                    variant="primary"
-                    className="osac-welcome-role-btn"
-                    onClick={() => handleTenantEntry('northstar', 'tenantAdmin')}
-                  >
-                    {DEMO_TENANT_LABEL.northstar}
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button
-                    variant="secondary"
-                    className="osac-welcome-role-btn"
-                    onClick={() => handleTenantEntry('evergreen', 'tenantAdmin')}
-                  >
-                    {DEMO_TENANT_LABEL.evergreen}
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </div>
+            </StackItem>
+          </Stack>
 
-            {/* pf-primitive-exception: tenant user column */}
-            <div className="osac-welcome-role-col" data-osac-welcome-role="tenantUser">
-              <RoleIconCircle>
-                <UserIcon />
-              </RoleIconCircle>
-              <Title headingLevel="h2" size="lg" className="osac-welcome-role-title">
-                Tenant User
-              </Title>
-              <Content
-                component="p"
-                className="osac-welcome-role-copy"
-                style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-              >
-                Access the VM-as-a-Service workspace to create and manage your virtual machines.
-              </Content>
-              <Flex
-                direction={{ default: 'column' }}
-                spaceItems={{ default: 'spaceItemsMd' }}
-                className="osac-welcome-role-actions osac-welcome-role-actions--stack"
-              >
-                <FlexItem>
-                  <Button
-                    variant="primary"
-                    className="osac-welcome-role-btn"
-                    onClick={() => handleTenantEntry('northstar', 'tenantUser')}
-                  >
-                    {DEMO_TENANT_LABEL.northstar}
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button
-                    variant="secondary"
-                    className="osac-welcome-role-btn"
-                    onClick={() => handleTenantEntry('evergreen', 'tenantUser')}
-                  >
-                    {DEMO_TENANT_LABEL.evergreen}
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </div>
+          {/* Persona grid */}
+          <div className="osac-persona-grid" role="list" aria-label="Select a persona">
+            {personas.map((p) => (
+              <OcCardActive
+                key={p.id}
+                tone={p.tone}
+                badge={p.badge}
+                icon={<p.Icon className={personaIconCss(p.accentColor)} aria-hidden />}
+                title={p.orgName}
+                subtitle={p.roleLabel}
+                description={p.desc}
+                cta="Continue to sign-in →"
+                onClick={p.onSelect}
+              />
+            ))}
           </div>
+
+          <footer className="osac-welcome-footer">
+            Mock demo environment · OSAC_API_MODE=mock · No real institutional credentials are used.
+          </footer>
         </div>
       </main>
     </div>

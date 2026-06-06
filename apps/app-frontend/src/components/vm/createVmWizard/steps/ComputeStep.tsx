@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import {
   Content,
   Form,
@@ -9,6 +10,11 @@ import {
 } from '@patternfly/react-core'
 import type { UpdateFn, WizardState } from '../types'
 
+const introCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  max-width: 720px;
+`
+
 export function ComputeStep({ state, update }: { state: WizardState; update: UpdateFn }) {
   return (
     <Stack hasGutter>
@@ -18,8 +24,7 @@ export function ComputeStep({ state, update }: { state: WizardState; update: Upd
         </Title>
         <Content
           component="p"
-          className="pf-v6-u-color-text-subtle"
-          style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 720 }}
+          className={cx('pf-v6-u-color-text-subtle', introCss)}
         >
           Set vCPU and memory for this instance. Adjust to match your workload.
         </Content>

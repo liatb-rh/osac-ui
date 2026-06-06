@@ -1,5 +1,11 @@
+import { css, cx } from '@emotion/css'
 import { Content, Radio, Stack, StackItem, Title } from '@patternfly/react-core'
 import type { UpdateFn, WizardState } from '../types'
+
+const introCss = css`
+  margin-top: var(--pf-t--global--spacer--sm);
+  max-width: 720px;
+`
 
 export function BootSourceStep({ state, update }: { state: WizardState; update: UpdateFn }) {
   return (
@@ -10,8 +16,7 @@ export function BootSourceStep({ state, update }: { state: WizardState; update: 
         </Title>
         <Content
           component="p"
-          className="pf-v6-u-color-text-subtle"
-          style={{ marginTop: 'var(--pf-t--global--spacer--sm)', maxWidth: 720 }}
+          className={cx('pf-v6-u-color-text-subtle', introCss)}
         >
           Choose how the virtual machine will start. You can attach storage later if needed.
         </Content>

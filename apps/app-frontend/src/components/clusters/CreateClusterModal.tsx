@@ -3,6 +3,7 @@
  * step: csc_create_cluster_modal
  */
 import { useCallback, useState } from 'react'
+import { css } from '@emotion/css'
 import {
   Alert,
   Button,
@@ -34,9 +35,9 @@ import {
   Title,
 } from '@patternfly/react-core'
 import type { ClusterCatalogItem } from '@osac/api-contracts'
-import { useCreateCluster } from '../../api/useCreateCluster'
-import { useClusterCatalogItems, useSubnets, useVirtualNetworks } from '../../api/useClusterCatalogItems'
-import { useSecurityGroups } from '../../api/useNetworking'
+import { useCreateCluster } from '../../hooks/useCreateCluster'
+import { useClusterCatalogItems, useSubnets, useVirtualNetworks } from '../../hooks/useClusterCatalogItems'
+import { useSecurityGroups } from '../../hooks/useNetworking'
 
 interface CreateClusterModalProps {
   onClose: () => void
@@ -55,6 +56,27 @@ interface FormState {
   securityGroupIds: string[]
   fieldValues: Record<string, number | string>
 }
+
+const submitErrorAlertCss = css`
+  margin-bottom: 1rem;
+`
+
+const catalogCardCss = css`
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--medium);
+`
+
+const networkingTitleCss = css`
+  margin-top: 1rem;
+`
+
+const menuToggleFullWidthCss = css`
+  width: 100%;
+`
+
+const labelGroupMarginCss = css`
+  margin-top: 0.5rem;
+`
 
 const INITIAL_FORM: FormState = {
   name: '',
@@ -153,7 +175,7 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
       <ModalHeader title={title} labelId="create-cluster-modal-title" />
       <ModalBody>
         {submitError && (
-          <Alert variant="danger" title="Failed to create cluster" isInline style={{ marginBottom: '1rem' }}>
+          <Alert variant="danger" title="Failed to create cluster" isInline className={submitErrorAlertCss}>
             {submitError}. Please try again.
           </Alert>
         )}
@@ -175,10 +197,7 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                     isSelectable
                     isSelected={selectedItem?.id === item.id}
                     onClick={() => handleSelectItem(item)}
-                    style={{
-                      border: '1px solid var(--pf-t--global--border--color--default)',
-                      borderRadius: 'var(--pf-t--global--border--radius--medium)',
-                    }}
+                    className={catalogCardCss}
                   >
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
@@ -246,7 +265,7 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
               </HelperText>
             </FormGroup>
 
-            <Title headingLevel="h3" size="md" style={{ marginTop: '1rem' }}>Networking</Title>
+            <Title headingLevel="h3" size="md" className={networkingTitleCss}>Networking</Title>
 
             <FormGroup label="Virtual Network" isRequired fieldId="virtual-network">
               <FormSelect
@@ -298,7 +317,7 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                     ref={ref}
                     onClick={() => setSgSelectOpen((o) => !o)}
                     isExpanded={sgSelectOpen}
-                    style={{ width: '100%' }}
+                    className={menuToggleFullWidthCss}
                     aria-label="Select security groups"
                   >
                     {form.securityGroupIds.length === 0 ? 'None (use defaults)' : `${form.securityGroupIds.length} selected`}
@@ -327,7 +346,7 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                 </SelectList>
               </Select>
               {form.securityGroupIds.length > 0 && (
-                <LabelGroup style={{ marginTop: '0.5rem' }} aria-label="Selected security groups">
+                <LabelGroup className={labelGroupMarginCss} aria-label="Selected security groups">
                   {form.securityGroupIds.map((id) => {
                     const sg = (securityGroups ?? []).find((s) => s.id === id)
                     return (

@@ -1,0 +1,7 @@
+export { VmOverviewTab } from './VmOverviewTab'
+export { VmNetworkingTab } from './VmNetworkingTab'
+export { VmStorageTab } from './VmStorageTab'
+export { VmSnapshotsTab } from './VmSnapshotsTab'
+export { VmMetricsTab } from './VmMetricsTab'
+export { VmActivityTab } from './VmActivityTab'
+export { VmDangerZoneTab } from './VmDangerZoneTab'

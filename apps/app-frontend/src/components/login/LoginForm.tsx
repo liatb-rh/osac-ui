@@ -3,7 +3,9 @@ import { EyeSlashIcon } from '@patternfly/react-icons/dist/esm/icons/eye-slash-i
 /**
  * Shared login form — used by InstitutionalSignInPage (institutional-sign-in flow).
  */
+import { css } from '@emotion/css'
 import { useCallback, useState } from 'react'
+import type { FormEvent } from 'react'
 import {
   Alert,
   Button,
@@ -28,6 +30,15 @@ interface LoginFormProps {
   submitError?: string | null
 }
 
+const forgotPasswordCss = css`
+  margin-bottom: var(--pf-t--global--spacer--xs);
+`
+
+const chooseAnotherCss = css`
+  margin-top: var(--pf-t--global--spacer--xs);
+  text-align: center;
+`
+
 export function LoginForm({
   defaultEmail,
   emailLabel = 'Email address',
@@ -45,7 +56,7 @@ export function LoginForm({
   const [rememberMe, setRememberMe] = useState(false)
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    (e: FormEvent) => {
       e.preventDefault()
       if (isLoading) return
       onSubmit(email, password)
@@ -115,7 +126,7 @@ export function LoginForm({
         variant="link"
         isInline
         onClick={(e) => e.preventDefault()}
-        style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+        className={forgotPasswordCss}
       >
         Forgot password?
       </Button>
@@ -136,10 +147,7 @@ export function LoginForm({
         isInline
         onClick={onChooseAnother}
         isDisabled={isLoading}
-        style={{
-          marginTop: 'var(--pf-t--global--spacer--xs)',
-          textAlign: 'center',
-        }}
+        className={chooseAnotherCss}
       >
         Choose another institution
       </Button>

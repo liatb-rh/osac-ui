@@ -1,6 +1,7 @@
+import { css } from '@emotion/css'
 import {
   Nav,
-  NavExpandable,
+  NavGroup,
   NavItem,
   NavList,
   PageSidebar,
@@ -9,13 +10,16 @@ import {
   StackItem,
 } from '@patternfly/react-core'
 import { LightDarkToggle } from '@osac/ui-components'
-import type { NavRow } from './shellNav'
+import type { NavSection } from './shellNav'
+
+const sidebarStackCss = css`
+  min-height: 100%;
+  width: 100%;
+`
 
 interface ShellSidebarProps {
-  navRows: NavRow[]
+  navRows: NavSection[]
   pathname: string
-  expandedGroups: Set<string>
-  onToggleGroup: (groupId: string, expanded: boolean) => void
   onNavigate: (path: string) => void
   isDarkTheme: boolean
   setIsDarkTheme: (dark: boolean) => void
@@ -25,8 +29,6 @@ interface ShellSidebarProps {
 export function ShellSidebar({
   navRows,
   pathname,
-  expandedGroups,
-  onToggleGroup,
   onNavigate,
   isDarkTheme,
   setIsDarkTheme,
@@ -35,55 +37,49 @@ export function ShellSidebar({
   return (
     <PageSidebar>
       <PageSidebarBody isFilled>
-        <Stack style={{ minHeight: '100%', width: '100%' }}>
+        <Stack className={sidebarStackCss}>
           <StackItem isFilled>
-            <Nav aria-label="Primary navigation">
-              <NavList>
-                {navRows.map((row) => {
-                  if (row.kind === 'link') {
-                    return (
-                      <NavItem
-                        key={row.id}
-                        itemId={row.id}
-                        isActive={pathname === row.path}
-                        to={row.path}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          onNavigate(row.path)
-                        }}
-                      >
-                        {row.label}
-                      </NavItem>
-                    )
-                  }
-                  return (
-                    <NavExpandable
-                      key={row.groupId}
-                      title={row.label}
-                      groupId={row.groupId}
-                      isExpanded={expandedGroups.has(row.groupId)}
-                      onExpand={(_e, expanded) => onToggleGroup(row.groupId, expanded)}
-                      isActive={row.children.some((c) => pathname === c.path)}
-                    >
-                      {row.children.map((child) => (
+            <Nav aria-label="Primary navigation" className="osac-shell-nav">
+              {navRows.map((section, idx) => {
+                const list = (
+                  <NavList>
+                    {section.items.map((item) => {
+                      const isActive =
+                        pathname === item.path ||
+                        (item.path !== '/' && pathname.startsWith(item.path + '/'))
+                      const Icon = item.icon
+                      return (
                         <NavItem
-                          key={child.id}
-                          itemId={child.id}
-                          groupId={row.groupId}
-                          isActive={pathname === child.path}
-                          to={child.path}
+                          key={item.id}
+                          itemId={item.id}
+                          isActive={isActive}
+                          to={item.path}
                           onClick={(e) => {
                             e.preventDefault()
-                            onNavigate(child.path)
+                            onNavigate(item.path)
                           }}
                         >
-                          {child.label}
+                          <Icon aria-hidden className="osac-shell-nav__item-icon" />
+                          {item.label}
                         </NavItem>
-                      ))}
-                    </NavExpandable>
+                      )
+                    })}
+                  </NavList>
+                )
+
+                if (section.groupLabel) {
+                  return (
+                    <NavGroup
+                      key={section.groupLabel}
+                      title={section.groupLabel}
+                    >
+                      {list}
+                    </NavGroup>
                   )
-                })}
-              </NavList>
+                }
+
+                return <div key={`section-${idx}`}>{list}</div>
+              })}
             </Nav>
           </StackItem>
 
