@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { css } from '@emotion/css'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Breadcrumb,
@@ -26,10 +26,10 @@ import {
   PageSection,
   Spinner,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
 } from '@patternfly/react-core'
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table'
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import type { Cluster, StorageTier } from '@osac/api-contracts'
 import { useClusterCatalogItems } from '../../hooks/useClusterCatalogItems'
 import { useClustersList } from '../../hooks/useClustersList'
@@ -245,13 +245,23 @@ export function ClusterOfferingDetailPage() {
         <OcCard
           label="Maturity"
           value={maturity}
-          accentColor={maturity === 'preview'
-            ? 'var(--pf-t--global--color--status--warning--default)'
-            : 'var(--pf-t--global--color--status--success--default)'}
+          accentColor={
+            maturity === 'preview'
+              ? 'var(--pf-t--global--color--status--warning--default)'
+              : 'var(--pf-t--global--color--status--success--default)'
+          }
         />
-        <OcCard label="OCP version" value={primaryVersion} hint={versions.length > 1 ? `+${versions.length - 1} more` : undefined} />
+        <OcCard
+          label="OCP version"
+          value={primaryVersion}
+          hint={versions.length > 1 ? `+${versions.length - 1} more` : undefined}
+        />
         <OcCard label="Min worker nodes" value={minWorkers} />
-        <OcCard label="GPU" value={isGpu ? 'Enabled' : 'Disabled'} hint={isGpu ? 'NVIDIA operator' : undefined} />
+        <OcCard
+          label="GPU"
+          value={isGpu ? 'Enabled' : 'Disabled'}
+          hint={isGpu ? 'NVIDIA operator' : undefined}
+        />
         <OcCard
           label="Active clusters"
           value={consumingClusters.length}
@@ -261,9 +271,11 @@ export function ClusterOfferingDetailPage() {
           label="Eligible agents"
           value={`${healthyAgents.length} / ${eligibleAgents.length}`}
           hint="healthy hosts"
-          accentColor={healthyAgents.length === eligibleAgents.length
-            ? 'var(--pf-t--global--color--status--success--default)'
-            : 'var(--pf-t--global--color--status--warning--default)'}
+          accentColor={
+            healthyAgents.length === eligibleAgents.length
+              ? 'var(--pf-t--global--color--status--success--default)'
+              : 'var(--pf-t--global--color--status--warning--default)'
+          }
         />
       </div>
 
@@ -286,11 +298,15 @@ export function ClusterOfferingDetailPage() {
                 <DescriptionList isHorizontal isCompact>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Identifier</DescriptionListTerm>
-                    <DescriptionListDescription><code>{item.id}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{item.id}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Template</DescriptionListTerm>
-                    <DescriptionListDescription><code>{item.template ?? '—'}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{item.template ?? '—'}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>OCP versions</DescriptionListTerm>
@@ -309,7 +325,9 @@ export function ClusterOfferingDetailPage() {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Maturity</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Label isCompact color={maturity === 'preview' ? 'orange' : 'green'}>{maturity}</Label>
+                      <Label isCompact color={maturity === 'preview' ? 'orange' : 'green'}>
+                        {maturity}
+                      </Label>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
@@ -324,11 +342,15 @@ export function ClusterOfferingDetailPage() {
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Pod CIDR</DescriptionListTerm>
-                    <DescriptionListDescription><code>10.128.0.0/14</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>10.128.0.0/14</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Service CIDR</DescriptionListTerm>
-                    <DescriptionListDescription><code>172.30.0.0/16</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>172.30.0.0/16</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </CardBody>
@@ -349,13 +371,10 @@ export function ClusterOfferingDetailPage() {
                       border-bottom: ${i < arr.length - 1 ? '1px dashed #e3e8ee' : 'none'};
                     `
                     return (
-                    <li
-                      key={row.label}
-                      className={lifecycleItemCss}
-                    >
-                      <span className={lifecycleItemLabelCss}>{row.label}</span>
-                      <span className={lifecycleItemValueCss}>{row.value}</span>
-                    </li>
+                      <li key={row.label} className={lifecycleItemCss}>
+                        <span className={lifecycleItemLabelCss}>{row.label}</span>
+                        <span className={lifecycleItemValueCss}>{row.value}</span>
+                      </li>
                     )
                   })}
                 </ul>
@@ -371,9 +390,7 @@ export function ClusterOfferingDetailPage() {
           <div className={tabContentCss}>
             <div className={panelCss}>
               {consumingClusters.length === 0 ? (
-                <div className={emptyClustersCss}>
-                  No clusters currently use this offering.
-                </div>
+                <div className={emptyClustersCss}>No clusters currently use this offering.</div>
               ) : (
                 <ClusterTable clusters={consumingClusters} />
               )}
@@ -443,7 +460,9 @@ function ClusterTable({ clusters }: { clusters: Cluster[] }) {
               <Td>
                 <span className={linkNameCss}>{c.metadata.name}</span>
               </Td>
-              <Td><code>{c.metadata.tenants?.[0] ?? '—'}</code></Td>
+              <Td>
+                <code>{c.metadata.tenants?.[0] ?? '—'}</code>
+              </Td>
               <Td>{c.status.version ?? '—'}</Td>
               <Td>{clusterTotalWorkers(c)}</Td>
               <Td>
@@ -474,9 +493,15 @@ function StorageTable({ tiers }: { tiers: StorageTier[] }) {
       <Tbody>
         {tiers.map((t) => (
           <Tr key={t.id}>
-            <Td><span className={linkNameCss}>{t.name}</span></Td>
-            <Td><code className={codeSmCss}>{t.qosClass ?? '—'}</code></Td>
-            <Td><code className={codeSmCss}>{t.storageClassName ?? '—'}</code></Td>
+            <Td>
+              <span className={linkNameCss}>{t.name}</span>
+            </Td>
+            <Td>
+              <code className={codeSmCss}>{t.qosClass ?? '—'}</code>
+            </Td>
+            <Td>
+              <code className={codeSmCss}>{t.storageClassName ?? '—'}</code>
+            </Td>
             <Td>{t.vipPool ?? '—'}</Td>
             <Td>
               <Label isCompact color={t.available ? 'green' : 'grey'}>
@@ -505,13 +530,19 @@ function AgentsTable({ agents }: { agents: ReturnType<typeof useAgents>['data'] 
         {(agents ?? []).map((a) => {
           const stateLabel = a.state.replace('AGENT_STATE_', '').toLowerCase()
           const stateColor =
-            a.state === 'AGENT_STATE_AVAILABLE' ? 'green'
-            : a.state === 'AGENT_STATE_UNAVAILABLE' ? 'red'
-            : 'blue'
+            a.state === 'AGENT_STATE_AVAILABLE'
+              ? 'green'
+              : a.state === 'AGENT_STATE_UNAVAILABLE'
+                ? 'red'
+                : 'blue'
           return (
             <Tr key={a.id}>
-              <Td><span className={linkNameCss}>{a.metadata?.name ?? a.id}</span></Td>
-              <Td><code>{a.hardwareProfile ?? '—'}</code></Td>
+              <Td>
+                <span className={linkNameCss}>{a.metadata?.name ?? a.id}</span>
+              </Td>
+              <Td>
+                <code>{a.hardwareProfile ?? '—'}</code>
+              </Td>
               <Td>{a.clusterRef ?? <span className={mutedDashCss}>—</span>}</Td>
               <Td>
                 <Label isCompact color={stateColor} className={labelCapitalizeCss}>

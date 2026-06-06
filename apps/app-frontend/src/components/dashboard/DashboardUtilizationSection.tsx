@@ -184,10 +184,7 @@ export function DashboardUtilizationSection(_props: DashboardUtilizationSectionP
   const activities = useMemo(() => buildRecentActivities(vms, 6), [vms])
 
   return (
-    <section
-      aria-label="VM utilization trends and recent activities"
-      className={sectionCss}
-    >
+    <section aria-label="VM utilization trends and recent activities" className={sectionCss}>
       <Grid hasGutter>
         {/* ---- Left: 4 line chart cards ---- */}
         <GridItem sm={12} md={8} lg={9}>

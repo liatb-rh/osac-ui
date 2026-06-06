@@ -22,10 +22,7 @@ export function ComputeStep({ state, update }: { state: WizardState; update: Upd
         <Title id="compute-resources-heading" headingLevel="h2" size="xl">
           Compute resources
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', introCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', introCss)}>
           Set vCPU and memory for this instance. Adjust to match your workload.
         </Content>
       </StackItem>

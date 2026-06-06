@@ -57,13 +57,37 @@ const NIC_COLUMNS: OcTableColumn<NicRow>[] = [
 ]
 
 export function VmNetworkingTab({ vm }: Props) {
-  const MOCK_SECURITY_GROUPS = ['sg-allow-ssh', 'sg-allow-https', 'sg-internal-rpc', 'sg-monitoring']
-  const securityGroups = (vm.spec.securityGroups?.length ?? 0) > 0 ? vm.spec.securityGroups! : MOCK_SECURITY_GROUPS
+  const MOCK_SECURITY_GROUPS = [
+    'sg-allow-ssh',
+    'sg-allow-https',
+    'sg-internal-rpc',
+    'sg-monitoring',
+  ]
+  const securityGroups =
+    (vm.spec.securityGroups?.length ?? 0) > 0 ? vm.spec.securityGroups! : MOCK_SECURITY_GROUPS
 
   const nics: NicRow[] = [
-    { iface: 'eth0', vnet: 'vn-prod',     subnet: shortSubnetDisplay(vm.spec.subnet), ip: vm.status.ipAddress ?? '10.128.4.21', mac: '52:54:00:a1:1c:0e' },
-    { iface: 'eth1', vnet: 'vn-storage',  subnet: 'sn-storage / 10.200.0.0/24',       ip: '10.200.0.47',   mac: '52:54:00:b2:3d:1f' },
-    { iface: 'eth2', vnet: 'vn-mgmt',     subnet: 'sn-mgmt / 192.168.1.0/24',         ip: '192.168.1.105', mac: '52:54:00:c3:4e:2a' },
+    {
+      iface: 'eth0',
+      vnet: 'vn-prod',
+      subnet: shortSubnetDisplay(vm.spec.subnet),
+      ip: vm.status.ipAddress ?? '10.128.4.21',
+      mac: '52:54:00:a1:1c:0e',
+    },
+    {
+      iface: 'eth1',
+      vnet: 'vn-storage',
+      subnet: 'sn-storage / 10.200.0.0/24',
+      ip: '10.200.0.47',
+      mac: '52:54:00:b2:3d:1f',
+    },
+    {
+      iface: 'eth2',
+      vnet: 'vn-mgmt',
+      subnet: 'sn-mgmt / 192.168.1.0/24',
+      ip: '192.168.1.105',
+      mac: '52:54:00:c3:4e:2a',
+    },
   ]
 
   return (

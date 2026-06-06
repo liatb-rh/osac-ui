@@ -17,7 +17,11 @@ import {
 } from '@patternfly/react-core'
 import { useLayoutEffect, useMemo, useState } from 'react'
 import { useComputeInstanceTemplates } from '../../../../hooks/hooks'
-import { useAllSubnets, useSecurityGroups, useVirtualNetworks } from '../../../../hooks/useNetworking'
+import {
+  useAllSubnets,
+  useSecurityGroups,
+  useVirtualNetworks,
+} from '../../../../hooks/useNetworking'
 import {
   TEMPLATE_BOOT_DISK_MAX_GIB,
   TEMPLATE_BOOT_DISK_MIN_GIB,
@@ -137,10 +141,7 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
         <Title id="customization-heading" headingLevel="h2" size="xl">
           Customization
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', customizationIntroCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', customizationIntroCss)}>
           Adjust compute, storage, networking, and access for this virtual machine.
         </Content>
       </StackItem>
@@ -287,7 +288,11 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                     >
                       <FormSelectOption value="" label="Default (no preference)" />
                       {(allSubnets ?? [])
-                        .filter((s) => !state.templateVirtualNetworkId || s.spec.virtualNetwork === state.templateVirtualNetworkId)
+                        .filter(
+                          (s) =>
+                            !state.templateVirtualNetworkId ||
+                            s.spec.virtualNetwork === state.templateVirtualNetworkId,
+                        )
                         .map((s) => (
                           <FormSelectOption key={s.id} value={s.id} label={s.metadata.name} />
                         ))}

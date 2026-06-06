@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-base-to-string */
 /**
  * BFF fulfillment routes — in OSAC_API_MODE=dev with FULFILLMENT_API_URL, proxy upstream; else mock.
  * Startup requires FULFILLMENT_API_URL when mode is dev (see assertFulfillmentDevReady in index.ts).
@@ -37,15 +38,23 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import {
   DEMO_NETWORK_CLASSES,
   DEMO_ORGANIZATIONS,
-  DEMO_PUBLIC_IP_POOLS,
   DEMO_PUBLIC_IPS,
+  DEMO_PUBLIC_IP_POOLS,
   DEMO_SECURITY_GROUPS,
   DEMO_SUBNETS,
   DEMO_VIRTUAL_NETWORKS,
   VM_TEMPLATES,
   normalizeComputeInstance,
 } from '@osac/api-contracts'
-import type { Cluster, ComputeInstance, NetworkClass, PublicIP, SecurityGroup, Subnet, VirtualNetwork } from '@osac/api-contracts'
+import type {
+  Cluster,
+  ComputeInstance,
+  NetworkClass,
+  PublicIP,
+  SecurityGroup,
+  Subnet,
+  VirtualNetwork,
+} from '@osac/api-contracts'
 import { vmStore } from '../mock-vm-store.js'
 import {
   agentStore,
@@ -303,7 +312,10 @@ export async function registerFulfillmentRoutes(
     return reply
       .status(200)
       .header('Content-Type', 'application/yaml')
-      .header('Content-Disposition', `attachment; filename="kubeconfig-${cluster.metadata.name}.yaml"`)
+      .header(
+        'Content-Disposition',
+        `attachment; filename="kubeconfig-${cluster.metadata.name}.yaml"`,
+      )
       .send(kubeconfig)
   })
 
@@ -365,7 +377,11 @@ export async function registerFulfillmentRoutes(
     if (agent.state !== 'AGENT_STATE_PROVISIONED') {
       return reply.status(400).send({ error: 'Agent must be in PROVISIONED state to deprovision' })
     }
-    const updated = { ...agent, state: 'AGENT_STATE_DEPROVISIONING' as const, clusterRef: undefined }
+    const updated = {
+      ...agent,
+      state: 'AGENT_STATE_DEPROVISIONING' as const,
+      clusterRef: undefined,
+    }
     agentStore.set(id, updated)
     setTimeout(() => {
       const a = agentStore.get(id)
@@ -405,7 +421,9 @@ export async function registerFulfillmentRoutes(
   const bffNcStore = new Map<string, NetworkClass>(DEMO_NETWORK_CLASSES.map((nc) => [nc.id, nc]))
   const bffPipStore = new Map<string, PublicIP>(DEMO_PUBLIC_IPS.map((pip) => [pip.id, pip]))
   let bffIdCounter = 2000
-  function nextBffId(prefix: string): string { return `${prefix}-${++bffIdCounter}` }
+  function nextBffId(prefix: string): string {
+    return `${prefix}-${++bffIdCounter}`
+  }
 
   // Virtual networks
   app.get(`${prefix}/virtual_networks`, async () => {
@@ -415,7 +433,10 @@ export async function registerFulfillmentRoutes(
   app.get(`${prefix}/virtual_networks/:id`, async (req) => {
     const { id } = req.params as { id: string }
     const vn = bffVnStore.get(id)
-    if (!vn) { (req as FastifyRequest).server.httpErrors?.notFound(); return }
+    if (!vn) {
+      req.server.httpErrors?.notFound()
+      return
+    }
     return vn
   })
   app.post(`${prefix}/virtual_networks`, async (req) => {
@@ -439,8 +460,12 @@ export async function registerFulfillmentRoutes(
   app.delete(`${prefix}/virtual_networks/:id`, async (req, reply) => {
     const { id } = req.params as { id: string }
     bffVnStore.delete(id)
-    for (const [sid, s] of bffSubnetStore) { if (s.spec.virtualNetwork === id) bffSubnetStore.delete(sid) }
-    for (const [sgid, sg] of bffSgStore) { if (sg.spec.virtualNetwork === id) bffSgStore.delete(sgid) }
+    for (const [sid, s] of bffSubnetStore) {
+      if (s.spec.virtualNetwork === id) bffSubnetStore.delete(sid)
+    }
+    for (const [sgid, sg] of bffSgStore) {
+      if (sg.spec.virtualNetwork === id) bffSgStore.delete(sgid)
+    }
     return reply.code(204).send()
   })
 
@@ -448,13 +473,18 @@ export async function registerFulfillmentRoutes(
   app.get(`${prefix}/subnets`, async (req) => {
     const query = req.query as { virtual_network_id?: string }
     const all = Array.from(bffSubnetStore.values())
-    const items = query.virtual_network_id ? all.filter((s) => s.spec.virtualNetwork === query.virtual_network_id) : all
+    const items = query.virtual_network_id
+      ? all.filter((s) => s.spec.virtualNetwork === query.virtual_network_id)
+      : all
     return { size: items.length, total: items.length, items }
   })
   app.get(`${prefix}/subnets/:id`, async (req) => {
     const { id } = req.params as { id: string }
     const s = bffSubnetStore.get(id)
-    if (!s) { (req as FastifyRequest).server.httpErrors?.notFound(); return }
+    if (!s) {
+      req.server.httpErrors?.notFound()
+      return
+    }
     return s
   })
   app.post(`${prefix}/subnets`, async (req) => {
@@ -489,7 +519,10 @@ export async function registerFulfillmentRoutes(
   app.get(`${prefix}/security_groups/:id`, async (req) => {
     const { id } = req.params as { id: string }
     const sg = bffSgStore.get(id)
-    if (!sg) { (req as FastifyRequest).server.httpErrors?.notFound(); return }
+    if (!sg) {
+      req.server.httpErrors?.notFound()
+      return
+    }
     return sg
   })
   app.post(`${prefix}/security_groups`, async (req) => {
@@ -526,7 +559,10 @@ export async function registerFulfillmentRoutes(
   app.get(`${prefix}/public_ips/:id`, async (req) => {
     const { id } = req.params as { id: string }
     const pip = bffPipStore.get(id)
-    if (!pip) { (req as FastifyRequest).server.httpErrors?.notFound(); return }
+    if (!pip) {
+      req.server.httpErrors?.notFound()
+      return
+    }
     return pip
   })
   app.post(`${prefix}/public_ips`, async (req) => {
@@ -538,7 +574,11 @@ export async function registerFulfillmentRoutes(
       id,
       metadata: { name: String(meta.name ?? ''), createdAt: new Date().toISOString() },
       spec: { pool: String(spec.pool ?? '') },
-      status: { state: 'PUBLIC_IP_STATE_ALLOCATED', address: `203.0.113.${50 + bffIdCounter % 200}`, pool: String(spec.pool ?? '') },
+      status: {
+        state: 'PUBLIC_IP_STATE_ALLOCATED',
+        address: `203.0.113.${50 + (bffIdCounter % 200)}`,
+        pool: String(spec.pool ?? ''),
+      },
     }
     bffPipStore.set(id, pip)
     return pip
@@ -546,14 +586,21 @@ export async function registerFulfillmentRoutes(
   app.patch(`${prefix}/public_ips/:id`, async (req) => {
     const { id } = req.params as { id: string }
     const pip = bffPipStore.get(id)
-    if (!pip) { (req as FastifyRequest).server.httpErrors?.notFound(); return }
+    if (!pip) {
+      req.server.httpErrors?.notFound()
+      return
+    }
     const body = asNestedRecord(req.body)
     const spec = asNestedRecord(body.spec)
-    const newCi = spec.compute_instance === null ? undefined : spec.compute_instance as string | undefined
+    const newCi =
+      spec.compute_instance === null ? undefined : (spec.compute_instance as string | undefined)
     const updated: PublicIP = {
       ...pip,
       spec: { ...pip.spec, computeInstance: newCi },
-      status: { ...pip.status, state: newCi ? 'PUBLIC_IP_STATE_ATTACHED' : 'PUBLIC_IP_STATE_ALLOCATED' },
+      status: {
+        ...pip.status,
+        state: newCi ? 'PUBLIC_IP_STATE_ATTACHED' : 'PUBLIC_IP_STATE_ALLOCATED',
+      },
     }
     bffPipStore.set(id, updated)
     return updated

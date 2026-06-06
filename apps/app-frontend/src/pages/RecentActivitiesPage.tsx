@@ -52,11 +52,7 @@ export function RecentActivitiesPage() {
     <PageSection>
       <Stack className={pageStackCss}>
         <StackItem>
-          <Title
-            headingLevel="h1"
-            size="2xl"
-            className={pageTitleCss}
-          >
+          <Title headingLevel="h1" size="2xl" className={pageTitleCss}>
             Recent activities
           </Title>
         </StackItem>
@@ -91,19 +87,13 @@ export function RecentActivitiesPage() {
                             {event.message ?? event.type}
                           </Content>
                           {event.relatedObjectRefs && event.relatedObjectRefs.length > 0 && (
-                            <Content
-                              component="small"
-                              className={subtleTextCss}
-                            >
+                            <Content component="small" className={subtleTextCss}>
                               {event.relatedObjectRefs.map((r) => r.name ?? r.id).join(', ')}
                             </Content>
                           )}
                         </DataListCell>,
                         <DataListCell key={`time-${event.id}`} alignRight>
-                          <Content
-                            component="small"
-                            className={subtleTextCss}
-                          >
+                          <Content component="small" className={subtleTextCss}>
                             {new Date(event.timestamp).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit',

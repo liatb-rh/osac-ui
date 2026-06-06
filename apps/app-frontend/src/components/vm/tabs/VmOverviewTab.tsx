@@ -69,16 +69,52 @@ export function VmOverviewTab({ vm }: Props) {
         : 'Linux'
 
   const MOCK_CONDITIONS: typeof vm.status.conditions = [
-    { type: 'VMReady',          status: 'True',  lastTransitionTime: '2026-06-05T08:12:00Z', message: 'Virtual machine is ready and reachable.' },
-    { type: 'AgentConnected',   status: 'True',  lastTransitionTime: '2026-06-05T08:11:45Z', message: 'Guest agent handshake completed.' },
-    { type: 'NetworkAttached',  status: 'True',  lastTransitionTime: '2026-06-05T08:11:30Z', message: 'Interface eth0 bound to vn-prod.' },
-    { type: 'VolumesMounted',   status: 'True',  lastTransitionTime: '2026-06-05T08:11:10Z', message: 'Boot volume and data volumes attached.' },
-    { type: 'Scheduled',        status: 'True',  lastTransitionTime: '2026-06-05T08:10:55Z', message: 'Placed on worker-07 (zone us-east-1b).' },
-    { type: 'ImagePulled',      status: 'True',  lastTransitionTime: '2026-06-05T08:10:40Z', message: 'Root image pulled from registry.' },
-    { type: 'StorageProvisioned', status: 'True', lastTransitionTime: '2026-06-05T08:10:20Z', message: 'PVC bound: 100 GiB gold tier.' },
+    {
+      type: 'VMReady',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:12:00Z',
+      message: 'Virtual machine is ready and reachable.',
+    },
+    {
+      type: 'AgentConnected',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:11:45Z',
+      message: 'Guest agent handshake completed.',
+    },
+    {
+      type: 'NetworkAttached',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:11:30Z',
+      message: 'Interface eth0 bound to vn-prod.',
+    },
+    {
+      type: 'VolumesMounted',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:11:10Z',
+      message: 'Boot volume and data volumes attached.',
+    },
+    {
+      type: 'Scheduled',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:10:55Z',
+      message: 'Placed on worker-07 (zone us-east-1b).',
+    },
+    {
+      type: 'ImagePulled',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:10:40Z',
+      message: 'Root image pulled from registry.',
+    },
+    {
+      type: 'StorageProvisioned',
+      status: 'True',
+      lastTransitionTime: '2026-06-05T08:10:20Z',
+      message: 'PVC bound: 100 GiB gold tier.',
+    },
   ]
 
-  const conditions = (vm.status.conditions?.length ?? 0) > 0 ? vm.status.conditions! : MOCK_CONDITIONS
+  const conditions =
+    (vm.status.conditions?.length ?? 0) > 0 ? vm.status.conditions! : MOCK_CONDITIONS
 
   return (
     <Grid hasGutter className={gridPaddingCss}>
@@ -160,7 +196,10 @@ export function VmOverviewTab({ vm }: Props) {
                       <Content component="small" className={lifecycleTimeCss}>
                         {formatIsoDate(c.lastTransitionTime)}
                       </Content>
-                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsNone' }}>
+                      <Flex
+                        direction={{ default: 'column' }}
+                        spaceItems={{ default: 'spaceItemsNone' }}
+                      >
                         <FlexItem>
                           <Content component="p" className={conditionTitleCss}>
                             {humanizeConditionType(c.type)}
@@ -168,10 +207,7 @@ export function VmOverviewTab({ vm }: Props) {
                         </FlexItem>
                         {c.message && (
                           <FlexItem>
-                            <Content
-                              component="small"
-                              className={subtleTextCss}
-                            >
+                            <Content component="small" className={subtleTextCss}>
                               {c.message}
                             </Content>
                           </FlexItem>

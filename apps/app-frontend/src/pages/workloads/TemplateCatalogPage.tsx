@@ -41,7 +41,10 @@ import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
 import { useSession } from '../../contexts/SessionContext'
 import { useComputeInstanceTemplates, useComputeInstances, useProvisionVm } from '../../hooks/hooks'
 import { PageHeader } from '../../components/layout'
-import type { CreateVmWizardHandle, DeploymentMode } from '../../components/vm/createVmWizard/CreateVmWizard'
+import type {
+  CreateVmWizardHandle,
+  DeploymentMode,
+} from '../../components/vm/createVmWizard/CreateVmWizard'
 import { CreateVmWizard } from '../../components/vm/createVmWizard/CreateVmWizard'
 import { OcTemplatesGallery } from '@osac/ui-components'
 
@@ -166,15 +169,7 @@ const linuxMascotCss = css`
 function OsIcon({ icon }: { icon?: string }) {
   if (icon === 'windows') return <WindowsIcon className={windowsIconCss} />
   if (icon === 'rhel') return <RedhatIcon className={rhelIconCss} />
-  return (
-    <img
-      src={linuxMascotUrl}
-      alt=""
-      width={28}
-      height={28}
-      className={linuxMascotCss}
-    />
-  )
+  return <img src={linuxMascotUrl} alt="" width={28} height={28} className={linuxMascotCss} />
 }
 
 export function TemplateCatalogPage({ isProviderGlobal = false }: Props) {

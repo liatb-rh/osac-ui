@@ -25,12 +25,12 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  Pagination,
   PageSection,
+  Pagination,
   Spinner,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
   TextInput,
   Title,
 } from '@patternfly/react-core'
@@ -142,25 +142,87 @@ const tabHeadingCss = css`
 // ---------------------------------------------------------------------------
 
 function VnStateLabel({ state }: { state: string }) {
-  if (state === 'VIRTUAL_NETWORK_STATE_READY') return <Label color="green" isCompact>Ready</Label>
-  if (state === 'VIRTUAL_NETWORK_STATE_PENDING') return <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>Pending</Label>
-  if (state === 'VIRTUAL_NETWORK_STATE_FAILED') return <Label color="red" isCompact>Failed</Label>
-  return <Label color="grey" isCompact>Unknown</Label>
+  if (state === 'VIRTUAL_NETWORK_STATE_READY')
+    return (
+      <Label color="green" isCompact>
+        Ready
+      </Label>
+    )
+  if (state === 'VIRTUAL_NETWORK_STATE_PENDING')
+    return (
+      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
+        Pending
+      </Label>
+    )
+  if (state === 'VIRTUAL_NETWORK_STATE_FAILED')
+    return (
+      <Label color="red" isCompact>
+        Failed
+      </Label>
+    )
+  return (
+    <Label color="grey" isCompact>
+      Unknown
+    </Label>
+  )
 }
 
 function SubnetStateLabel({ state }: { state: string }) {
-  if (state === 'SUBNET_STATE_READY') return <Label color="green" isCompact>Ready</Label>
-  if (state === 'SUBNET_STATE_PENDING') return <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>Pending</Label>
-  if (state === 'SUBNET_STATE_FAILED') return <Label color="red" isCompact>Failed</Label>
-  if (state === 'SUBNET_STATE_DELETING') return <Label color="orange" isCompact>Deleting</Label>
-  return <Label color="grey" isCompact>Unknown</Label>
+  if (state === 'SUBNET_STATE_READY')
+    return (
+      <Label color="green" isCompact>
+        Ready
+      </Label>
+    )
+  if (state === 'SUBNET_STATE_PENDING')
+    return (
+      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
+        Pending
+      </Label>
+    )
+  if (state === 'SUBNET_STATE_FAILED')
+    return (
+      <Label color="red" isCompact>
+        Failed
+      </Label>
+    )
+  if (state === 'SUBNET_STATE_DELETING')
+    return (
+      <Label color="orange" isCompact>
+        Deleting
+      </Label>
+    )
+  return (
+    <Label color="grey" isCompact>
+      Unknown
+    </Label>
+  )
 }
 
 function SgStateLabel({ state }: { state: string }) {
-  if (state === 'SECURITY_GROUP_STATE_READY') return <Label color="green" isCompact>Ready</Label>
-  if (state === 'SECURITY_GROUP_STATE_PENDING') return <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>Pending</Label>
-  if (state === 'SECURITY_GROUP_STATE_FAILED') return <Label color="red" isCompact>Failed</Label>
-  return <Label color="grey" isCompact>Unknown</Label>
+  if (state === 'SECURITY_GROUP_STATE_READY')
+    return (
+      <Label color="green" isCompact>
+        Ready
+      </Label>
+    )
+  if (state === 'SECURITY_GROUP_STATE_PENDING')
+    return (
+      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
+        Pending
+      </Label>
+    )
+  if (state === 'SECURITY_GROUP_STATE_FAILED')
+    return (
+      <Label color="red" isCompact>
+        Failed
+      </Label>
+    )
+  return (
+    <Label color="grey" isCompact>
+      Unknown
+    </Label>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -195,7 +257,12 @@ function VirtualNetworksTab() {
   async function handleCreate() {
     setSubmitError(null)
     try {
-      await createVN({ name: form.name, ipv4Cidr: form.ipv4Cidr || undefined, ipv6Cidr: form.ipv6Cidr || undefined, networkClass: form.networkClass || undefined })
+      await createVN({
+        name: form.name,
+        ipv4Cidr: form.ipv4Cidr || undefined,
+        ipv6Cidr: form.ipv6Cidr || undefined,
+        networkClass: form.networkClass || undefined,
+      })
       setModalOpen(false)
       setForm({ name: '', ipv4Cidr: '', ipv6Cidr: '', networkClass: '' })
     } catch (e) {
@@ -212,20 +279,26 @@ function VirtualNetworksTab() {
     <>
       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className={toolbarRowCss}>
         <FlexItem>
-          <Button variant="primary" onClick={() => setModalOpen(true)}>New virtual network</Button>
+          <Button variant="primary" onClick={() => setModalOpen(true)}>
+            New virtual network
+          </Button>
         </FlexItem>
       </Flex>
 
       {isLoading && <Spinner aria-label="Loading virtual networks" />}
       {error && (
         <Alert variant="danger" title="Failed to load virtual networks" isInline>
-          <Button variant="link" isInline onClick={() => refetch()}>Retry</Button>
+          <Button variant="link" isInline onClick={() => refetch()}>
+            Retry
+          </Button>
         </Alert>
       )}
 
       {!isLoading && !error && allVns.length === 0 && (
         <EmptyState>
-          <EmptyStateBody>No virtual networks. Click New virtual network to get started.</EmptyStateBody>
+          <EmptyStateBody>
+            No virtual networks. Click New virtual network to get started.
+          </EmptyStateBody>
         </EmptyState>
       )}
 
@@ -245,21 +318,29 @@ function VirtualNetworksTab() {
             <Tbody>
               {pageVns.map((vn) => (
                 <Tr key={vn.id}>
-                  <Td dataLabel="Name"><strong>{vn.metadata.name}</strong></Td>
-                  <Td dataLabel="State"><VnStateLabel state={vn.status.state} /></Td>
+                  <Td dataLabel="Name">
+                    <strong>{vn.metadata.name}</strong>
+                  </Td>
+                  <Td dataLabel="State">
+                    <VnStateLabel state={vn.status.state} />
+                  </Td>
                   <Td dataLabel="CIDR">
-                    <code className={codeSmallCss}>{vn.spec.ipv4Cidr ?? vn.spec.ipv6Cidr ?? '—'}</code>
+                    <code className={codeSmallCss}>
+                      {vn.spec.ipv4Cidr ?? vn.spec.ipv6Cidr ?? '—'}
+                    </code>
                   </Td>
                   <Td dataLabel="Subnets">
                     <Label isCompact>{subnetCount(vn.id)}</Label>
                   </Td>
                   <Td dataLabel="Security groups">
-                    <Label isCompact color="blue">{sgCount(vn.id)}</Label>
+                    <Label isCompact color="blue">
+                      {sgCount(vn.id)}
+                    </Label>
                   </Td>
                   <Td isActionCell>
-                    <ActionsColumn items={[
-                      { title: 'Delete', onClick: () => setConfirmDelete(vn) },
-                    ]} />
+                    <ActionsColumn
+                      items={[{ title: 'Delete', onClick: () => setConfirmDelete(vn) }]}
+                    />
                   </Td>
                 </Tr>
               ))}
@@ -279,50 +360,103 @@ function VirtualNetworksTab() {
       )}
 
       {/* Create modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} variant="small" aria-labelledby="create-vn-modal-title">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        variant="small"
+        aria-labelledby="create-vn-modal-title"
+      >
         <ModalHeader title="New virtual network" labelId="create-vn-modal-title" />
         <ModalBody>
-          {submitError && <Alert variant="danger" title="Create failed" isInline className={modalAlertCss}>{submitError}</Alert>}
+          {submitError && (
+            <Alert variant="danger" title="Create failed" isInline className={modalAlertCss}>
+              {submitError}
+            </Alert>
+          )}
           <Form>
             <FormGroup label="Name" isRequired fieldId="vn-name">
-              <TextInput id="vn-name" value={form.name} onChange={(_e, v) => setForm((f) => ({ ...f, name: v }))} isRequired />
+              <TextInput
+                id="vn-name"
+                value={form.name}
+                onChange={(_e, v) => setForm((f) => ({ ...f, name: v }))}
+                isRequired
+              />
             </FormGroup>
             <FormGroup label="Network Class" fieldId="vn-nc">
-              <FormSelect id="vn-nc" value={form.networkClass} onChange={(_e, v) => setForm((f) => ({ ...f, networkClass: v }))}>
+              <FormSelect
+                id="vn-nc"
+                value={form.networkClass}
+                onChange={(_e, v) => setForm((f) => ({ ...f, networkClass: v }))}
+              >
                 <FormSelectOption value="" label="Use default" />
-                {(networkClasses ?? []).map((nc) => <FormSelectOption key={nc.id} value={nc.id} label={nc.title} />)}
+                {(networkClasses ?? []).map((nc) => (
+                  <FormSelectOption key={nc.id} value={nc.id} label={nc.title} />
+                ))}
               </FormSelect>
             </FormGroup>
             <ExpandableSection toggleText="CIDR configuration">
               <FormGroup label="IPv4 CIDR" fieldId="vn-ipv4">
-                <TextInput id="vn-ipv4" value={form.ipv4Cidr} onChange={(_e, v) => setForm((f) => ({ ...f, ipv4Cidr: v }))} placeholder="10.0.0.0/16" />
+                <TextInput
+                  id="vn-ipv4"
+                  value={form.ipv4Cidr}
+                  onChange={(_e, v) => setForm((f) => ({ ...f, ipv4Cidr: v }))}
+                  placeholder="10.0.0.0/16"
+                />
               </FormGroup>
               <FormGroup label="IPv6 CIDR" fieldId="vn-ipv6">
-                <TextInput id="vn-ipv6" value={form.ipv6Cidr} onChange={(_e, v) => setForm((f) => ({ ...f, ipv6Cidr: v }))} placeholder="fd00::/48" />
-                <HelperText><HelperTextItem>Leave both empty to use network class defaults.</HelperTextItem></HelperText>
+                <TextInput
+                  id="vn-ipv6"
+                  value={form.ipv6Cidr}
+                  onChange={(_e, v) => setForm((f) => ({ ...f, ipv6Cidr: v }))}
+                  placeholder="fd00::/48"
+                />
+                <HelperText>
+                  <HelperTextItem>Leave both empty to use network class defaults.</HelperTextItem>
+                </HelperText>
               </FormGroup>
             </ExpandableSection>
           </Form>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleCreate} isDisabled={creating || !form.name} icon={creating ? <Spinner size="sm" aria-label="Creating" /> : undefined}>
+          <Button
+            variant="primary"
+            onClick={handleCreate}
+            isDisabled={creating || !form.name}
+            icon={creating ? <Spinner size="sm" aria-label="Creating" /> : undefined}
+          >
             {creating ? 'Creating…' : 'Create'}
           </Button>
-          <Button variant="link" onClick={() => setModalOpen(false)} isDisabled={creating}>Cancel</Button>
+          <Button variant="link" onClick={() => setModalOpen(false)} isDisabled={creating}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
       {/* Delete confirmation */}
       {confirmDelete && (
-        <Modal isOpen onClose={() => setConfirmDelete(null)} variant="small" aria-labelledby="del-vn-modal-title">
+        <Modal
+          isOpen
+          onClose={() => setConfirmDelete(null)}
+          variant="small"
+          aria-labelledby="del-vn-modal-title"
+        >
           <ModalHeader title="Delete virtual network?" labelId="del-vn-modal-title" />
           <ModalBody>
-            <Alert variant="warning" isInline title="This will remove all subnets and security groups attached to this network." className={modalAlertCss} />
+            <Alert
+              variant="warning"
+              isInline
+              title="This will remove all subnets and security groups attached to this network."
+              className={modalAlertCss}
+            />
             Deleting <strong>{confirmDelete.metadata.name}</strong> cannot be undone.
           </ModalBody>
           <ModalFooter>
-            <Button variant="danger" onClick={() => handleDelete(confirmDelete)}>Delete network</Button>
-            <Button variant="link" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button variant="danger" onClick={() => handleDelete(confirmDelete)}>
+              Delete network
+            </Button>
+            <Button variant="link" onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
           </ModalFooter>
         </Modal>
       )}
@@ -355,7 +489,12 @@ function SubnetsTab() {
   async function handleCreate() {
     setSubmitError(null)
     try {
-      await createSubnet({ name: form.name, virtualNetworkId: form.virtualNetworkId, ipv4Cidr: form.ipv4Cidr || undefined, ipv6Cidr: form.ipv6Cidr || undefined })
+      await createSubnet({
+        name: form.name,
+        virtualNetworkId: form.virtualNetworkId,
+        ipv4Cidr: form.ipv4Cidr || undefined,
+        ipv6Cidr: form.ipv6Cidr || undefined,
+      })
       setModalOpen(false)
       setForm({ name: '', virtualNetworkId: filterVnId, ipv4Cidr: '', ipv6Cidr: '' })
     } catch (e) {
@@ -369,85 +508,197 @@ function SubnetsTab() {
 
   return (
     <>
-      <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }} className={toolbarRowCss}>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        className={toolbarRowCss}
+      >
         <FlexItem>
-          <FormSelect value={filterVnId} onChange={(_e, v) => { setFilterVnId(v); setPage(1) }} aria-label="Filter by virtual network" className={filterSelectCss}>
+          <FormSelect
+            value={filterVnId}
+            onChange={(_e, v) => {
+              setFilterVnId(v)
+              setPage(1)
+            }}
+            aria-label="Filter by virtual network"
+            className={filterSelectCss}
+          >
             <FormSelectOption value="" label="All virtual networks" />
-            {(vns ?? []).map((vn) => <FormSelectOption key={vn.id} value={vn.id} label={vn.metadata.name} />)}
+            {(vns ?? []).map((vn) => (
+              <FormSelectOption key={vn.id} value={vn.id} label={vn.metadata.name} />
+            ))}
           </FormSelect>
         </FlexItem>
         <FlexItem>
-          <Button variant="primary" onClick={() => { setForm((f) => ({ ...f, virtualNetworkId: filterVnId })); setModalOpen(true) }}>Create subnet</Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setForm((f) => ({ ...f, virtualNetworkId: filterVnId }))
+              setModalOpen(true)
+            }}
+          >
+            Create subnet
+          </Button>
         </FlexItem>
       </Flex>
 
-      {(isLoading && filterVnId) && <Spinner aria-label="Loading subnets" />}
-      {error && <Alert variant="danger" title="Failed to load subnets" isInline><Button variant="link" isInline onClick={() => refetch()}>Retry</Button></Alert>}
+      {isLoading && filterVnId && <Spinner aria-label="Loading subnets" />}
+      {error && (
+        <Alert variant="danger" title="Failed to load subnets" isInline>
+          <Button variant="link" isInline onClick={() => refetch()}>
+            Retry
+          </Button>
+        </Alert>
+      )}
       {!isLoading && allDisplay.length === 0 && (
-        <EmptyState><EmptyStateBody>No subnets{filterVnId ? ' for the selected virtual network' : ''}.</EmptyStateBody></EmptyState>
+        <EmptyState>
+          <EmptyStateBody>
+            No subnets{filterVnId ? ' for the selected virtual network' : ''}.
+          </EmptyStateBody>
+        </EmptyState>
       )}
       {allDisplay.length > 0 && (
         <Card className={tableCardCss}>
           <Table aria-label="Subnets" variant="compact">
-            <Thead><Tr><Th>Name</Th><Th>Virtual Network</Th><Th>IPv4 CIDR</Th><Th>IPv6 CIDR</Th><Th>State</Th><Th aria-label="Actions" /></Tr></Thead>
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Virtual Network</Th>
+                <Th>IPv4 CIDR</Th>
+                <Th>IPv6 CIDR</Th>
+                <Th>State</Th>
+                <Th aria-label="Actions" />
+              </Tr>
+            </Thead>
             <Tbody>
               {pageSubnets.map((s) => (
                 <Tr key={s.id}>
-                  <Td dataLabel="Name"><strong>{s.metadata.name}</strong></Td>
+                  <Td dataLabel="Name">
+                    <strong>{s.metadata.name}</strong>
+                  </Td>
                   <Td dataLabel="Virtual Network">{vnName(s.spec.virtualNetwork)}</Td>
-                  <Td dataLabel="IPv4 CIDR"><code className={codeSmallCss}>{s.spec.ipv4Cidr ?? '—'}</code></Td>
-                  <Td dataLabel="IPv6 CIDR"><code className={codeSmallCss}>{s.spec.ipv6Cidr ?? '—'}</code></Td>
-                  <Td dataLabel="State"><SubnetStateLabel state={s.status.state} /></Td>
+                  <Td dataLabel="IPv4 CIDR">
+                    <code className={codeSmallCss}>{s.spec.ipv4Cidr ?? '—'}</code>
+                  </Td>
+                  <Td dataLabel="IPv6 CIDR">
+                    <code className={codeSmallCss}>{s.spec.ipv6Cidr ?? '—'}</code>
+                  </Td>
+                  <Td dataLabel="State">
+                    <SubnetStateLabel state={s.status.state} />
+                  </Td>
                   <Td isActionCell>
-                    <ActionsColumn items={[{ title: 'Delete', onClick: () => setConfirmDelete(s) }]} />
+                    <ActionsColumn
+                      items={[{ title: 'Delete', onClick: () => setConfirmDelete(s) }]}
+                    />
                   </Td>
                 </Tr>
               ))}
             </Tbody>
           </Table>
           {totalItems > PAGE_SIZE && (
-            <Pagination itemCount={totalItems} perPage={PAGE_SIZE} page={page} onSetPage={(_e, p) => setPage(p)} variant="bottom" isCompact />
+            <Pagination
+              itemCount={totalItems}
+              perPage={PAGE_SIZE}
+              page={page}
+              onSetPage={(_e, p) => setPage(p)}
+              variant="bottom"
+              isCompact
+            />
           )}
         </Card>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} variant="small" aria-labelledby="create-subnet-modal-title">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        variant="small"
+        aria-labelledby="create-subnet-modal-title"
+      >
         <ModalHeader title="Create subnet" labelId="create-subnet-modal-title" />
         <ModalBody>
-          {submitError && <Alert variant="danger" title="Create failed" isInline className={modalAlertCss}>{submitError}</Alert>}
+          {submitError && (
+            <Alert variant="danger" title="Create failed" isInline className={modalAlertCss}>
+              {submitError}
+            </Alert>
+          )}
           <Form>
             <FormGroup label="Name" isRequired fieldId="subnet-name">
-              <TextInput id="subnet-name" value={form.name} onChange={(_e, v) => setForm((f) => ({ ...f, name: v }))} isRequired />
+              <TextInput
+                id="subnet-name"
+                value={form.name}
+                onChange={(_e, v) => setForm((f) => ({ ...f, name: v }))}
+                isRequired
+              />
             </FormGroup>
             <FormGroup label="Virtual Network" isRequired fieldId="subnet-vn">
-              <FormSelect id="subnet-vn" value={form.virtualNetworkId} onChange={(_e, v) => setForm((f) => ({ ...f, virtualNetworkId: v }))}>
+              <FormSelect
+                id="subnet-vn"
+                value={form.virtualNetworkId}
+                onChange={(_e, v) => setForm((f) => ({ ...f, virtualNetworkId: v }))}
+              >
                 <FormSelectOption value="" label="Select a virtual network" isDisabled />
-                {(vns ?? []).map((vn) => <FormSelectOption key={vn.id} value={vn.id} label={vn.metadata.name} />)}
+                {(vns ?? []).map((vn) => (
+                  <FormSelectOption key={vn.id} value={vn.id} label={vn.metadata.name} />
+                ))}
               </FormSelect>
             </FormGroup>
             <FormGroup label="IPv4 CIDR" fieldId="subnet-ipv4">
-              <TextInput id="subnet-ipv4" value={form.ipv4Cidr} onChange={(_e, v) => setForm((f) => ({ ...f, ipv4Cidr: v }))} placeholder="10.0.1.0/24" />
+              <TextInput
+                id="subnet-ipv4"
+                value={form.ipv4Cidr}
+                onChange={(_e, v) => setForm((f) => ({ ...f, ipv4Cidr: v }))}
+                placeholder="10.0.1.0/24"
+              />
             </FormGroup>
             <FormGroup label="IPv6 CIDR" fieldId="subnet-ipv6">
-              <TextInput id="subnet-ipv6" value={form.ipv6Cidr} onChange={(_e, v) => setForm((f) => ({ ...f, ipv6Cidr: v }))} placeholder="fd00::1:0/112" />
+              <TextInput
+                id="subnet-ipv6"
+                value={form.ipv6Cidr}
+                onChange={(_e, v) => setForm((f) => ({ ...f, ipv6Cidr: v }))}
+                placeholder="fd00::1:0/112"
+              />
             </FormGroup>
           </Form>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleCreate} isDisabled={creating || !form.name || !form.virtualNetworkId} icon={creating ? <Spinner size="sm" aria-label="Creating" /> : undefined}>
+          <Button
+            variant="primary"
+            onClick={handleCreate}
+            isDisabled={creating || !form.name || !form.virtualNetworkId}
+            icon={creating ? <Spinner size="sm" aria-label="Creating" /> : undefined}
+          >
             {creating ? 'Creating…' : 'Create'}
           </Button>
-          <Button variant="link" onClick={() => setModalOpen(false)} isDisabled={creating}>Cancel</Button>
+          <Button variant="link" onClick={() => setModalOpen(false)} isDisabled={creating}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
       {confirmDelete && (
-        <Modal isOpen onClose={() => setConfirmDelete(null)} variant="small" aria-labelledby="del-subnet-modal-title">
+        <Modal
+          isOpen
+          onClose={() => setConfirmDelete(null)}
+          variant="small"
+          aria-labelledby="del-subnet-modal-title"
+        >
           <ModalHeader title="Delete subnet?" labelId="del-subnet-modal-title" />
-          <ModalBody>Delete subnet <strong>{confirmDelete.metadata.name}</strong>?</ModalBody>
+          <ModalBody>
+            Delete subnet <strong>{confirmDelete.metadata.name}</strong>?
+          </ModalBody>
           <ModalFooter>
-            <Button variant="danger" onClick={async () => { await deleteSubnet(confirmDelete.id); setConfirmDelete(null) }}>Delete</Button>
-            <Button variant="link" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                await deleteSubnet(confirmDelete.id)
+                setConfirmDelete(null)
+              }}
+            >
+              Delete
+            </Button>
+            <Button variant="link" onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
           </ModalFooter>
         </Modal>
       )}
@@ -494,72 +745,154 @@ function SecurityGroupsTab() {
     <>
       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className={toolbarRowCss}>
         <FlexItem>
-          <Button variant="primary" onClick={() => setModalOpen(true)}>Create security group</Button>
+          <Button variant="primary" onClick={() => setModalOpen(true)}>
+            Create security group
+          </Button>
         </FlexItem>
       </Flex>
 
       {isLoading && <Spinner aria-label="Loading security groups" />}
-      {error && <Alert variant="danger" title="Failed to load security groups" isInline><Button variant="link" isInline onClick={() => refetch()}>Retry</Button></Alert>}
+      {error && (
+        <Alert variant="danger" title="Failed to load security groups" isInline>
+          <Button variant="link" isInline onClick={() => refetch()}>
+            Retry
+          </Button>
+        </Alert>
+      )}
       {!isLoading && !error && allSgs.length === 0 && (
-        <EmptyState><EmptyStateBody>No security groups. Click Create security group to get started.</EmptyStateBody></EmptyState>
+        <EmptyState>
+          <EmptyStateBody>
+            No security groups. Click Create security group to get started.
+          </EmptyStateBody>
+        </EmptyState>
       )}
       {!isLoading && !error && allSgs.length > 0 && (
         <Card className={tableCardCss}>
           <Table aria-label="Security Groups" variant="compact">
-            <Thead><Tr><Th>Name</Th><Th>Virtual Network</Th><Th>Ingress Rules</Th><Th>Egress Rules</Th><Th>State</Th><Th aria-label="Actions" /></Tr></Thead>
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Virtual Network</Th>
+                <Th>Ingress Rules</Th>
+                <Th>Egress Rules</Th>
+                <Th>State</Th>
+                <Th aria-label="Actions" />
+              </Tr>
+            </Thead>
             <Tbody>
               {pageSgs.map((sg) => (
                 <Tr key={sg.id}>
-                  <Td dataLabel="Name"><strong>{sg.metadata.name}</strong></Td>
+                  <Td dataLabel="Name">
+                    <strong>{sg.metadata.name}</strong>
+                  </Td>
                   <Td dataLabel="Virtual Network">{vnName(sg.spec.virtualNetwork)}</Td>
                   <Td dataLabel="Ingress Rules">{(sg.spec.ingress ?? []).length}</Td>
                   <Td dataLabel="Egress Rules">{(sg.spec.egress ?? []).length}</Td>
-                  <Td dataLabel="State"><SgStateLabel state={sg.status.state} /></Td>
+                  <Td dataLabel="State">
+                    <SgStateLabel state={sg.status.state} />
+                  </Td>
                   <Td isActionCell>
-                    <ActionsColumn items={[{ title: 'Delete', onClick: () => setConfirmDelete(sg) }]} />
+                    <ActionsColumn
+                      items={[{ title: 'Delete', onClick: () => setConfirmDelete(sg) }]}
+                    />
                   </Td>
                 </Tr>
               ))}
             </Tbody>
           </Table>
           {totalItems > PAGE_SIZE && (
-            <Pagination itemCount={totalItems} perPage={PAGE_SIZE} page={page} onSetPage={(_e, p) => setPage(p)} variant="bottom" isCompact />
+            <Pagination
+              itemCount={totalItems}
+              perPage={PAGE_SIZE}
+              page={page}
+              onSetPage={(_e, p) => setPage(p)}
+              variant="bottom"
+              isCompact
+            />
           )}
         </Card>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} variant="small" aria-labelledby="create-sg-modal-title">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        variant="small"
+        aria-labelledby="create-sg-modal-title"
+      >
         <ModalHeader title="Create security group" labelId="create-sg-modal-title" />
         <ModalBody>
-          {submitError && <Alert variant="danger" title="Create failed" isInline className={modalAlertCss}>{submitError}</Alert>}
+          {submitError && (
+            <Alert variant="danger" title="Create failed" isInline className={modalAlertCss}>
+              {submitError}
+            </Alert>
+          )}
           <Form>
             <FormGroup label="Name" isRequired fieldId="sg-name">
-              <TextInput id="sg-name" value={form.name} onChange={(_e, v) => setForm((f) => ({ ...f, name: v }))} isRequired />
+              <TextInput
+                id="sg-name"
+                value={form.name}
+                onChange={(_e, v) => setForm((f) => ({ ...f, name: v }))}
+                isRequired
+              />
             </FormGroup>
             <FormGroup label="Virtual Network" isRequired fieldId="sg-vn">
-              <FormSelect id="sg-vn" value={form.virtualNetworkId} onChange={(_e, v) => setForm((f) => ({ ...f, virtualNetworkId: v }))}>
+              <FormSelect
+                id="sg-vn"
+                value={form.virtualNetworkId}
+                onChange={(_e, v) => setForm((f) => ({ ...f, virtualNetworkId: v }))}
+              >
                 <FormSelectOption value="" label="Select a virtual network" isDisabled />
-                {(vns ?? []).map((vn) => <FormSelectOption key={vn.id} value={vn.id} label={vn.metadata.name} />)}
+                {(vns ?? []).map((vn) => (
+                  <FormSelectOption key={vn.id} value={vn.id} label={vn.metadata.name} />
+                ))}
               </FormSelect>
-              <HelperText><HelperTextItem>Firewall rules can be managed via API after creation.</HelperTextItem></HelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Firewall rules can be managed via API after creation.
+                </HelperTextItem>
+              </HelperText>
             </FormGroup>
           </Form>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleCreate} isDisabled={creating || !form.name || !form.virtualNetworkId} icon={creating ? <Spinner size="sm" aria-label="Creating" /> : undefined}>
+          <Button
+            variant="primary"
+            onClick={handleCreate}
+            isDisabled={creating || !form.name || !form.virtualNetworkId}
+            icon={creating ? <Spinner size="sm" aria-label="Creating" /> : undefined}
+          >
             {creating ? 'Creating…' : 'Create'}
           </Button>
-          <Button variant="link" onClick={() => setModalOpen(false)} isDisabled={creating}>Cancel</Button>
+          <Button variant="link" onClick={() => setModalOpen(false)} isDisabled={creating}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
       {confirmDelete && (
-        <Modal isOpen onClose={() => setConfirmDelete(null)} variant="small" aria-labelledby="del-sg-modal-title">
+        <Modal
+          isOpen
+          onClose={() => setConfirmDelete(null)}
+          variant="small"
+          aria-labelledby="del-sg-modal-title"
+        >
           <ModalHeader title="Delete security group?" labelId="del-sg-modal-title" />
-          <ModalBody>Delete security group <strong>{confirmDelete.metadata.name}</strong>?</ModalBody>
+          <ModalBody>
+            Delete security group <strong>{confirmDelete.metadata.name}</strong>?
+          </ModalBody>
           <ModalFooter>
-            <Button variant="danger" onClick={async () => { await deleteSg(confirmDelete.id); setConfirmDelete(null) }}>Delete</Button>
-            <Button variant="link" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                await deleteSg(confirmDelete.id)
+                setConfirmDelete(null)
+              }}
+            >
+              Delete
+            </Button>
+            <Button variant="link" onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
           </ModalFooter>
         </Modal>
       )}
@@ -593,7 +926,10 @@ const OsacTopoNode: FC<{ element: Node }> = observer(({ element }) => {
   const dot = DOT_COLOR[data.nodeType] ?? '#0066cc'
 
   return (
-    <g transform={`translate(${pos.x - width / 2}, ${pos.y - height / 2})`} className={topoNodeGroupCss}>
+    <g
+      transform={`translate(${pos.x - width / 2}, ${pos.y - height / 2})`}
+      className={topoNodeGroupCss}
+    >
       <rect
         width={width}
         height={height}
@@ -622,7 +958,9 @@ const OsacTopoEdge: FC<{ element: Edge }> = observer(({ element }) => {
   const bends = element.getBendpoints()
 
   let d = `M ${start.x},${start.y}`
-  bends.forEach((p) => { d += ` L ${p.x},${p.y}` })
+  bends.forEach((p) => {
+    d += ` L ${p.x},${p.y}`
+  })
   d += ` L ${end.x},${end.y}`
 
   return <path d={d} stroke="#cfe1f5" strokeWidth={2} fill="none" />
@@ -646,7 +984,10 @@ function buildTopologyModel(
     label: vn.metadata.name,
     width: NODE_W,
     height: NODE_H,
-    data: { description: vn.spec.ipv4Cidr ?? vn.spec.ipv6Cidr ?? '', nodeType: 'vnet' } satisfies TopoNodeData,
+    data: {
+      description: vn.spec.ipv4Cidr ?? vn.spec.ipv6Cidr ?? '',
+      nodeType: 'vnet',
+    } satisfies TopoNodeData,
   })
 
   for (const sn of vnSubnets) {
@@ -656,9 +997,17 @@ function buildTopologyModel(
       label: sn.metadata.name,
       width: NODE_W,
       height: NODE_H,
-      data: { description: sn.spec.ipv4Cidr ?? sn.spec.ipv6Cidr ?? '', nodeType: 'subnet' } satisfies TopoNodeData,
+      data: {
+        description: sn.spec.ipv4Cidr ?? sn.spec.ipv6Cidr ?? '',
+        nodeType: 'subnet',
+      } satisfies TopoNodeData,
     })
-    edges.push({ id: `e-vn-sn-${sn.id}`, type: 'edge', source: `vn-${vn.id}`, target: `sn-${sn.id}` })
+    edges.push({
+      id: `e-vn-sn-${sn.id}`,
+      type: 'edge',
+      source: `vn-${vn.id}`,
+      target: `sn-${sn.id}`,
+    })
 
     // Match VMs by subnet name (mock data uses subnet name, not id)
     const snVms = allVms.filter((vm) => vm.spec.subnet === sn.metadata.name)
@@ -669,9 +1018,17 @@ function buildTopologyModel(
         label: vm.metadata.name,
         width: NODE_W,
         height: NODE_H,
-        data: { description: `VM · ${vm.status.ipAddress ?? '—'}`, nodeType: 'vm' } satisfies TopoNodeData,
+        data: {
+          description: `VM · ${vm.status.ipAddress ?? '—'}`,
+          nodeType: 'vm',
+        } satisfies TopoNodeData,
       })
-      edges.push({ id: `e-sn-vm-${vm.id}`, type: 'edge', source: `sn-${sn.id}`, target: `vm-${vm.id}` })
+      edges.push({
+        id: `e-sn-vm-${vm.id}`,
+        type: 'edge',
+        source: `sn-${sn.id}`,
+        target: `vm-${vm.id}`,
+      })
     }
   }
 
@@ -697,7 +1054,10 @@ function TopologyInner({ model }: { model: Model }) {
     zoomInCallback: () => controller.getGraph().scaleBy(4 / 3),
     zoomOutCallback: () => controller.getGraph().scaleBy(3 / 4),
     fitToScreenCallback: () => controller.getGraph().fit(80),
-    resetViewCallback: () => { controller.getGraph().reset(); controller.getGraph().layout() },
+    resetViewCallback: () => {
+      controller.getGraph().reset()
+      controller.getGraph().layout()
+    },
   })
 
   return (
@@ -722,8 +1082,15 @@ function NetworkTopologyTab() {
 
   const controller = useMemo(() => {
     const c = new Visualization()
-    c.registerLayoutFactory((_type, graph) =>
-      new DagreLayout(graph, { rankdir: 'LR', ranksep: 100, nodesep: 40, marginx: 30, marginy: 30 }),
+    c.registerLayoutFactory(
+      (_type, graph) =>
+        new DagreLayout(graph, {
+          rankdir: 'LR',
+          ranksep: 100,
+          nodesep: 40,
+          marginx: 30,
+          marginy: 30,
+        }),
     )
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     c.registerComponentFactory((_kind, type): any => {
@@ -795,7 +1162,6 @@ export function NetworksPage({ onOpenVmDetail: _onOpenVmDetail }: Props) {
         description="Virtual networks, subnets, and topology for your tenant."
       />
       <Tabs activeKey={activeTab} onSelect={handleTabSelect} aria-label="Networks tabs">
-        
         <Tab eventKey={0} title={<TabTitleText>Topology</TabTitleText>}>
           <div className={tabContentCss}>
             <Title headingLevel="h3" size="md" className={tabHeadingCss}>
@@ -819,7 +1185,6 @@ export function NetworksPage({ onOpenVmDetail: _onOpenVmDetail }: Props) {
             <SecurityGroupsTab />
           </div>
         </Tab>
-        
       </Tabs>
     </PageSection>
   )

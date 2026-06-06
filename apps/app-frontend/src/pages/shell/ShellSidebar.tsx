@@ -69,10 +69,7 @@ export function ShellSidebar({
 
                 if (section.groupLabel) {
                   return (
-                    <NavGroup
-                      key={section.groupLabel}
-                      title={section.groupLabel}
-                    >
+                    <NavGroup key={section.groupLabel} title={section.groupLabel}>
                       {list}
                     </NavGroup>
                   )

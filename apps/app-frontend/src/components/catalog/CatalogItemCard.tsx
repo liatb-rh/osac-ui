@@ -1,12 +1,5 @@
 import { css } from '@emotion/css'
-import {
-  Button,
-  Card,
-  CardBody,
-  Flex,
-  FlexItem,
-  Label,
-} from '@patternfly/react-core'
+import { Button, Card, CardBody, Flex, FlexItem, Label } from '@patternfly/react-core'
 import type { CatalogItem } from './types'
 
 const cardCss = css`
@@ -48,7 +41,10 @@ export function CatalogItemCard({ item, onTogglePublish }: CatalogItemCardProps)
   return (
     <Card className={cardCss}>
       <CardBody className={cardBodyCss}>
-        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+        >
           <FlexItem>
             <strong className={itemNameCss}>{item.name}</strong>
           </FlexItem>
@@ -64,14 +60,22 @@ export function CatalogItemCard({ item, onTogglePublish }: CatalogItemCardProps)
         </div>
 
         <Flex spaceItems={{ default: 'spaceItemsMd' }} className={specsFlexCss}>
-          <FlexItem><strong>{item.cpu}</strong> vCPU</FlexItem>
-          <FlexItem><strong>{item.ram}</strong> GiB RAM</FlexItem>
-          <FlexItem><strong>{item.presets}</strong> presets</FlexItem>
+          <FlexItem>
+            <strong>{item.cpu}</strong> vCPU
+          </FlexItem>
+          <FlexItem>
+            <strong>{item.ram}</strong> GiB RAM
+          </FlexItem>
+          <FlexItem>
+            <strong>{item.presets}</strong> presets
+          </FlexItem>
         </Flex>
 
         <Flex className={actionsFlexCss} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
-            <Button variant="secondary" size="sm">Edit presets</Button>
+            <Button variant="secondary" size="sm">
+              Edit presets
+            </Button>
           </FlexItem>
           <FlexItem>
             <Button

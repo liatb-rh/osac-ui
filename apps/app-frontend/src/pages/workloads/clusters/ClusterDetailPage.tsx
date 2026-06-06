@@ -23,8 +23,8 @@ import {
   PageSection,
   Spinner,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
 } from '@patternfly/react-core'
 import { ArrowCircleUpIcon } from '@patternfly/react-icons/dist/esm/icons/arrow-circle-up-icon'
 import { DownloadIcon } from '@patternfly/react-icons/dist/esm/icons/download-icon'
@@ -39,8 +39,8 @@ import { ClusterStatusLabel } from '../../../components/clusters/ClusterStatusLa
 import { UpgradeClusterModal } from '../../../components/clusters/UpgradeClusterModal'
 import { PageHeader } from '../../../components/layout'
 import {
-  ClusterOverviewTab,
   ClusterNetworkingTab,
+  ClusterOverviewTab,
   ClusterStorageTab,
 } from '../../../components/clusters/tabs'
 
@@ -102,7 +102,10 @@ export function ClusterDetailPage() {
     cluster.status.state !== 'CLUSTER_STATE_PROGRESSING' &&
     cluster.status.state !== 'CLUSTER_STATE_UPGRADING'
 
-  const totalWorkers = Object.values(cluster.spec.nodeSets ?? {}).reduce((sum, ns) => sum + ns.size, 0)
+  const totalWorkers = Object.values(cluster.spec.nodeSets ?? {}).reduce(
+    (sum, ns) => sum + ns.size,
+    0,
+  )
 
   function resolveVnName(vnId?: string): string {
     if (!vnId) return '—'
@@ -151,13 +154,21 @@ export function ClusterDetailPage() {
           description={[
             cluster.status.version ? `OpenShift ${cluster.status.version}` : null,
             totalWorkers ? `${totalWorkers} workers` : null,
-          ].filter(Boolean).join(' · ')}
+          ]
+            .filter(Boolean)
+            .join(' · ')}
           actions={
             <Flex spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 <Button
                   variant="secondary"
-                  icon={kubeconfigDownloading ? <Spinner size="sm" aria-label="Downloading" /> : <DownloadIcon />}
+                  icon={
+                    kubeconfigDownloading ? (
+                      <Spinner size="sm" aria-label="Downloading" />
+                    ) : (
+                      <DownloadIcon />
+                    )
+                  }
                   onClick={handleDownloadKubeconfig}
                   isDisabled={!canDownloadKubeconfig || kubeconfigDownloading}
                 >
@@ -189,7 +200,12 @@ export function ClusterDetailPage() {
         />
 
         {kubeconfigError && (
-          <Alert variant="danger" title="Kubeconfig download failed" isInline className={kubeconfigErrorAlertCss}>
+          <Alert
+            variant="danger"
+            title="Kubeconfig download failed"
+            isInline
+            className={kubeconfigErrorAlertCss}
+          >
             {kubeconfigError}
           </Alert>
         )}
@@ -201,19 +217,38 @@ export function ClusterDetailPage() {
             {
               label: 'Cluster state',
               value: <ClusterStatusLabel state={cluster.status.state} />,
-              tone: cluster.status.state === 'CLUSTER_STATE_READY' ? 'success'
-                  : cluster.status.state === 'CLUSTER_STATE_FAILED' || cluster.status.state === 'CLUSTER_STATE_UPGRADE_FAILED' ? 'danger'
-                  : cluster.status.state === 'CLUSTER_STATE_PROGRESSING' || cluster.status.state === 'CLUSTER_STATE_UPGRADING' ? 'warning'
-                  : 'muted',
+              tone:
+                cluster.status.state === 'CLUSTER_STATE_READY'
+                  ? 'success'
+                  : cluster.status.state === 'CLUSTER_STATE_FAILED' ||
+                      cluster.status.state === 'CLUSTER_STATE_UPGRADE_FAILED'
+                    ? 'danger'
+                    : cluster.status.state === 'CLUSTER_STATE_PROGRESSING' ||
+                        cluster.status.state === 'CLUSTER_STATE_UPGRADING'
+                      ? 'warning'
+                      : 'muted',
             },
-            { label: 'OCP version',     value: cluster.status.version ?? '—',                                                                           hint: 'control plane' },
-            { label: 'Workers',         value: String(totalWorkers || '—'),                                                                              hint: 'worker nodes' },
-            { label: 'Virtual network', value: resolveVnName(cluster.spec.network?.virtualNetworkRef) },
+            { label: 'OCP version', value: cluster.status.version ?? '—', hint: 'control plane' },
+            { label: 'Workers', value: String(totalWorkers || '—'), hint: 'worker nodes' },
+            {
+              label: 'Virtual network',
+              value: resolveVnName(cluster.spec.network?.virtualNetworkRef),
+            },
             {
               label: 'Storage',
-              value: cluster.status.storageReady === true ? 'Ready' : cluster.status.storageReady === false ? 'Provisioning' : '—',
+              value:
+                cluster.status.storageReady === true
+                  ? 'Ready'
+                  : cluster.status.storageReady === false
+                    ? 'Provisioning'
+                    : '—',
               hint: 'VAST CSI',
-              tone: cluster.status.storageReady === true ? 'success' : cluster.status.storageReady === false ? 'warning' : 'muted',
+              tone:
+                cluster.status.storageReady === true
+                  ? 'success'
+                  : cluster.status.storageReady === false
+                    ? 'warning'
+                    : 'muted',
             },
           ]}
         />
@@ -259,7 +294,11 @@ export function ClusterDetailPage() {
           <Button variant="danger" onClick={handleDelete} isDisabled={isDeleting}>
             {isDeleting ? 'Deleting…' : 'Confirm delete'}
           </Button>
-          <Button variant="link" onClick={() => setShowDeleteConfirm(false)} isDisabled={isDeleting}>
+          <Button
+            variant="link"
+            onClick={() => setShowDeleteConfirm(false)}
+            isDisabled={isDeleting}
+          >
             Cancel
           </Button>
         </ModalFooter>

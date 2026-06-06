@@ -117,7 +117,10 @@ function parseIntRange(raw: string, min: number, max: number): number | null {
 function parseAdditionalDisks(raw: string): number[] | null {
   const t = raw.trim()
   if (t === '') return []
-  const parts = t.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean)
+  const parts = t
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
   const out: number[] = []
   for (const p of parts) {
     const n = parseIntRange(p, BOOT_DISK_MIN, BOOT_DISK_MAX)
@@ -128,7 +131,10 @@ function parseAdditionalDisks(raw: string): number[] | null {
 }
 
 function parseSecurityGroups(raw: string): string[] {
-  return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
 function orderedStepIds(_mode: DeploymentMode, _skip: boolean): string[] {
@@ -201,7 +207,9 @@ export function validateStep(
     case 'customization':
       if (draft.mode === 'template') {
         if (!draft.templateVmName?.trim()) e.templateVmName = 'Virtual machine name is required'
-        if (parseIntRange(draft.templateBootDiskSizeGib ?? '', BOOT_DISK_MIN, BOOT_DISK_MAX) === null)
+        if (
+          parseIntRange(draft.templateBootDiskSizeGib ?? '', BOOT_DISK_MIN, BOOT_DISK_MAX) === null
+        )
           e.templateBootDiskSizeGib = `Boot disk size must be an integer ${BOOT_DISK_MIN}–${BOOT_DISK_MAX} GiB`
         if (parseIntRange(draft.templateCores ?? '', CORES_MIN, CORES_MAX) === null)
           e.templateCores = `vCPU must be an integer ${CORES_MIN}–${CORES_MAX}`
@@ -239,7 +247,8 @@ export function buildVmFromDraft(draft: WizardDraft, vms: ComputeInstance[]): Co
     const tpl = VM_TEMPLATES.find((t) => t.id === draft.selectedTemplateId)
     const bootGib =
       parseIntRange(draft.templateBootDiskSizeGib ?? '', BOOT_DISK_MIN, BOOT_DISK_MAX) ??
-      tpl?.defaultBootDiskSizeGib ?? 40
+      tpl?.defaultBootDiskSizeGib ??
+      40
     const cores =
       parseIntRange(draft.templateCores ?? '', CORES_MIN, CORES_MAX) ?? tpl?.defaultCores ?? 2
     const memoryGib =
@@ -310,14 +319,32 @@ export function createSession(body: {
   let skipDeployment = false
 
   if (entry === 'catalog' && body.presetTemplateId) {
-    draft = { ...INITIAL_DRAFT, mode: 'template', selectedTemplateId: body.presetTemplateId, templateBootDiskSizeGib: '' }
+    draft = {
+      ...INITIAL_DRAFT,
+      mode: 'template',
+      selectedTemplateId: body.presetTemplateId,
+      templateBootDiskSizeGib: '',
+    }
     skipDeployment = true
   } else if (entry === 'clone_drawer') {
-    return { ok: false, error: 'Clone wizard path is disabled until fulfillment supports it.', status: 503 }
+    return {
+      ok: false,
+      error: 'Clone wizard path is disabled until fulfillment supports it.',
+      status: 503,
+    }
   } else if (body.deploymentMethod) {
-    return { ok: false, error: 'Non-template deployment methods are disabled until fulfillment supports them.', status: 503 }
+    return {
+      ok: false,
+      error: 'Non-template deployment methods are disabled until fulfillment supports them.',
+      status: 503,
+    }
   } else {
-    draft = { ...INITIAL_DRAFT, mode: 'template', selectedTemplateId: null, templateBootDiskSizeGib: '' }
+    draft = {
+      ...INITIAL_DRAFT,
+      mode: 'template',
+      selectedTemplateId: null,
+      templateBootDiskSizeGib: '',
+    }
     skipDeployment = true
   }
 
@@ -328,12 +355,18 @@ export function advanceSession(
   session: WizardSession,
   fromStepId: string | undefined,
   draftPatch: Partial<WizardDraft> | undefined,
-): { updated: WizardSession } | { error: string; fieldErrors?: Record<string, string>; status: number } {
+):
+  | { updated: WizardSession }
+  | { error: string; fieldErrors?: Record<string, string>; status: number } {
   const ordered = orderedStepIds(session.draft.mode, session.skipDeployment)
   const activeStepId = ordered[session.activeIndex]
 
   if (fromStepId && fromStepId !== activeStepId) {
-    return { error: 'fromStepId mismatch', fieldErrors: { fromStepId: `Expected ${activeStepId}` }, status: 400 }
+    return {
+      error: 'fromStepId mismatch',
+      fieldErrors: { fromStepId: `Expected ${activeStepId}` },
+      status: 400,
+    }
   }
 
   const merged = mergeWizardDraft(session.draft, draftPatch)
@@ -344,7 +377,8 @@ export function advanceSession(
   if (errs) return { error: 'Validation failed', fieldErrors: errs, status: 400 }
 
   if (activeStepId === 'review') return { error: 'Use finalize on review step', status: 400 }
-  if (session.activeIndex >= ordered.length - 1) return { error: 'Already at last step', status: 400 }
+  if (session.activeIndex >= ordered.length - 1)
+    return { error: 'Already at last step', status: 400 }
 
   session.activeIndex += 1
   return { updated: session }

@@ -38,7 +38,10 @@ export function OcLink({ children, onClick, isDisabled, title }: OcLinkProps) {
       isDisabled={isDisabled}
       title={title ?? children}
       className={linkCss}
-      onClick={(e) => { e.stopPropagation(); if (!isDisabled) onClick() }}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!isDisabled) onClick()
+      }}
     >
       {children}
     </Button>

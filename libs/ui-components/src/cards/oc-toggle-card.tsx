@@ -1,12 +1,5 @@
 import type { ReactNode } from 'react'
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Label,
-  Switch,
-} from '@patternfly/react-core'
+import { Button, Card, CardBody, CardHeader, Label, Switch } from '@patternfly/react-core'
 import { css } from '@emotion/css'
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -55,7 +48,16 @@ const actionsRowCss = css`
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type LabelColor = 'blue' | 'green' | 'orange' | 'red' | 'grey' | 'purple' | 'teal' | 'orangered' | 'yellow'
+type LabelColor =
+  | 'blue'
+  | 'green'
+  | 'orange'
+  | 'red'
+  | 'grey'
+  | 'purple'
+  | 'teal'
+  | 'orangered'
+  | 'yellow'
 
 export interface OcToggleCardLabel {
   text: string
@@ -112,10 +114,7 @@ export function OcToggleCard({
   extra,
 }: OcToggleCardProps) {
   return (
-    <Card
-      className={cardCss}
-      data-inactive={!isActive}
-    >
+    <Card className={cardCss} data-inactive={!isActive}>
       <CardHeader
         actions={{
           actions: (
@@ -130,7 +129,10 @@ export function OcToggleCard({
                 label={toggleLabel}
                 isChecked={isActive}
                 onChange={(_e, v) => onToggle(v)}
-                aria-label={toggleAriaLabel ?? `${isActive ? 'Disable' : 'Enable'} ${typeof title === 'string' ? title : ''}`}
+                aria-label={
+                  toggleAriaLabel ??
+                  `${isActive ? 'Disable' : 'Enable'} ${typeof title === 'string' ? title : ''}`
+                }
               />
             </div>
           ),
@@ -138,11 +140,7 @@ export function OcToggleCard({
         }}
       >
         <div className={headerInnerCss}>
-          <span
-            className={titleCss}
-            data-clickable={!!onAction}
-            onClick={onAction}
-          >
+          <span className={titleCss} data-clickable={!!onAction} onClick={onAction}>
             {title}
           </span>
           {labels.map((l, i) => (

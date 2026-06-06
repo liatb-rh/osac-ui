@@ -25,13 +25,11 @@ import {
   TabTitleText,
   Tabs,
 } from '@patternfly/react-core'
-import {
-  EditIcon,
-  PowerOffIcon,
-  RedoIcon,
-  SyncAltIcon,
-  TrashIcon,
-} from '@patternfly/react-icons'
+import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
+import { PowerOffIcon } from '@patternfly/react-icons/dist/esm/icons/power-off-icon'
+import { RedoIcon } from '@patternfly/react-icons/dist/esm/icons/redo-icon'
+import { SyncAltIcon } from '@patternfly/react-icons/dist/esm/icons/sync-alt-icon'
+import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import type { Agent, AgentState } from '@osac/api-contracts'
 import { OcKpiHeader, OcTable } from '@osac/ui-components'
 import type { OcTableColumn } from '@osac/ui-components'
@@ -54,17 +52,29 @@ const HW_PROFILES: Record<string, HwProfile> = {
   'baremetal-standard-48c-192g': {
     title: 'Standard · 48c / 192G',
     description: '48 cores · 192 GiB RAM · NVMe local · general-purpose workers.',
-    cores: 48, memGib: 192, diskTib: 3.8, nicCount: 2, nicSpeed: 25,
+    cores: 48,
+    memGib: 192,
+    diskTib: 3.8,
+    nicCount: 2,
+    nicSpeed: 25,
   },
   'baremetal-high-64c-1024g': {
     title: 'High memory · 64c / 1024G',
     description: '64 cores · 1 TiB RAM · NVMe local · high-memory analytics & databases.',
-    cores: 64, memGib: 1024, diskTib: 7.6, nicCount: 2, nicSpeed: 25,
+    cores: 64,
+    memGib: 1024,
+    diskTib: 7.6,
+    nicCount: 2,
+    nicSpeed: 25,
   },
   'baremetal-gpu-96c-1024g-h100': {
     title: 'GPU · 96c / 1024G · H100',
     description: '96 cores · 1 TiB RAM · 4× NVIDIA H100 · for ML training & inference.',
-    cores: 96, memGib: 1024, diskTib: 15.3, nicCount: 2, nicSpeed: 100,
+    cores: 96,
+    memGib: 1024,
+    diskTib: 15.3,
+    nicCount: 2,
+    nicSpeed: 100,
   },
 }
 
@@ -76,24 +86,33 @@ function hwProfile(profile: string | undefined): HwProfile {
     return {
       title: `${m[1]}c / ${m[2]}G`,
       description: `${m[1]} cores · ${m[2]} GiB RAM`,
-      cores: Number(m[1]), memGib: Number(m[2]), diskTib: 1.9, nicCount: 1, nicSpeed: 25,
+      cores: Number(m[1]),
+      memGib: Number(m[2]),
+      diskTib: 1.9,
+      nicCount: 1,
+      nicSpeed: 25,
     }
   }
-  return { title: profile ?? '—', description: '—', cores: 0, memGib: 0, diskTib: 0, nicCount: 1, nicSpeed: 10 }
+  return {
+    title: profile ?? '—',
+    description: '—',
+    cores: 0,
+    memGib: 0,
+    diskTib: 0,
+    nicCount: 1,
+    nicSpeed: 10,
+  }
 }
 
 // ── State display ─────────────────────────────────────────────────────────────
 
-
-
 const STATE_LABEL: Record<AgentState, string> = {
-  AGENT_STATE_AVAILABLE:     'available',
-  AGENT_STATE_PROVISIONING:  'provisioning',
-  AGENT_STATE_PROVISIONED:   'provisioned',
-  AGENT_STATE_DEPROVISIONING:'deprovisioning',
-  AGENT_STATE_UNAVAILABLE:   'unreachable',
+  AGENT_STATE_AVAILABLE: 'available',
+  AGENT_STATE_PROVISIONING: 'provisioning',
+  AGENT_STATE_PROVISIONED: 'provisioned',
+  AGENT_STATE_DEPROVISIONING: 'deprovisioning',
+  AGENT_STATE_UNAVAILABLE: 'unreachable',
 }
-
 
 // ── Enriched fields (derived from lean API type) ──────────────────────────────
 
@@ -111,8 +130,6 @@ function mockNics(hw: HwProfile, agentId: string) {
     bound: i === 0 ? 'mgmt' : 'data',
   }))
 }
-
-
 
 const overviewGridCss = css`
   padding-top: 1rem;
@@ -152,11 +169,6 @@ const conditionTypeCodeCss = css`
 
 const tabContentCss = css`
   padding-top: 1rem;
-`
-
-const cardFlushCss = css`
-  padding: 0;
-  overflow: hidden;
 `
 
 const boundCodeCss = css`
@@ -199,7 +211,9 @@ export function AgentDetailPage() {
     return (
       <PageSection>
         <EmptyState>
-          <EmptyStateBody>Agent <code>{id}</code> not found in fleet inventory.</EmptyStateBody>
+          <EmptyStateBody>
+            Agent <code>{id}</code> not found in fleet inventory.
+          </EmptyStateBody>
         </EmptyState>
       </PageSection>
     )
@@ -210,8 +224,11 @@ export function AgentDetailPage() {
   const isReachable = agent.state !== 'AGENT_STATE_UNAVAILABLE'
 
   const conditions: { type: string; ok: boolean }[] = [
-    { type: 'AGENT_CONDITION_PROVISIONED',    ok: agent.state === 'AGENT_STATE_PROVISIONED' || agent.state === 'AGENT_STATE_AVAILABLE' },
-    { type: 'AGENT_CONDITION_REACHABLE',      ok: isReachable },
+    {
+      type: 'AGENT_CONDITION_PROVISIONED',
+      ok: agent.state === 'AGENT_STATE_PROVISIONED' || agent.state === 'AGENT_STATE_AVAILABLE',
+    },
+    { type: 'AGENT_CONDITION_REACHABLE', ok: isReachable },
     { type: 'AGENT_CONDITION_VERSION_CURRENT', ok: agent.state !== 'AGENT_STATE_UNAVAILABLE' },
     { type: 'AGENT_CONDITION_CLUSTER_JOINED', ok: !!agent.clusterRef },
   ]
@@ -231,12 +248,19 @@ export function AgentDetailPage() {
         description={`${hw.title} · backend ${agent.inventoryBackend ?? '—'}`}
         actions={
           <>
-            <Button variant="secondary" icon={<SyncAltIcon />}>Upgrade</Button>
-            <Button variant="secondary" icon={<RedoIcon />}>Reboot</Button>
+            <Button variant="secondary" icon={<SyncAltIcon />}>
+              Upgrade
+            </Button>
+            <Button variant="secondary" icon={<RedoIcon />}>
+              Reboot
+            </Button>
             <Button
               variant="danger"
               icon={<PowerOffIcon />}
-              onClick={() => { deprovision(agent.id); navigate('/agents') }}
+              onClick={() => {
+                deprovision(agent.id)
+                navigate('/agents')
+              }}
               isDisabled={agent.state !== 'AGENT_STATE_PROVISIONED'}
             >
               Deprovision
@@ -246,19 +270,25 @@ export function AgentDetailPage() {
       />
 
       {/* KPI row */}
-      <OcKpiHeader items={[
-        {
-          label: 'Status',
-          value: STATE_LABEL[agent.state] ?? agent.state,
-          tone: agent.state === 'AGENT_STATE_UNAVAILABLE' ? 'danger'
-              : agent.state === 'AGENT_STATE_AVAILABLE' || agent.state === 'AGENT_STATE_PROVISIONED' ? 'success'
-              : 'default',
-        },
-        { label: 'Hardware',   value: hw.title },
-        { label: 'Cores',      value: String(hw.cores),    hint: 'physical' },
-        { label: 'Memory',     value: `${hw.memGib} GiB`,  hint: 'installed' },
-        { label: 'Local disk', value: `${hw.diskTib} TiB`, hint: 'NVMe' },
-      ]} />
+      <OcKpiHeader
+        items={[
+          {
+            label: 'Status',
+            value: STATE_LABEL[agent.state] ?? agent.state,
+            tone:
+              agent.state === 'AGENT_STATE_UNAVAILABLE'
+                ? 'danger'
+                : agent.state === 'AGENT_STATE_AVAILABLE' ||
+                    agent.state === 'AGENT_STATE_PROVISIONED'
+                  ? 'success'
+                  : 'default',
+          },
+          { label: 'Hardware', value: hw.title },
+          { label: 'Cores', value: String(hw.cores), hint: 'physical' },
+          { label: 'Memory', value: `${hw.memGib} GiB`, hint: 'installed' },
+          { label: 'Local disk', value: `${hw.diskTib} TiB`, hint: 'NVMe' },
+        ]}
+      />
 
       {/* Tabs */}
       <Tabs activeKey={tab} onSelect={(_, k) => setTab(k)} aria-label="Agent detail tabs">
@@ -271,30 +301,36 @@ export function AgentDetailPage() {
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Hostname</DescriptionListTerm>
-                    <DescriptionListDescription>{agent.metadata?.name ?? agent.id}</DescriptionListDescription>
+                    <DescriptionListDescription>
+                      {agent.metadata?.name ?? agent.id}
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Agent ID</DescriptionListTerm>
-                    <DescriptionListDescription><code>{agent.id}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{agent.id}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Hardware profile</DescriptionListTerm>
                     <DescriptionListDescription>
                       <code>{agent.hardwareProfile ?? '—'}</code>
                       {hw.description !== '—' && (
-                        <span className={hwDescriptionHintCss}>
-                          — {hw.description}
-                        </span>
+                        <span className={hwDescriptionHintCss}>— {hw.description}</span>
                       )}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Inventory backend</DescriptionListTerm>
-                    <DescriptionListDescription>{agent.inventoryBackend ?? '—'}</DescriptionListDescription>
+                    <DescriptionListDescription>
+                      {agent.inventoryBackend ?? '—'}
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Cluster</DescriptionListTerm>
-                    <DescriptionListDescription>{agent.clusterRef ?? <span className={unassignedSpanCss}>unassigned</span>}</DescriptionListDescription>
+                    <DescriptionListDescription>
+                      {agent.clusterRef ?? <span className={unassignedSpanCss}>unassigned</span>}
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Enrolled</DescriptionListTerm>
@@ -304,10 +340,22 @@ export function AgentDetailPage() {
                     <DescriptionListTerm>Labels</DescriptionListTerm>
                     <DescriptionListDescription>
                       <LabelGroup>
-                        <Label color="blue" isCompact>hardware={agent.hardwareProfile?.split('-')[1] ?? '—'}</Label>
-                        {agent.clusterRef && <Label color="green" isCompact>cluster={agent.clusterRef}</Label>}
-                        {agent.inventoryBackend && <Label color="purple" isCompact>backend={agent.inventoryBackend}</Label>}
-                        <Label color="grey" isCompact>state={STATE_LABEL[agent.state] ?? agent.state}</Label>
+                        <Label color="blue" isCompact>
+                          hardware={agent.hardwareProfile?.split('-')[1] ?? '—'}
+                        </Label>
+                        {agent.clusterRef && (
+                          <Label color="green" isCompact>
+                            cluster={agent.clusterRef}
+                          </Label>
+                        )}
+                        {agent.inventoryBackend && (
+                          <Label color="purple" isCompact>
+                            backend={agent.inventoryBackend}
+                          </Label>
+                        )}
+                        <Label color="grey" isCompact>
+                          state={STATE_LABEL[agent.state] ?? agent.state}
+                        </Label>
                       </LabelGroup>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
@@ -320,12 +368,11 @@ export function AgentDetailPage() {
               <CardBody>
                 <ul className={conditionsListCss}>
                   {conditions.map((c) => (
-                    <li
-                      key={c.type}
-                      className={conditionItemCss}
-                    >
+                    <li key={c.type} className={conditionItemCss}>
                       <code className={conditionTypeCodeCss}>{c.type}</code>
-                      <Label isCompact color={c.ok ? 'green' : 'red'}>{c.ok ? 'True' : 'False'}</Label>
+                      <Label isCompact color={c.ok ? 'green' : 'red'}>
+                        {c.ok ? 'True' : 'False'}
+                      </Label>
                     </li>
                   ))}
                 </ul>
@@ -341,13 +388,25 @@ export function AgentDetailPage() {
               ariaLabel="NICs"
               rows={nics}
               getRowKey={(n) => n.name}
-              columns={[
-                { label: 'NIC',     render: (n) => <code>{n.name}</code> },
-                { label: 'MAC',     render: (n) => <code>{n.mac}</code> },
-                { label: 'Speed',   render: (n) => <>{n.speedGbps} Gbps</> },
-                { label: 'Link',    render: (n) => <Label isCompact color={n.link === 'up' ? 'green' : 'red'}>{n.link}</Label> },
-                { label: 'Bound to', render: (n) => <code className={boundCodeCss}>{n.bound}</code> },
-              ] satisfies OcTableColumn<typeof nics[number]>[]}
+              columns={
+                [
+                  { label: 'NIC', render: (n) => <code>{n.name}</code> },
+                  { label: 'MAC', render: (n) => <code>{n.mac}</code> },
+                  { label: 'Speed', render: (n) => <>{n.speedGbps} Gbps</> },
+                  {
+                    label: 'Link',
+                    render: (n) => (
+                      <Label isCompact color={n.link === 'up' ? 'green' : 'red'}>
+                        {n.link}
+                      </Label>
+                    ),
+                  },
+                  {
+                    label: 'Bound to',
+                    render: (n) => <code className={boundCodeCss}>{n.bound}</code>,
+                  },
+                ] satisfies OcTableColumn<(typeof nics)[number]>[]
+              }
             />
           </div>
         </Tab>
@@ -358,21 +417,48 @@ export function AgentDetailPage() {
             <OcTable
               ariaLabel="Storage devices"
               rows={[
-                { id: 'os',     device: '/dev/nvme0n1',         role: 'OS / etcd',       size: '960 GiB',                                    type: 'NVMe',     tier: 'local'     as const },
-                { id: 'cache',  device: '/dev/nvme1n1',         role: 'CSI cache',       size: `${Math.round((hw.diskTib * 1024) / 2)} GiB`, type: 'NVMe',     tier: 'gold'      as const },
-                { id: 'vast',   device: 'vast://tenant-northstar', role: 'Tenant storage', size: 'via Tier API',                              type: 'VAST CSI', tier: 'networked' as const },
+                {
+                  id: 'os',
+                  device: '/dev/nvme0n1',
+                  role: 'OS / etcd',
+                  size: '960 GiB',
+                  type: 'NVMe',
+                  tier: 'local' as const,
+                },
+                {
+                  id: 'cache',
+                  device: '/dev/nvme1n1',
+                  role: 'CSI cache',
+                  size: `${Math.round((hw.diskTib * 1024) / 2)} GiB`,
+                  type: 'NVMe',
+                  tier: 'gold' as const,
+                },
+                {
+                  id: 'vast',
+                  device: 'vast://tenant-northstar',
+                  role: 'Tenant storage',
+                  size: 'via Tier API',
+                  type: 'VAST CSI',
+                  tier: 'networked' as const,
+                },
               ]}
               getRowKey={(r) => r.id}
               columns={[
                 { label: 'Device', render: (r) => <code>{r.device}</code> },
-                { label: 'Role',   render: (r) => <>{r.role}</> },
-                { label: 'Size',   render: (r) => <>{r.size}</> },
-                { label: 'Type',   render: (r) => <>{r.type}</> },
-                { label: 'Tier',   render: (r) => (
-                  <Label isCompact color={r.tier === 'local' ? 'grey' : r.tier === 'gold' ? 'yellow' : 'blue'}>
-                    {r.tier}
-                  </Label>
-                )},
+                { label: 'Role', render: (r) => <>{r.role}</> },
+                { label: 'Size', render: (r) => <>{r.size}</> },
+                { label: 'Type', render: (r) => <>{r.type}</> },
+                {
+                  label: 'Tier',
+                  render: (r) => (
+                    <Label
+                      isCompact
+                      color={r.tier === 'local' ? 'grey' : r.tier === 'gold' ? 'yellow' : 'blue'}
+                    >
+                      {r.tier}
+                    </Label>
+                  ),
+                },
               ]}
             />
           </div>
@@ -383,9 +469,7 @@ export function AgentDetailPage() {
           <div className={tabContentCss}>
             <Card>
               <CardBody>
-                <pre className={logPreCss}>
-                  {logLines.join('\n')}
-                </pre>
+                <pre className={logPreCss}>{logLines.join('\n')}</pre>
               </CardBody>
             </Card>
           </div>

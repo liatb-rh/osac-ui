@@ -27,7 +27,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core'
 import type { MouseEvent } from 'react'
-import type { OsacRole, DemoTenantId, TenantSovereignty } from '@osac/api-contracts'
+import type { DemoTenantId, OsacRole, TenantSovereignty } from '@osac/api-contracts'
 import { demoOperatingModeLabel } from '@osac/api-contracts'
 
 const brandTitleCss = css`

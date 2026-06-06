@@ -56,7 +56,9 @@ export interface CreateVirtualNetworkParams {
   ipv6Cidr?: string
 }
 
-export async function createVirtualNetwork(params: CreateVirtualNetworkParams): Promise<VirtualNetwork> {
+export async function createVirtualNetwork(
+  params: CreateVirtualNetworkParams,
+): Promise<VirtualNetwork> {
   const raw = await request<unknown>('/virtual_networks', {
     method: 'POST',
     body: JSON.stringify({
@@ -130,7 +132,9 @@ export interface CreateSecurityGroupParams {
   virtualNetworkId: string
 }
 
-export async function createSecurityGroup(params: CreateSecurityGroupParams): Promise<SecurityGroup> {
+export async function createSecurityGroup(
+  params: CreateSecurityGroupParams,
+): Promise<SecurityGroup> {
   const raw = await request<unknown>('/security_groups', {
     method: 'POST',
     body: JSON.stringify({
@@ -183,7 +187,10 @@ export async function createPublicIP(params: AllocatePublicIPParams): Promise<Pu
   return normalizePublicIP(raw)
 }
 
-export async function updatePublicIP(id: string, computeInstanceId: string | null): Promise<PublicIP> {
+export async function updatePublicIP(
+  id: string,
+  computeInstanceId: string | null,
+): Promise<PublicIP> {
   const raw = await request<unknown>(`/public_ips/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({

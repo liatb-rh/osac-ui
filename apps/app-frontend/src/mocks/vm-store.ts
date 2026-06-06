@@ -5,9 +5,7 @@ const seedVms = (): ComputeInstance[] => [
   ...buildVmsForTenant('evergreen'),
 ]
 
-export const vmStore = new Map<string, ComputeInstance>(
-  seedVms().map((vm) => [vm.id, vm]),
-)
+export const vmStore = new Map<string, ComputeInstance>(seedVms().map((vm) => [vm.id, vm]))
 
 export function resetMockVmStore(): void {
   vmStore.clear()

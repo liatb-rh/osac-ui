@@ -19,7 +19,7 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons/dist/esm/icons/external-link-alt-icon'
 import { css } from '@emotion/css'
 import type { Cluster, ClusterCatalogItem } from '@osac/api-contracts'
-import { formatDate, UnavailableRow } from './utils'
+import { UnavailableRow, formatDate } from './utils'
 
 const STATUS_BORDER: Record<string, string> = {
   CLUSTER_STATE_READY: 'var(--pf-t--global--color--status--success--default)',
@@ -53,7 +53,8 @@ interface ClusterOverviewTabProps {
 
 export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabProps) {
   const labelEntries = Object.entries(cluster.metadata.labels ?? {})
-  const statusBorder = STATUS_BORDER[cluster.status.state] ?? STATUS_BORDER.CLUSTER_STATE_UNSPECIFIED
+  const statusBorder =
+    STATUS_BORDER[cluster.status.state] ?? STATUS_BORDER.CLUSTER_STATE_UNSPECIFIED
 
   const activeCondition = cluster.status.conditions?.find(
     (c) =>
@@ -61,8 +62,10 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
       (c.type === 'CLUSTER_CONDITION_TYPE_DEGRADED' && c.status === 'CONDITION_STATUS_TRUE'),
   )
 
-  const apiServer = cluster.status.apiUrl ?? `https://api.${cluster.metadata.name}.osac.internal:6443`
-  const consoleUrl = cluster.status.consoleUrl ?? `https://console.${cluster.metadata.name}.osac.internal`
+  const apiServer =
+    cluster.status.apiUrl ?? `https://api.${cluster.metadata.name}.osac.internal:6443`
+  const consoleUrl =
+    cluster.status.consoleUrl ?? `https://console.${cluster.metadata.name}.osac.internal`
   const podCidr = cluster.spec.network?.podCidr ?? '10.128.0.0/14'
   const serviceCidr = cluster.spec.network?.serviceCidr ?? '172.30.0.0/16'
 
@@ -77,7 +80,9 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
         <Alert
           isInline
           variant={activeCondition.type.includes('FAILED') ? 'danger' : 'warning'}
-          title={activeCondition.reason ?? activeCondition.type.replace('CLUSTER_CONDITION_TYPE_', '')}
+          title={
+            activeCondition.reason ?? activeCondition.type.replace('CLUSTER_CONDITION_TYPE_', '')
+          }
           className={alertMarginCss}
         >
           {activeCondition.message}
@@ -100,7 +105,10 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
                 <DescriptionListGroup>
                   <DescriptionListTerm>Console</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                    <Flex
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                    >
                       <FlexItem>
                         <code className={codeSmCss}>{consoleUrl}</code>
                       </FlexItem>
@@ -123,7 +131,9 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Created</DescriptionListTerm>
-                  <DescriptionListDescription>{formatDate(cluster.metadata.createdAt)}</DescriptionListDescription>
+                  <DescriptionListDescription>
+                    {formatDate(cluster.metadata.createdAt)}
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
                 {catalogItem && (
                   <DescriptionListGroup>
@@ -172,7 +182,13 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
                   <DescriptionListTerm>API URL</DescriptionListTerm>
                   <DescriptionListDescription>
                     {cluster.status.apiUrl ? (
-                      <ClipboardCopy isReadOnly isCode hoverTip="Copy API URL" clickTip="Copied" aria-label="Copy API URL">
+                      <ClipboardCopy
+                        isReadOnly
+                        isCode
+                        hoverTip="Copy API URL"
+                        clickTip="Copied"
+                        aria-label="Copy API URL"
+                      >
                         {cluster.status.apiUrl}
                       </ClipboardCopy>
                     ) : (
@@ -184,7 +200,10 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
                   <DescriptionListTerm>Console URL</DescriptionListTerm>
                   <DescriptionListDescription>
                     {cluster.status.consoleUrl ? (
-                      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                      <Flex
+                        direction={{ default: 'column' }}
+                        spaceItems={{ default: 'spaceItemsSm' }}
+                      >
                         <FlexItem>
                           <Button
                             variant="link"
@@ -200,7 +219,13 @@ export function ClusterOverviewTab({ cluster, catalogItem }: ClusterOverviewTabP
                           </Button>
                         </FlexItem>
                         <FlexItem>
-                          <ClipboardCopy isReadOnly isCode hoverTip="Copy console URL" clickTip="Copied" aria-label="Copy console URL">
+                          <ClipboardCopy
+                            isReadOnly
+                            isCode
+                            hoverTip="Copy console URL"
+                            clickTip="Copied"
+                            aria-label="Copy console URL"
+                          >
                             {cluster.status.consoleUrl}
                           </ClipboardCopy>
                         </FlexItem>

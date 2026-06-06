@@ -57,11 +57,7 @@ export function VmDeleteConfirmModal({
           ? 'This virtual machine is still running. It will be stopped first, then deleted permanently. This action cannot be undone.'
           : 'This permanently deletes the virtual machine. This action cannot be undone.'}
         {errorMessage ? (
-          <Alert
-            variant="danger"
-            title="Delete failed"
-            className={errorAlertCss}
-          >
+          <Alert variant="danger" title="Delete failed" className={errorAlertCss}>
             {errorMessage}
           </Alert>
         ) : null}

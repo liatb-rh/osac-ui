@@ -9,7 +9,6 @@ import {
   Bullseye,
   Button,
   Content,
-  Divider,
   Flex,
   FlexItem,
   PageSection,
@@ -19,22 +18,20 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
-import { PlusCircleIcon } from '@patternfly/react-icons'
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import { resolveVmOsForUi } from '@osac/api-contracts'
 import { OcLink, OcTable, VmStatusLabel } from '@osac/ui-components'
 import type { OcTableColumn } from '@osac/ui-components'
-import {
-  useComputeInstances,
-  useDeleteVm,
-  usePatchVm,
-  useProvisionVm,
-} from '../../../hooks/hooks'
+import { useComputeInstances, useDeleteVm, usePatchVm, useProvisionVm } from '../../../hooks/hooks'
 import { useVmPowerActionDisplay } from '../../../hooks/useVmPowerActionDisplay'
 import { useSession } from '../../../contexts/SessionContext'
 import { PageHeader } from '../../../components/layout'
 import { VmDeleteConfirmModal } from '../../../components/vm/VmDeleteConfirmModal'
-import type { CreateVmWizardHandle, DeploymentMode } from '../../../components/vm/createVmWizard/CreateVmWizard'
+import type {
+  CreateVmWizardHandle,
+  DeploymentMode,
+} from '../../../components/vm/createVmWizard/CreateVmWizard'
 import { CreateVmWizard } from '../../../components/vm/createVmWizard/CreateVmWizard'
 import { usePendingVmCreations } from '../../../hooks/usePendingVmCreations'
 import { usePendingVmDeletes } from '../../../hooks/usePendingVmDeletes'
@@ -46,10 +43,6 @@ import { useQueryClient } from '@tanstack/react-query'
 // ---------------------------------------------------------------------------
 
 type StatusFilter = 'all' | VmPowerState
-
-const pageDividerCss = css`
-  margin-bottom: var(--pf-t--global--spacer--md);
-`
 
 const toolbarFlexCss = css`
   margin-bottom: var(--pf-t--global--spacer--md);
@@ -68,10 +61,8 @@ const emptyContentCss = css`
   color: var(--pf-t--global--text--color--subtle);
 `
 
-
-
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'all',     label: 'All' },
+  { value: 'all', label: 'All' },
   { value: 'running', label: 'Running' },
   { value: 'stopped', label: 'Stopped' },
 ]
@@ -122,8 +113,9 @@ export function VmsPage() {
     [queryClient],
   )
 
-  const { getDisplayState, runPowerAction } =
-    useVmPowerActionDisplay(vms, patchVm.mutate, { refetchInstances })
+  const { getDisplayState, runPowerAction } = useVmPowerActionDisplay(vms, patchVm.mutate, {
+    refetchInstances,
+  })
 
   const { registerPending, noteCreateSuccess, dismissPending } = usePendingVmCreations(vms, {
     refetchInstances,
@@ -141,8 +133,12 @@ export function VmsPage() {
       provisionVm.mutate(
         { vm, specTemplateOnly: meta.mode === 'template' },
         {
-          onSuccess: (created) => { noteCreateSuccess(clientId, created.id) },
-          onError: () => { dismissPending(clientId) },
+          onSuccess: (created) => {
+            noteCreateSuccess(clientId, created.id)
+          },
+          onError: () => {
+            dismissPending(clientId)
+          },
         },
       )
     },
@@ -194,10 +190,7 @@ export function VmsPage() {
       render: (vm) => {
         const locked = isPendingDelete(vm.id)
         return (
-          <OcLink
-            isDisabled={locked}
-            onClick={() => navigate(`/vms/${vm.id}`)}
-          >
+          <OcLink isDisabled={locked} onClick={() => navigate(`/vms/${vm.id}`)}>
             {vm.metadata.name}
           </OcLink>
         )
@@ -221,7 +214,7 @@ export function VmsPage() {
     {
       label: 'Memory',
       dataLabel: 'Memory',
-      render: (vm) => vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—',
+      render: (vm) => (vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—'),
     },
     {
       label: 'IP address',
@@ -357,5 +350,4 @@ export function VmsPage() {
       )}
     </PageSection>
   )
-
 }

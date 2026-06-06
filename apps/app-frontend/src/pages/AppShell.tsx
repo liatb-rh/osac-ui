@@ -18,12 +18,18 @@ import { PlaceholderPage } from '@osac/ui-components'
 import { useSession } from '../contexts/SessionContext'
 
 // Pages
-import { DashboardPage } from './DashboardPage'
 import { RecentActivitiesPage } from './RecentActivitiesPage'
 import { SparsePlaceholderPage } from './SparsePlaceholderPage'
 import { TemplateCatalogPage } from './workloads'
 import { ClusterDetailPage, ClustersPage, VmDetailPage, VmsPage } from './workloads'
-import { AgentDetailPage, GlobalTemplatesPage, InfrastructureAgentsPage, ProviderInfraTopologyPage, StorageTierDetailPage, StorageTiersPage } from './platform'
+import {
+  AgentDetailPage,
+  GlobalTemplatesPage,
+  InfrastructureAgentsPage,
+  ProviderInfraTopologyPage,
+  StorageTierDetailPage,
+  StorageTiersPage,
+} from './platform'
 import { NetworkClassesPage, PublicIPsPage } from './infrastructure'
 import { ClusterOfferingDetailPage, ClusterOfferingsPage, NetworksPage } from './management'
 import { ShellBreadcrumb } from './shell/ShellBreadcrumb'
@@ -43,8 +49,7 @@ import {
 export function AppShell() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { selectedTenant, role, isDarkTheme, setIsDarkTheme, logout, openTopologyDetailRequest } =
-    useSession()
+  const { selectedTenant, role, isDarkTheme, setIsDarkTheme, logout } = useSession()
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 

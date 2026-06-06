@@ -24,13 +24,7 @@
  */
 import { useId } from 'react'
 import { css, cx } from '@emotion/css'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  CardFooter,
-} from '@patternfly/react-core'
+import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core'
 import type { ReactNode } from 'react'
 
 // ---------------------------------------------------------------------------
@@ -68,7 +62,7 @@ export interface OcCardActiveProps {
 // ---------------------------------------------------------------------------
 
 const TONE_BORDERS: Record<OcCardActiveTone, string> = {
-  provider:  '#6753c2',
+  provider: '#6753c2',
   northstar: '#003f87',
   bluestone: '#1f7a4d',
 }
@@ -86,13 +80,18 @@ function cardCss(tone?: OcCardActiveTone) {
     gap: 8px;
     text-align: left;
     width: 100%;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      border-color 0.15s ease;
     ${toneAccent}
 
     &:hover {
       transform: translateY(-2px);
       border-color: #0066cc;
-      box-shadow: 0 6px 24px -8px rgba(11, 27, 43, 0.12), 0 2px 6px rgba(11, 27, 43, 0.06);
+      box-shadow:
+        0 6px 24px -8px rgba(11, 27, 43, 0.12),
+        0 2px 6px rgba(11, 27, 43, 0.06);
     }
 
     &:has(:focus-visible) {
@@ -102,7 +101,9 @@ function cardCss(tone?: OcCardActiveTone) {
 
     @media (prefers-reduced-motion: reduce) {
       transition: none;
-      &:hover { transform: none; }
+      &:hover {
+        transform: none;
+      }
     }
 
     /* PF Card section padding reset */
@@ -116,7 +117,10 @@ function cardCss(tone?: OcCardActiveTone) {
      * When CardHeader contains only the selectable-actions button (no badge,
      * no icon), collapse it out of the flex flow so it doesn't create a gap.
      */
-    & .pf-v6-c-card__header:not(:has(.pf-v6-c-card__header-main > *)):not(:has(.pf-v6-c-card__actions)) {
+    &
+      .pf-v6-c-card__header:not(:has(.pf-v6-c-card__header-main > *)):not(
+        :has(.pf-v6-c-card__actions)
+      ) {
       position: absolute;
       overflow: visible;
     }
@@ -152,7 +156,9 @@ function cardCss(tone?: OcCardActiveTone) {
 
     .pf-v6-theme-dark &:hover {
       border-color: var(--pf-t--global--active-color--100);
-      box-shadow: 0 6px 24px -8px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+      box-shadow:
+        0 6px 24px -8px rgba(0, 0, 0, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.25);
     }
 
     .pf-v6-theme-dark & .pf-v6-c-card__title,
@@ -239,18 +245,14 @@ export function OcCardActive({
 
       {(subtitle !== undefined || description !== undefined) && (
         <CardBody>
-          {subtitle !== undefined && (
-            <div className={subtitleCss}>{subtitle}</div>
-          )}
+          {subtitle !== undefined && <div className={subtitleCss}>{subtitle}</div>}
           {description !== undefined && (
             <div className={cx('oc-card-active__desc', descCss)}>{description}</div>
           )}
         </CardBody>
       )}
 
-      {cta !== undefined && (
-        <CardFooter className="oc-card-active__cta">{cta}</CardFooter>
-      )}
+      {cta !== undefined && <CardFooter className="oc-card-active__cta">{cta}</CardFooter>}
     </Card>
   )
 }

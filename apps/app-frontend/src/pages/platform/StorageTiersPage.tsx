@@ -26,10 +26,10 @@ import {
   Wizard,
   WizardStep,
 } from '@patternfly/react-core'
-import { PlusCircleIcon } from '@patternfly/react-icons'
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { StorageTier } from '@osac/api-contracts'
 import { OcLink } from '@osac/ui-components'
-import { useStorageTiers, usePatchStorageTier } from '../../hooks/useAgents'
+import { usePatchStorageTier, useStorageTiers } from '../../hooks/useAgents'
 import { PageHeader } from '../../components/layout'
 
 // ── Mock enrichment ────────────────────────────────────────────────────────────
@@ -55,55 +55,119 @@ interface TierMeta {
 
 const QOS_META: Record<string, TierMeta> = {
   fast: {
-    iops: '200k', latency: '<0.2 ms', media: 'NVMe SSD RAID-10',
-    throughputGbps: 40, capacityTib: 120, usedTib: 38,
-    vastCluster: 'vast-prod-α', protocol: 'NFSv4.1', csiDriver: 'csi.vastdata.com',
-    reclaimPolicy: 'Retain', volumeBindingMode: 'WaitForFirstConsumer', allowVolumeExpansion: true,
-    encryption: 'AES-256 + per-tenant KMS', replication: 'sync',
-    isDefault: false, description: 'Latency-critical OLTP and trading workloads.',
+    iops: '200k',
+    latency: '<0.2 ms',
+    media: 'NVMe SSD RAID-10',
+    throughputGbps: 40,
+    capacityTib: 120,
+    usedTib: 38,
+    vastCluster: 'vast-prod-α',
+    protocol: 'NFSv4.1',
+    csiDriver: 'csi.vastdata.com',
+    reclaimPolicy: 'Retain',
+    volumeBindingMode: 'WaitForFirstConsumer',
+    allowVolumeExpansion: true,
+    encryption: 'AES-256 + per-tenant KMS',
+    replication: 'sync',
+    isDefault: false,
+    description: 'Latency-critical OLTP and trading workloads.',
   },
   standard: {
-    iops: '100k', latency: '<0.5 ms', media: 'NVMe SSD',
-    throughputGbps: 25, capacityTib: 480, usedTib: 211,
-    vastCluster: 'vast-prod-α', protocol: 'NFSv4.1', csiDriver: 'csi.vastdata.com',
-    reclaimPolicy: 'Delete', volumeBindingMode: 'WaitForFirstConsumer', allowVolumeExpansion: true,
-    encryption: 'AES-256 at rest', replication: 'async',
-    isDefault: true, description: 'General-purpose production. Default tier for new tenant clusters.',
+    iops: '100k',
+    latency: '<0.5 ms',
+    media: 'NVMe SSD',
+    throughputGbps: 25,
+    capacityTib: 480,
+    usedTib: 211,
+    vastCluster: 'vast-prod-α',
+    protocol: 'NFSv4.1',
+    csiDriver: 'csi.vastdata.com',
+    reclaimPolicy: 'Delete',
+    volumeBindingMode: 'WaitForFirstConsumer',
+    allowVolumeExpansion: true,
+    encryption: 'AES-256 at rest',
+    replication: 'async',
+    isDefault: true,
+    description: 'General-purpose production. Default tier for new tenant clusters.',
   },
   balanced: {
-    iops: '30k', latency: '<2 ms', media: 'SATA SSD',
-    throughputGbps: 10, capacityTib: 960, usedTib: 312,
-    vastCluster: 'vast-prod-β', protocol: 'NFSv4.1', csiDriver: 'csi.vastdata.com',
-    reclaimPolicy: 'Delete', volumeBindingMode: 'Immediate', allowVolumeExpansion: true,
-    encryption: 'AES-256 at rest', replication: 'async',
-    isDefault: false, description: 'Capacity-oriented working sets and dev/test data.',
+    iops: '30k',
+    latency: '<2 ms',
+    media: 'SATA SSD',
+    throughputGbps: 10,
+    capacityTib: 960,
+    usedTib: 312,
+    vastCluster: 'vast-prod-β',
+    protocol: 'NFSv4.1',
+    csiDriver: 'csi.vastdata.com',
+    reclaimPolicy: 'Delete',
+    volumeBindingMode: 'Immediate',
+    allowVolumeExpansion: true,
+    encryption: 'AES-256 at rest',
+    replication: 'async',
+    isDefault: false,
+    description: 'Capacity-oriented working sets and dev/test data.',
   },
   archive: {
-    iops: '5k', latency: '<20 ms', media: 'HDD (SMR)',
-    throughputGbps: 4, capacityTib: 2400, usedTib: 0,
-    vastCluster: 'vast-archive-γ', protocol: 'S3', csiDriver: 'csi.vastdata.com',
-    reclaimPolicy: 'Retain', volumeBindingMode: 'Immediate', allowVolumeExpansion: false,
-    encryption: 'AES-256 at rest', replication: 'none',
-    isDefault: false, description: 'Cold archive and long-term backup.',
+    iops: '5k',
+    latency: '<20 ms',
+    media: 'HDD (SMR)',
+    throughputGbps: 4,
+    capacityTib: 2400,
+    usedTib: 0,
+    vastCluster: 'vast-archive-γ',
+    protocol: 'S3',
+    csiDriver: 'csi.vastdata.com',
+    reclaimPolicy: 'Retain',
+    volumeBindingMode: 'Immediate',
+    allowVolumeExpansion: false,
+    encryption: 'AES-256 at rest',
+    replication: 'none',
+    isDefault: false,
+    description: 'Cold archive and long-term backup.',
   },
 }
 
 export function tierMeta(t: StorageTier): TierMeta {
-  return QOS_META[(t.qosClass ?? '').toLowerCase()] ?? {
-    iops: '—', latency: '—', media: '—', throughputGbps: 0,
-    capacityTib: 100, usedTib: 0,
-    vastCluster: '—', protocol: 'NFSv4.1', csiDriver: 'csi.vastdata.com',
-    reclaimPolicy: 'Delete', volumeBindingMode: 'Immediate', allowVolumeExpansion: false,
-    encryption: 'AES-256 at rest', replication: 'none',
-    isDefault: false, description: '',
-  }
+  return (
+    QOS_META[(t.qosClass ?? '').toLowerCase()] ?? {
+      iops: '—',
+      latency: '—',
+      media: '—',
+      throughputGbps: 0,
+      capacityTib: 100,
+      usedTib: 0,
+      vastCluster: '—',
+      protocol: 'NFSv4.1',
+      csiDriver: 'csi.vastdata.com',
+      reclaimPolicy: 'Delete',
+      volumeBindingMode: 'Immediate',
+      allowVolumeExpansion: false,
+      encryption: 'AES-256 at rest',
+      replication: 'none',
+      isDefault: false,
+      description: '',
+    }
+  )
 }
 
-export const MOCK_CONSUMERS: Record<string, { tenant: string; clusters: string[]; pvcs: number; usedTib: number }[]> = {
-  fast:     [{ tenant: 'northstar', clusters: ['prod-ocp'], pvcs: 14, usedTib: 22.4 }, { tenant: 'atlas', clusters: ['atlas-prod'], pvcs: 6, usedTib: 15.6 }],
-  standard: [{ tenant: 'northstar', clusters: ['prod-ocp', 'stg-ocp'], pvcs: 142, usedTib: 168 }, { tenant: 'atlas', clusters: ['atlas-prod'], pvcs: 37, usedTib: 43 }],
-  balanced: [{ tenant: 'northstar', clusters: ['dev-ocp'], pvcs: 58, usedTib: 220 }, { tenant: 'helios', clusters: ['helios-dev'], pvcs: 22, usedTib: 92 }],
-  archive:  [],
+export const MOCK_CONSUMERS: Record<
+  string,
+  { tenant: string; clusters: string[]; pvcs: number; usedTib: number }[]
+> = {
+  fast: [
+    { tenant: 'northstar', clusters: ['prod-ocp'], pvcs: 14, usedTib: 22.4 },
+    { tenant: 'atlas', clusters: ['atlas-prod'], pvcs: 6, usedTib: 15.6 },
+  ],
+  standard: [
+    { tenant: 'northstar', clusters: ['prod-ocp', 'stg-ocp'], pvcs: 142, usedTib: 168 },
+    { tenant: 'atlas', clusters: ['atlas-prod'], pvcs: 37, usedTib: 43 },
+  ],
+  balanced: [
+    { tenant: 'northstar', clusters: ['dev-ocp'], pvcs: 58, usedTib: 220 },
+    { tenant: 'helios', clusters: ['helios-dev'], pvcs: 22, usedTib: 92 },
+  ],
+  archive: [],
 }
 
 const tierMetaSubtextCss = css`
@@ -139,7 +203,13 @@ const tiersPanelCss = css`
 
 // ── Row ────────────────────────────────────────────────────────────────────────
 
-function TierRow({ tier, onToggle }: { tier: StorageTier; onToggle: (t: StorageTier, v: boolean) => void }) {
+function TierRow({
+  tier,
+  onToggle,
+}: {
+  tier: StorageTier
+  onToggle: (t: StorageTier, v: boolean) => void
+}) {
   const navigate = useNavigate()
   const meta = tierMeta(tier)
   const usedPct = meta.capacityTib > 0 ? Math.round((meta.usedTib / meta.capacityTib) * 100) : 0
@@ -177,19 +247,21 @@ function TierRow({ tier, onToggle }: { tier: StorageTier; onToggle: (t: StorageT
       }}
     >
       <div>
-        <OcLink onClick={() => navigate(`/storage-tiers/${tier.id}`)}>
-          {tier.name}
-        </OcLink>{' '}
+        <OcLink onClick={() => navigate(`/storage-tiers/${tier.id}`)}>{tier.name}</OcLink>{' '}
         <Label isCompact color={tier.available ? 'green' : 'grey'}>
           {tier.available ? 'available' : 'disabled'}
         </Label>{' '}
-        {meta.isDefault && <Label isCompact color="blue">default</Label>}
+        {meta.isDefault && (
+          <Label isCompact color="blue">
+            default
+          </Label>
+        )}
         {tier.storageClassName && (
-          <div className={tierMetaSubtextCss}><code>{tier.storageClassName}</code></div>
+          <div className={tierMetaSubtextCss}>
+            <code>{tier.storageClassName}</code>
+          </div>
         )}
-        {meta.description && (
-          <div className={tierMetaSubtextCss}>{meta.description}</div>
-        )}
+        {meta.description && <div className={tierMetaSubtextCss}>{meta.description}</div>}
       </div>
 
       <div>
@@ -209,7 +281,9 @@ function TierRow({ tier, onToggle }: { tier: StorageTier; onToggle: (t: StorageT
 
       <div>
         <div className={tierMetricLabelCss}>Used</div>
-        <div className={tierMetricValueCss}>{meta.usedTib} / {meta.capacityTib} TiB</div>
+        <div className={tierMetricValueCss}>
+          {meta.usedTib} / {meta.capacityTib} TiB
+        </div>
         <div className={usageBarTrackCss}>
           <div className={usageBarFillCss} />
         </div>
@@ -278,16 +352,29 @@ function NewTierWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
           <WizardStep name="Identity" id="st-id">
             <Form>
               <FormGroup label="Tier ID" fieldId="tid" isRequired>
-                <TextInput id="tid" value={id} onChange={(_, v) => setId(v.toLowerCase().replace(/[^a-z0-9-]/g, ''))} />
+                <TextInput
+                  id="tid"
+                  value={id}
+                  onChange={(_, v) => setId(v.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                />
               </FormGroup>
               <FormGroup label="Display name" fieldId="tn" isRequired>
                 <TextInput id="tn" value={name} onChange={(_, v) => setName(v)} />
               </FormGroup>
               <FormGroup label="Description" fieldId="td">
-                <TextArea id="td" rows={2} defaultValue="Ultra-low-latency tier for HFT and real-time risk workloads." />
+                <TextArea
+                  id="td"
+                  rows={2}
+                  defaultValue="Ultra-low-latency tier for HFT and real-time risk workloads."
+                />
               </FormGroup>
               <FormGroup fieldId="tdef">
-                <Checkbox id="tdef" label="Mark as default tier for new tenant clusters" isChecked={isDefault} onChange={(_, v) => setIsDefault(v)} />
+                <Checkbox
+                  id="tdef"
+                  label="Mark as default tier for new tenant clusters"
+                  isChecked={isDefault}
+                  onChange={(_, v) => setIsDefault(v)}
+                />
               </FormGroup>
             </Form>
           </WizardStep>
@@ -301,10 +388,18 @@ function NewTierWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
                   ))}
                 </FormSelect>
               </FormGroup>
-              <FormGroup label="Target IOPS" fieldId="ti"><TextInput id="ti" defaultValue="300k" /></FormGroup>
-              <FormGroup label="Throughput (GB/s)" fieldId="tt"><TextInput id="tt" defaultValue="60" /></FormGroup>
-              <FormGroup label="Latency SLO (ms)" fieldId="tl"><TextInput id="tl" defaultValue="0.15" /></FormGroup>
-              <FormGroup label="Capacity (TiB)" fieldId="tc"><TextInput id="tc" defaultValue="80" /></FormGroup>
+              <FormGroup label="Target IOPS" fieldId="ti">
+                <TextInput id="ti" defaultValue="300k" />
+              </FormGroup>
+              <FormGroup label="Throughput (GB/s)" fieldId="tt">
+                <TextInput id="tt" defaultValue="60" />
+              </FormGroup>
+              <FormGroup label="Latency SLO (ms)" fieldId="tl">
+                <TextInput id="tl" defaultValue="0.15" />
+              </FormGroup>
+              <FormGroup label="Capacity (TiB)" fieldId="tc">
+                <TextInput id="tc" defaultValue="80" />
+              </FormGroup>
             </Form>
           </WizardStep>
 
@@ -335,20 +430,33 @@ function NewTierWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
 
           <WizardStep name="CSI / Kubernetes" id="st-csi">
             <Form>
-              <FormGroup label="CSI driver" fieldId="cd"><TextInput id="cd" defaultValue="csi.vastdata.com" /></FormGroup>
-              <FormGroup label="StorageClass name" fieldId="sct"><TextInput id="sct" defaultValue={scDefault} /></FormGroup>
+              <FormGroup label="CSI driver" fieldId="cd">
+                <TextInput id="cd" defaultValue="csi.vastdata.com" />
+              </FormGroup>
+              <FormGroup label="StorageClass name" fieldId="sct">
+                <TextInput id="sct" defaultValue={scDefault} />
+              </FormGroup>
               <FormGroup label="Reclaim policy" fieldId="rp">
                 <FormSelect id="rp" value={reclaim} onChange={(_, v) => setReclaim(v)}>
-                  {['Delete', 'Retain'].map((x) => <FormSelectOption key={x} value={x} label={x} />)}
+                  {['Delete', 'Retain'].map((x) => (
+                    <FormSelectOption key={x} value={x} label={x} />
+                  ))}
                 </FormSelect>
               </FormGroup>
               <FormGroup label="Volume binding mode" fieldId="vbm">
                 <FormSelect id="vbm" value={binding} onChange={(_, v) => setBinding(v)}>
-                  {['Immediate', 'WaitForFirstConsumer'].map((x) => <FormSelectOption key={x} value={x} label={x} />)}
+                  {['Immediate', 'WaitForFirstConsumer'].map((x) => (
+                    <FormSelectOption key={x} value={x} label={x} />
+                  ))}
                 </FormSelect>
               </FormGroup>
               <FormGroup fieldId="ave">
-                <Checkbox id="ave" label="Allow volume expansion" isChecked={expand} onChange={(_, v) => setExpand(v)} />
+                <Checkbox
+                  id="ave"
+                  label="Allow volume expansion"
+                  isChecked={expand}
+                  onChange={(_, v) => setExpand(v)}
+                />
               </FormGroup>
             </Form>
           </WizardStep>
@@ -374,15 +482,32 @@ function NewTierWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
 
           <WizardStep name="Review" id="st-review" footer={{ nextButtonText: 'Create tier' }}>
             <div className={reviewSummaryCss}>
-              <div><strong>{name} ({id})</strong> {isDefault && <Label isCompact color="blue">default</Label>}</div>
+              <div>
+                <strong>
+                  {name} ({id})
+                </strong>{' '}
+                {isDefault && (
+                  <Label isCompact color="blue">
+                    default
+                  </Label>
+                )}
+              </div>
               <ul className={reviewListCss}>
-                <li>Media: {qosClass} · replication {replication}</li>
-                <li>Backend: {vastCluster} · {protocol} · VIP pool {vipPool}</li>
-                <li>StorageClass: {scDefault} · reclaim {reclaim} · binding {binding}{expand ? ' · expandable' : ''}</li>
+                <li>
+                  Media: {qosClass} · replication {replication}
+                </li>
+                <li>
+                  Backend: {vastCluster} · {protocol} · VIP pool {vipPool}
+                </li>
+                <li>
+                  StorageClass: {scDefault} · reclaim {reclaim} · binding {binding}
+                  {expand ? ' · expandable' : ''}
+                </li>
                 <li>Encryption: {encryption}</li>
               </ul>
               <div className={reviewFootnoteCss}>
-                Tier will be reconciled into <code>TenantStorage</code> CRs the next time a CaaS cluster reaches <code>ClusterOrderPhaseReady</code>.
+                Tier will be reconciled into <code>TenantStorage</code> CRs the next time a CaaS
+                cluster reaches <code>ClusterOrderPhaseReady</code>.
               </div>
             </div>
           </WizardStep>

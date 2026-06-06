@@ -82,7 +82,7 @@ export const wizardHandlers = [
       Object.assign(session.draft, body.draft)
     }
 
-    const ordered = (['template', 'customization', 'review']) as string[]
+    const ordered = ['template', 'customization', 'review'] as string[]
     const activeStepId = ordered[session.activeIndex]
     if (activeStepId !== 'review') {
       return HttpResponse.json({ error: 'Finalize only allowed on review step' }, { status: 400 })

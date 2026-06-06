@@ -13,8 +13,4 @@ export function useClusterCatalogItems(options?: { includeUnpublished?: boolean 
 }
 
 // Re-export network hooks so existing callers (CreateClusterModal, etc.) keep working.
-export {
-  useSecurityGroups,
-  useSubnets,
-  useVirtualNetworks,
-} from './useNetworking'
+export { useSecurityGroups, useSubnets, useVirtualNetworks } from './useNetworking'

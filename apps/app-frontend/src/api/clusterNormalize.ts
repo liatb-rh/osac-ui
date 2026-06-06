@@ -76,7 +76,10 @@ function normalizeSpec(wire: unknown): ClusterSpec {
   return {
     catalogItem: str(w.catalog_item ?? w.catalogItem),
     template: str(w.template),
-    templateParameters: obj(w.template_parameters ?? w.templateParameters) as Record<string, unknown>,
+    templateParameters: obj(w.template_parameters ?? w.templateParameters) as Record<
+      string,
+      unknown
+    >,
     nodeSets: normalizeNodeSets(w.node_sets ?? w.nodeSets),
     releaseImage: str(w.release_image ?? w.releaseImage),
     sshPublicKey: str(w.ssh_public_key ?? w.sshPublicKey),
@@ -232,7 +235,9 @@ export function normalizeAgent(wire: unknown): Agent {
   const meta = obj(w.metadata)
   return {
     id: str(w.id) ?? '',
-    metadata: meta.name ? { name: str(meta.name) ?? '', createdAt: str(meta.creation_timestamp ?? meta.createdAt) } : undefined,
+    metadata: meta.name
+      ? { name: str(meta.name) ?? '', createdAt: str(meta.creation_timestamp ?? meta.createdAt) }
+      : undefined,
     state: (str(w.state) ?? 'AGENT_STATE_UNAVAILABLE') as Agent['state'],
     hardwareProfile: str(w.hardware_profile ?? w.hardwareProfile),
     clusterRef: str(w.cluster_ref ?? w.clusterRef),

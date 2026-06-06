@@ -11,7 +11,6 @@ import {
   Bullseye,
   Button,
   Content,
-  Divider,
   Flex,
   FlexItem,
   FormSelect,
@@ -33,7 +32,12 @@ import { PageHeader } from '../../../components/layout'
 import { OcLink, OcTable } from '@osac/ui-components'
 import type { OcTableColumn } from '@osac/ui-components'
 
-type StateFilter = 'all' | 'CLUSTER_STATE_READY' | 'CLUSTER_STATE_PROGRESSING' | 'CLUSTER_STATE_UPGRADING' | 'CLUSTER_STATE_FAILED'
+type StateFilter =
+  | 'all'
+  | 'CLUSTER_STATE_READY'
+  | 'CLUSTER_STATE_PROGRESSING'
+  | 'CLUSTER_STATE_UPGRADING'
+  | 'CLUSTER_STATE_FAILED'
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -61,10 +65,6 @@ const loadingBullseyeCss = css`
 
 const emptyMessageCss = css`
   color: var(--pf-t--global--text--color--subtle);
-`
-
-const pageDividerCss = css`
-  margin-bottom: var(--pf-t--global--spacer--md);
 `
 
 const apiUrlMonoCss = css`
@@ -112,9 +112,7 @@ export function ClustersPage() {
       label: 'Name',
       dataLabel: 'Name',
       render: (cluster) => (
-        <OcLink onClick={() => navigate(`/clusters/${cluster.id}`)}>
-          {cluster.metadata.name}
-        </OcLink>
+        <OcLink onClick={() => navigate(`/clusters/${cluster.id}`)}>{cluster.metadata.name}</OcLink>
       ),
     },
     {
@@ -141,7 +139,9 @@ export function ClustersPage() {
       render: (cluster) =>
         cluster.status.apiUrl ? (
           <span className={apiUrlMonoCss}>{cluster.status.apiUrl}</span>
-        ) : '—',
+        ) : (
+          '—'
+        ),
     },
     {
       label: 'Created',
@@ -180,7 +180,11 @@ export function ClustersPage() {
         title="Clusters"
         description="OpenShift clusters provisioned for your organization."
         actions={
-          <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setShowCreateModal(true)}>
+          <Button
+            variant="primary"
+            icon={<PlusCircleIcon />}
+            onClick={() => setShowCreateModal(true)}
+          >
             Create cluster
           </Button>
         }
@@ -220,12 +224,7 @@ export function ClustersPage() {
       </Flex>
 
       {error && (
-        <Alert
-          variant="danger"
-          title="Failed to load clusters"
-          isInline
-          className={errorAlertCss}
-        >
+        <Alert variant="danger" title="Failed to load clusters" isInline className={errorAlertCss}>
           <Button variant="link" isInline onClick={() => refetch()}>
             Retry
           </Button>
@@ -259,9 +258,7 @@ export function ClustersPage() {
     <>
       {mainContent}
 
-      {showCreateModal && (
-        <CreateClusterModal onClose={() => setShowCreateModal(false)} />
-      )}
+      {showCreateModal && <CreateClusterModal onClose={() => setShowCreateModal(false)} />}
 
       {upgradeCluster && (
         <UpgradeClusterModal

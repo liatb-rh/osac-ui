@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint'
 
 export default defineConfig(
   {
-    ignores: ['**/dist/**', '**/node_modules/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', 'apps/app-frontend/src/mocks/**'],
   },
 
   // Base: JS + TypeScript rules for all source files

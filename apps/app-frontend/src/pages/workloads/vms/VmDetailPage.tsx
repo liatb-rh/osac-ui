@@ -21,9 +21,12 @@ import {
   StackItem,
   Tab,
   TabTitleText,
-  Tabs
+  Tabs,
 } from '@patternfly/react-core'
-import { PlayIcon, PowerOffIcon, RedoIcon, TrashIcon } from '@patternfly/react-icons'
+import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon'
+import { PowerOffIcon } from '@patternfly/react-icons/dist/esm/icons/power-off-icon'
+import { RedoIcon } from '@patternfly/react-icons/dist/esm/icons/redo-icon'
+import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import { css } from '@emotion/css'
 import { OcKpiHeader, VmStatusLabel } from '@osac/ui-components'
 import type { ComputeInstance } from '@osac/api-contracts'
@@ -101,7 +104,6 @@ export function VmDetailPage() {
       </PageSection>
     )
   }
-
 
   const osLabel =
     resolveVmOsForUi(vm) === 'rhel'
@@ -207,13 +209,21 @@ export function VmDetailPage() {
 
         {/* KPI bar */}
         <StackItem>
-          <OcKpiHeader items={[
-            { label: 'Power state', value: <VmStatusLabel state={displayState ?? vm.status.state} /> },
-            { label: 'vCPU',        value: vm.spec.cores != null ? String(vm.spec.cores) : '—' },
-            { label: 'Memory',      value: vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—' },
-            { label: 'Storage',     value: '100 GiB' },
-            { label: 'IP address',  value: vm.status.ipAddress ?? '—' },
-          ]} />
+          <OcKpiHeader
+            items={[
+              {
+                label: 'Power state',
+                value: <VmStatusLabel state={displayState ?? vm.status.state} />,
+              },
+              { label: 'vCPU', value: vm.spec.cores != null ? String(vm.spec.cores) : '—' },
+              {
+                label: 'Memory',
+                value: vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—',
+              },
+              { label: 'Storage', value: '100 GiB' },
+              { label: 'IP address', value: vm.status.ipAddress ?? '—' },
+            ]}
+          />
         </StackItem>
 
         {/* Tabs */}

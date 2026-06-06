@@ -86,7 +86,11 @@ export function OcTemplatesGallery({
                 >
                   <OcTemplateCard
                     template={template}
-                    isSelected={selectedTemplateId !== undefined ? selectedTemplateId === template.id : undefined}
+                    isSelected={
+                      selectedTemplateId !== undefined
+                        ? selectedTemplateId === template.id
+                        : undefined
+                    }
                     onProvision={onProvision}
                   />
                 </div>

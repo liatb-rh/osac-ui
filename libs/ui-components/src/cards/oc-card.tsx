@@ -19,10 +19,18 @@ const bodyInnerCss = css`
 
 const toneCss: Record<OcCardTone, string> = {
   default: '',
-  success: css`box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--success--default) !important;`,
-  warning: css`box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--warning--default) !important;`,
-  danger:  css`box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--danger--default) !important;`,
-  muted:   css`box-shadow: -3px 0 0 0 var(--pf-t--global--text--color--subtle) !important;`,
+  success: css`
+    box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--success--default) !important;
+  `,
+  warning: css`
+    box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--warning--default) !important;
+  `,
+  danger: css`
+    box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--danger--default) !important;
+  `,
+  muted: css`
+    box-shadow: -3px 0 0 0 var(--pf-t--global--text--color--subtle) !important;
+  `,
 }
 
 const labelCss = css`

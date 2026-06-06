@@ -6,11 +6,17 @@
  *   CLUSTER_STATE_PROGRESSING → CLUSTER_STATE_READY after 60s
  *   CLUSTER_STATE_UPGRADING   → CLUSTER_STATE_READY after 90s (with updated version)
  */
-import type { Agent, Cluster, ClusterCatalogItem, InventoryBackend, StorageTier } from '@osac/api-contracts'
+import type {
+  Agent,
+  Cluster,
+  ClusterCatalogItem,
+  InventoryBackend,
+  StorageTier,
+} from '@osac/api-contracts'
 import {
   DEMO_AGENTS,
-  DEMO_CLUSTER_CATALOG_ITEMS,
   DEMO_CLUSTERS,
+  DEMO_CLUSTER_CATALOG_ITEMS,
   DEMO_INVENTORY_BACKENDS,
   DEMO_STORAGE_TIERS,
 } from '@osac/api-contracts'
@@ -20,17 +26,13 @@ function cloneAll<T>(items: T[]): T[] {
   return items.map((item) => JSON.parse(JSON.stringify(item)) as T)
 }
 
-export const clusterStore = new Map<string, Cluster>(
-  cloneAll(DEMO_CLUSTERS).map((c) => [c.id, c]),
-)
+export const clusterStore = new Map<string, Cluster>(cloneAll(DEMO_CLUSTERS).map((c) => [c.id, c]))
 
 export const catalogItemStore = new Map<string, ClusterCatalogItem>(
   cloneAll(DEMO_CLUSTER_CATALOG_ITEMS).map((c) => [c.id, c]),
 )
 
-export const agentStore = new Map<string, Agent>(
-  cloneAll(DEMO_AGENTS).map((a) => [a.id, a]),
-)
+export const agentStore = new Map<string, Agent>(cloneAll(DEMO_AGENTS).map((a) => [a.id, a]))
 
 export const inventoryBackendStore: InventoryBackend[] = cloneAll(DEMO_INVENTORY_BACKENDS)
 

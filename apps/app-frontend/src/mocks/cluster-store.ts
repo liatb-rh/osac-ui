@@ -10,17 +10,13 @@ function cloneAll<T>(items: T[]): T[] {
   return items.map((item) => JSON.parse(JSON.stringify(item)) as T)
 }
 
-export const clusterStore = new Map<string, Cluster>(
-  cloneAll(DEMO_CLUSTERS).map((c) => [c.id, c]),
-)
+export const clusterStore = new Map<string, Cluster>(cloneAll(DEMO_CLUSTERS).map((c) => [c.id, c]))
 
 export const catalogItemStore = new Map<string, ClusterCatalogItem>(
   cloneAll(DEMO_CLUSTER_CATALOG_ITEMS).map((c) => [c.id, c]),
 )
 
-export const agentStore = new Map<string, Agent>(
-  cloneAll(DEMO_AGENTS).map((a) => [a.id, a]),
-)
+export const agentStore = new Map<string, Agent>(cloneAll(DEMO_AGENTS).map((a) => [a.id, a]))
 
 export const storageTierStore = new Map<string, StorageTier>(
   cloneAll(DEMO_STORAGE_TIERS).map((t) => [t.id, t]),
@@ -81,7 +77,12 @@ export function scheduleStorageProvisioning(clusterId: string): void {
             },
           ],
           volumeSnapshotClasses: [
-            { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
+            {
+              name: 'vast-snapshot',
+              driver: 'csi.vastdata.com',
+              deletionPolicy: 'Delete',
+              isDefault: true,
+            },
           ],
         },
       },

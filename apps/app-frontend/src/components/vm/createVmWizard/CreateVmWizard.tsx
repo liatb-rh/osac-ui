@@ -283,12 +283,7 @@ export const CreateVmWizard = forwardRef<CreateVmWizardHandle, Props>(function C
 
   const renderApiAlert = (stepId: string) =>
     hasFieldErrors && session && session.activeStepId === stepId ? (
-      <Alert
-        variant="danger"
-        isInline
-        title="Could not continue"
-        className={apiAlertCss}
-      >
+      <Alert variant="danger" isInline title="Could not continue" className={apiAlertCss}>
         {fieldErrors._api ??
           Object.entries(fieldErrors)
             .filter(([k]) => k !== '_api')
@@ -332,11 +327,7 @@ export const CreateVmWizard = forwardRef<CreateVmWizardHandle, Props>(function C
               <Alert variant="danger" title="Wizard could not start" className={errorAlertCss}>
                 {fieldErrors._api ?? 'An error occurred.'}
               </Alert>
-              <Button
-                variant="primary"
-                onClick={() => void close()}
-                className={closeButtonCss}
-              >
+              <Button variant="primary" onClick={() => void close()} className={closeButtonCss}>
                 Close
               </Button>
             </>
@@ -361,38 +352,38 @@ export const CreateVmWizard = forwardRef<CreateVmWizardHandle, Props>(function C
             navAriaLabel="Create virtual machine steps"
             startIndex={session.activeIndex + 1}
             height="min(600px, calc(100vh - 160px))"
-          footer={
-            <WizardFooterWrapper>
-              <Flex
-                className={footerFlexCss}
-                justifyContent={{ default: 'justifyContentFlexStart' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                flexWrap={{ default: 'wrap' }}
-                gap={{ default: 'gapMd' }}
-              >
-                <Button
-                  variant="secondary"
-                  onClick={handleBack}
-                  isDisabled={isFirst || pending}
-                  isAriaDisabled={isFirst || pending}
+            footer={
+              <WizardFooterWrapper>
+                <Flex
+                  className={footerFlexCss}
+                  justifyContent={{ default: 'justifyContentFlexStart' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  flexWrap={{ default: 'wrap' }}
+                  gap={{ default: 'gapMd' }}
                 >
-                  Back
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => void handleNextOrCreate()}
-                  isDisabled={!canNext || pending}
-                  isAriaDisabled={!canNext || pending}
-                  isLoading={pending}
-                >
-                  {isReview ? 'Create virtual machine' : 'Next'}
-                </Button>
-                <Button variant="link" onClick={() => void close()} isDisabled={pending}>
-                  Cancel
-                </Button>
-              </Flex>
-            </WizardFooterWrapper>
-          }
+                  <Button
+                    variant="secondary"
+                    onClick={handleBack}
+                    isDisabled={isFirst || pending}
+                    isAriaDisabled={isFirst || pending}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => void handleNextOrCreate()}
+                    isDisabled={!canNext || pending}
+                    isAriaDisabled={!canNext || pending}
+                    isLoading={pending}
+                  >
+                    {isReview ? 'Create virtual machine' : 'Next'}
+                  </Button>
+                  <Button variant="link" onClick={() => void close()} isDisabled={pending}>
+                    Cancel
+                  </Button>
+                </Flex>
+              </WizardFooterWrapper>
+            }
             onClose={close}
           >
             {orderedSteps.map((stepId) => (

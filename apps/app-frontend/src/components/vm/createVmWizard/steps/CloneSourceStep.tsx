@@ -149,15 +149,7 @@ const STATE_FILTER_OPTIONS = [
 function OsIcon({ os }: { os?: string }) {
   if (os === 'windows') return <WindowsIcon className={windowsIconCss} />
   if (os === 'rhel') return <RedhatIcon className={redhatIconCss} />
-  return (
-    <img
-      src={linuxMascotUrl}
-      alt=""
-      width={28}
-      height={28}
-      className={linuxMascotCss}
-    />
-  )
+  return <img src={linuxMascotUrl} alt="" width={28} height={28} className={linuxMascotCss} />
 }
 
 function formatCreatedDate(value?: string): string {
@@ -187,18 +179,12 @@ function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <Stack hasGutter={false}>
       <StackItem>
-        <Content
-          component="small"
-          className={detailFieldLabelCss}
-        >
+        <Content component="small" className={detailFieldLabelCss}>
           {label}
         </Content>
       </StackItem>
       <StackItem>
-        <Content
-          component="p"
-          className={detailFieldValueCss}
-        >
+        <Content component="p" className={detailFieldValueCss}>
           {value}
         </Content>
       </StackItem>
@@ -208,13 +194,8 @@ function DetailField({ label, value }: { label: string; value: string }) {
 
 function InlineDetailField({ label, value }: { label: string; value: string }) {
   return (
-    <Content
-      component="p"
-      className={inlineDetailFieldCss}
-    >
-      <span className={inlineDetailFieldLabelCss}>
-        {label}
-      </span>
+    <Content component="p" className={inlineDetailFieldCss}>
+      <span className={inlineDetailFieldLabelCss}>{label}</span>
       <span className={inlineDetailFieldValueCss}>{value}</span>
     </Content>
   )
@@ -254,10 +235,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
         <Title id="clone-source-heading" headingLevel="h2" size="xl">
           Source virtual machine
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', cloneSourceIntroCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', cloneSourceIntroCss)}>
           Select a virtual machine to clone.
         </Content>
       </StackItem>
@@ -334,10 +312,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
           aria-label="Source virtual machines"
         >
           {filtered.length === 0 ? (
-            <Content
-              component="p"
-              className={cx('pf-v6-u-color-text-subtle', emptyResultsCss)}
-            >
+            <Content component="p" className={cx('pf-v6-u-color-text-subtle', emptyResultsCss)}>
               No virtual machines match your filters or search.
             </Content>
           ) : null}
@@ -357,7 +332,10 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
               <div key={vm.id}>
                 <Card
                   id={`clone-source-card-${vm.id}`}
-                  className={cx('osac-template-cards__card osac-clone-source-cards__card', cloneSourceCardCss)}
+                  className={cx(
+                    'osac-template-cards__card osac-clone-source-cards__card',
+                    cloneSourceCardCss,
+                  )}
                   isCompact
                   isClickable
                   isSelected={selected}
@@ -399,10 +377,7 @@ export function CloneSourceStep({ state, update, search, setSearch, vms }: Clone
                   <CardBody>
                     <Stack hasGutter>
                       <StackItem>
-                        <Content
-                          component="h3"
-                          className={cloneSourceCardTitleCss}
-                        >
+                        <Content component="h3" className={cloneSourceCardTitleCss}>
                           {vm.metadata.name}
                         </Content>
                       </StackItem>

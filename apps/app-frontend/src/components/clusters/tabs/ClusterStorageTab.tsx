@@ -140,15 +140,21 @@ const TIER_DESCRIPTION: Record<string, string> = {
 }
 
 const TIER_IOPS: Record<string, string> = {
-  fast: '100k', 'tier-fast': '100k',
-  standard: '30k', 'tier-standard': '30k',
-  archive: '5k', 'tier-archive': '5k',
+  fast: '100k',
+  'tier-fast': '100k',
+  standard: '30k',
+  'tier-standard': '30k',
+  archive: '5k',
+  'tier-archive': '5k',
 }
 
 const TIER_MEDIA: Record<string, string> = {
-  fast: 'NVMe SSD', 'tier-fast': 'NVMe SSD',
-  standard: 'SATA SSD', 'tier-standard': 'SATA SSD',
-  archive: 'HDD (SMR)', 'tier-archive': 'HDD (SMR)',
+  fast: 'NVMe SSD',
+  'tier-fast': 'NVMe SSD',
+  standard: 'SATA SSD',
+  'tier-standard': 'SATA SSD',
+  archive: 'HDD (SMR)',
+  'tier-archive': 'HDD (SMR)',
 }
 
 function pvcSnippet(storageClassName: string): string {
@@ -180,12 +186,16 @@ function ReadinessStep({ label, done, isCurrent, isLast }: StepProps) {
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    background: ${done ? 'var(--pf-t--global--color--status--success--default)'
-      : isCurrent ? 'var(--pf-t--global--color--status--info--background--default)'
-      : 'var(--pf-t--global--background--color--secondary--default)'};
-    color: ${done ? 'white'
-      : isCurrent ? 'var(--pf-t--global--color--status--info--default)'
-      : 'var(--pf-t--global--text--color--subtle)'};
+    background: ${done
+      ? 'var(--pf-t--global--color--status--success--default)'
+      : isCurrent
+        ? 'var(--pf-t--global--color--status--info--background--default)'
+        : 'var(--pf-t--global--background--color--secondary--default)'};
+    color: ${done
+      ? 'white'
+      : isCurrent
+        ? 'var(--pf-t--global--color--status--info--default)'
+        : 'var(--pf-t--global--text--color--subtle)'};
     border: ${isCurrent ? '2px solid var(--pf-t--global--color--status--info--default)' : 'none'};
   `
 
@@ -211,9 +221,7 @@ function ReadinessStep({ label, done, isCurrent, isLast }: StepProps) {
           {done ? 'Complete' : isCurrent ? 'In progress' : 'Pending'}
         </div>
       </div>
-      {!isLast && (
-        <span className={connectorCss} />
-      )}
+      {!isLast && <span className={connectorCss} />}
     </div>
   )
 }
@@ -275,7 +283,9 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Storage type</DescriptionListTerm>
-              <DescriptionListDescription>Universal Storage (file + block + object)</DescriptionListDescription>
+              <DescriptionListDescription>
+                Universal Storage (file + block + object)
+              </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
         </CardBody>
@@ -283,9 +293,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
 
       {/* ── Available StorageClasses ───────────────────────────────────────── */}
       <div>
-        <h3 className={sectionHeadingCss}>
-          Available StorageClasses
-        </h3>
+        <h3 className={sectionHeadingCss}>Available StorageClasses</h3>
 
         {hasStorageClasses ? (
           <div className={storageClassesGridCss}>
@@ -296,38 +304,67 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
               return (
                 <Card key={sc.name}>
                   <CardTitle>
-                    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                      <FlexItem><code className={codeSmCss}>{sc.name}</code></FlexItem>
+                    <Flex
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    >
+                      <FlexItem>
+                        <code className={codeSmCss}>{sc.name}</code>
+                      </FlexItem>
                       <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                        {sc.isDefault && <FlexItem><Label color="yellow" isCompact>default</Label></FlexItem>}
-                        {displayTier && <FlexItem><Label color={color} isCompact>{displayTier}</Label></FlexItem>}
+                        {sc.isDefault && (
+                          <FlexItem>
+                            <Label color="yellow" isCompact>
+                              default
+                            </Label>
+                          </FlexItem>
+                        )}
+                        {displayTier && (
+                          <FlexItem>
+                            <Label color={color} isCompact>
+                              {displayTier}
+                            </Label>
+                          </FlexItem>
+                        )}
                       </Flex>
                     </Flex>
                   </CardTitle>
                   <CardBody>
                     {TIER_DESCRIPTION[tier] && (
-                      <p className={tierDescriptionCss}>
-                        {TIER_DESCRIPTION[tier]}
-                      </p>
+                      <p className={tierDescriptionCss}>{TIER_DESCRIPTION[tier]}</p>
                     )}
                     <div className={tierMetaRowCss}>
                       {TIER_IOPS[tier] && (
-                        <span>IOPS: <strong className={tierMetaValueCss}>{TIER_IOPS[tier]}</strong></span>
+                        <span>
+                          IOPS: <strong className={tierMetaValueCss}>{TIER_IOPS[tier]}</strong>
+                        </span>
                       )}
                       {TIER_MEDIA[tier] && (
-                        <span>Media: <strong className={tierMetaValueCss}>{TIER_MEDIA[tier]}</strong></span>
+                        <span>
+                          Media: <strong className={tierMetaValueCss}>{TIER_MEDIA[tier]}</strong>
+                        </span>
                       )}
                     </div>
-                    <div className={fieldLabelCss}>
-                      storageClassName
-                    </div>
-                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied" aria-label={`Copy ${sc.name}`} variant="inline-compact">
+                    <div className={fieldLabelCss}>storageClassName</div>
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      aria-label={`Copy ${sc.name}`}
+                      variant="inline-compact"
+                    >
                       {sc.name}
                     </ClipboardCopy>
-                    <div className={pvcExampleLabelCss}>
-                      PVC example
-                    </div>
-                    <ClipboardCopy isReadOnly isCode isExpanded hoverTip="Copy PVC" clickTip="Copied" aria-label={`Copy PVC for ${sc.name}`}>
+                    <div className={pvcExampleLabelCss}>PVC example</div>
+                    <ClipboardCopy
+                      isReadOnly
+                      isCode
+                      isExpanded
+                      hoverTip="Copy PVC"
+                      clickTip="Copied"
+                      aria-label={`Copy PVC for ${sc.name}`}
+                    >
                       {pvcSnippet(sc.name)}
                     </ClipboardCopy>
                   </CardBody>
@@ -345,10 +382,15 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
       {/* ── VolumeSnapshotClasses ─────────────────────────────────────────── */}
       <Card>
         <CardTitle>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          >
             <FlexItem>VolumeSnapshotClasses</FlexItem>
             <FlexItem>
-              <Button variant="link" icon={<PlusCircleIcon />} isInline>Create snapshot class</Button>
+              <Button variant="link" icon={<PlusCircleIcon />} isInline>
+                Create snapshot class
+              </Button>
             </FlexItem>
           </Flex>
         </CardTitle>
@@ -366,24 +408,39 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
               <Tbody>
                 {(storage!.volumeSnapshotClasses ?? []).map((vsc) => (
                   <Tr key={vsc.name}>
-                    <Td><code>{vsc.name}</code></Td>
-                    <Td><code>{vsc.driver ?? '—'}</code></Td>
+                    <Td>
+                      <code>{vsc.name}</code>
+                    </Td>
+                    <Td>
+                      <code>{vsc.driver ?? '—'}</code>
+                    </Td>
                     <Td>
                       {vsc.deletionPolicy ? (
-                        <Label color={vsc.deletionPolicy === 'Retain' ? 'green' : 'orange'} isCompact>
+                        <Label
+                          color={vsc.deletionPolicy === 'Retain' ? 'green' : 'orange'}
+                          isCompact
+                        >
                           {vsc.deletionPolicy}
                         </Label>
-                      ) : '—'}
+                      ) : (
+                        '—'
+                      )}
                     </Td>
-                    <Td>{vsc.isDefault ? <Label color="green" isCompact>default</Label> : '—'}</Td>
+                    <Td>
+                      {vsc.isDefault ? (
+                        <Label color="green" isCompact>
+                          default
+                        </Label>
+                      ) : (
+                        '—'
+                      )}
+                    </Td>
                   </Tr>
                 ))}
               </Tbody>
             </Table>
           ) : (
-            <div className={emptySnapshotClassesCss}>
-              No snapshot classes available.
-            </div>
+            <div className={emptySnapshotClassesCss}>No snapshot classes available.</div>
           )}
         </CardBody>
       </Card>

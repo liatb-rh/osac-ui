@@ -10,7 +10,14 @@ import {
   VM_TEMPLATES,
   normalizeComputeInstance,
 } from '@osac/api-contracts'
-import type { ComputeInstance, NetworkClass, PublicIP, SecurityGroup, Subnet, VirtualNetwork } from '@osac/api-contracts'
+import type {
+  ComputeInstance,
+  NetworkClass,
+  PublicIP,
+  SecurityGroup,
+  Subnet,
+  VirtualNetwork,
+} from '@osac/api-contracts'
 import { vmStore } from '../vm-store'
 import {
   agentStore,
@@ -29,7 +36,9 @@ import {
 const vnStore = new Map<string, VirtualNetwork>(DEMO_VIRTUAL_NETWORKS.map((vn) => [vn.id, vn]))
 const subnetStore = new Map<string, Subnet>(DEMO_SUBNETS.map((s) => [s.id, s]))
 const sgStore = new Map<string, SecurityGroup>(DEMO_SECURITY_GROUPS.map((sg) => [sg.id, sg]))
-const networkClassStore = new Map<string, NetworkClass>(DEMO_NETWORK_CLASSES.map((nc) => [nc.id, nc]))
+const networkClassStore = new Map<string, NetworkClass>(
+  DEMO_NETWORK_CLASSES.map((nc) => [nc.id, nc]),
+)
 const publicIPStore = new Map<string, PublicIP>(DEMO_PUBLIC_IPS.map((pip) => [pip.id, pip]))
 
 let _idCounter = 1000
@@ -203,8 +212,8 @@ export const fulfillmentHandlers = [
     const body = (await request.json()) as Record<string, unknown>
     const updated = {
       ...existing,
-      spec: { ...existing.spec, ...(asNestedRecord(body.spec)) },
-      metadata: { ...existing.metadata, ...(asNestedRecord(body.metadata)) },
+      spec: { ...existing.spec, ...asNestedRecord(body.spec) },
+      metadata: { ...existing.metadata, ...asNestedRecord(body.metadata) },
     }
     clusterStore.set(id, updated)
     return HttpResponse.json(updated)
@@ -225,7 +234,11 @@ export const fulfillmentHandlers = [
     const targetVersion = body.target_version ?? ''
     const upgraded = {
       ...cluster,
-      status: { ...cluster.status, state: 'CLUSTER_STATE_UPGRADING' as const, upgradeState: `Upgrading to ${targetVersion}` },
+      status: {
+        ...cluster.status,
+        state: 'CLUSTER_STATE_UPGRADING' as const,
+        upgradeState: `Upgrading to ${targetVersion}`,
+      },
     }
     clusterStore.set(id, upgraded)
     scheduleClusterUpgrade(id, targetVersion)
@@ -350,7 +363,8 @@ export const fulfillmentHandlers = [
     // Transition to READY after short delay (mock only)
     setTimeout(() => {
       const existing = vnStore.get(id)
-      if (existing) vnStore.set(id, { ...existing, status: { state: 'VIRTUAL_NETWORK_STATE_READY' } })
+      if (existing)
+        vnStore.set(id, { ...existing, status: { state: 'VIRTUAL_NETWORK_STATE_READY' } })
     }, 2000)
     return HttpResponse.json(vn, { status: 201 })
   }),
@@ -496,7 +510,11 @@ export const fulfillmentHandlers = [
       if (existing) {
         publicIPStore.set(id, {
           ...existing,
-          status: { ...existing.status, state: 'PUBLIC_IP_STATE_ALLOCATED', address: `203.0.113.${50 + _idCounter % 200}` },
+          status: {
+            ...existing.status,
+            state: 'PUBLIC_IP_STATE_ALLOCATED',
+            address: `203.0.113.${50 + (_idCounter % 200)}`,
+          },
         })
       }
     }, 3000)
@@ -508,10 +526,11 @@ export const fulfillmentHandlers = [
     if (!pip) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
     const body = asNestedRecord(await request.json())
     const spec = asNestedRecord(body.spec)
-    const newComputeInstance = spec.compute_instance === null ? undefined : spec.compute_instance as string | undefined
+    const newComputeInstance =
+      spec.compute_instance === null ? undefined : (spec.compute_instance as string | undefined)
     const newState = newComputeInstance
-      ? 'PUBLIC_IP_STATE_ATTACHED' as const
-      : 'PUBLIC_IP_STATE_ALLOCATED' as const
+      ? ('PUBLIC_IP_STATE_ATTACHED' as const)
+      : ('PUBLIC_IP_STATE_ALLOCATED' as const)
     const updated: PublicIP = {
       ...pip,
       spec: { ...pip.spec, computeInstance: newComputeInstance },

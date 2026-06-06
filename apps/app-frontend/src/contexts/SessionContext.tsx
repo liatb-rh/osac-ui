@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { OsacRole, DemoTenantId } from '@osac/api-contracts'
+import type { DemoTenantId, OsacRole } from '@osac/api-contracts'
 import { demoLoginEmailForRole } from '@osac/api-contracts'
 import { clearAccessToken } from '../api/authToken'
 

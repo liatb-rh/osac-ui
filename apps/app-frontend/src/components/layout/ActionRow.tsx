@@ -43,9 +43,7 @@ export function ActionRow({ icon, title, body, cta, tone, onClick }: ActionRowPr
       <CardBody>
         <div className={rowCss}>
           <div className={leftGroupCss}>
-            <span className={iconCss}>
-              {icon}
-            </span>
+            <span className={iconCss}>{icon}</span>
             <div>
               <div className={titleCss}>{title}</div>
               <div className={bodyCss}>{body}</div>

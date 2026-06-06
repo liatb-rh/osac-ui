@@ -54,10 +54,7 @@ interface Props {
 function renderHeaderMark(spec: HeaderMarkSpec) {
   if (spec.kind === 'emoji') {
     return (
-      <Content
-        component="small"
-        className={emojiMarkCss}
-      >
+      <Content component="small" className={emojiMarkCss}>
         {spec.emoji}
       </Content>
     )
@@ -71,11 +68,7 @@ function renderHeaderMark(spec: HeaderMarkSpec) {
     font-weight: 700;
     font-size: ${spec.borderRadius === '50%' ? '1.1rem' : '1.2rem'};
   `
-  return (
-    <Bullseye className={letterMarkCss}>
-      {spec.letter}
-    </Bullseye>
-  )
+  return <Bullseye className={letterMarkCss}>{spec.letter}</Bullseye>
 }
 
 export function InstitutionalSignInPage({
@@ -127,11 +120,7 @@ export function InstitutionalSignInPage({
                   >
                     <FlexItem>{renderHeaderMark(branding.headerMark)}</FlexItem>
                     <FlexItem>
-                      <Title
-                        headingLevel="h1"
-                        size="xl"
-                        className={titleCss}
-                      >
+                      <Title headingLevel="h1" size="xl" className={titleCss}>
                         {branding.displayName}
                       </Title>
                     </FlexItem>

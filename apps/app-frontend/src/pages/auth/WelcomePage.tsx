@@ -3,14 +3,14 @@
  * step: wrs_welcome_landing
  */
 import { css } from '@emotion/css'
-import { useLayoutEffect, type ElementType } from 'react'
+import { type ElementType, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core'
 import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
 import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt-icon'
 import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
 import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
-import type { OsacRole, DemoTenantId } from '@osac/api-contracts'
+import type { DemoTenantId, OsacRole } from '@osac/api-contracts'
 import { LightDarkToggle, OcCardActive, type OcCardActiveTone } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
 
@@ -141,7 +141,6 @@ export function WelcomePage() {
       {/* pf-primitive-exception: welcome primary landmark */}
       <main className="osac-welcome-page__main">
         <div className="osac-welcome-page__inner osac-welcome-page__inner--personas">
-
           {/* Brand header */}
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -154,7 +153,9 @@ export function WelcomePage() {
               </div>
             </FlexItem>
             <FlexItem>
-              <Content component="p" className="osac-welcome-brand__name">OSAC</Content>
+              <Content component="p" className="osac-welcome-brand__name">
+                OSAC
+              </Content>
               <Content component="small" className="osac-welcome-brand__sub">
                 Open Sovereign AI Cloud
               </Content>
@@ -164,7 +165,9 @@ export function WelcomePage() {
           {/* Hero text */}
           <Stack className="osac-welcome-hero">
             <StackItem>
-              <span className="osac-welcome-eyebrow" aria-hidden>OSAC Console</span>
+              <span className="osac-welcome-eyebrow" aria-hidden>
+                OSAC Console
+              </span>
             </StackItem>
             <StackItem>
               <Title headingLevel="h1" size="4xl" className="osac-welcome-hero-title">

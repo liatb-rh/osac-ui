@@ -88,10 +88,7 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
         <Title id="deployment-step-heading" headingLevel="h2" size="xl">
           Select a creation method
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', deploymentIntroCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', deploymentIntroCss)}>
           Choose your preferred path to begin. We recommend creating from a template.
         </Content>
       </StackItem>
@@ -149,10 +146,7 @@ export function DeploymentStep({ state, update }: { state: WizardState; update: 
                   <CardBody>
                     <Stack hasGutter className={deployCardBodyStackCss}>
                       <StackItem>
-                        <Content
-                          component="h3"
-                          className={deployCardTitleCss}
-                        >
+                        <Content component="h3" className={deployCardTitleCss}>
                           {opt.title}
                         </Content>
                       </StackItem>

@@ -73,9 +73,7 @@ export function OcTable<T>({
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(defaultPageSize ?? 10)
 
-  const visibleRows = paginated
-    ? rows.slice((page - 1) * perPage, page * perPage)
-    : rows
+  const visibleRows = paginated ? rows.slice((page - 1) * perPage, page * perPage) : rows
 
   return (
     <div className={wrapCss}>
@@ -100,7 +98,7 @@ export function OcTable<T>({
               <Tr
                 key={key}
                 isClickable={clickable}
-                onRowClick={clickable ? () => onRowClick!(row) : undefined}
+                onRowClick={clickable ? () => onRowClick(row) : undefined}
               >
                 {columns.map((col, i) => (
                   <Td
@@ -125,7 +123,10 @@ export function OcTable<T>({
           page={page}
           perPage={perPage}
           onSetPage={(_e, p) => setPage(p)}
-          onPerPageSelect={(_e, pp) => { setPerPage(pp); setPage(1) }}
+          onPerPageSelect={(_e, pp) => {
+            setPerPage(pp)
+            setPage(1)
+          }}
           perPageOptions={[
             { title: '10', value: 10 },
             { title: '20', value: 20 },

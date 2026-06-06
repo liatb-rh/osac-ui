@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { deprovisionAgent, listAgents, listStorageTiers, patchStorageTier, provisionAgent } from '../api/clusterClient'
+import {
+  deprovisionAgent,
+  listAgents,
+  listStorageTiers,
+  patchStorageTier,
+  provisionAgent,
+} from '../api/clusterClient'
 import type { StorageTier } from '@osac/api-contracts'
 import { clusterQueryKeys } from './useClustersList'
 

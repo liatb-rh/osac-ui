@@ -14,10 +14,7 @@ export function BootSourceStep({ state, update }: { state: WizardState; update: 
         <Title id="boot-source-heading" headingLevel="h2" size="xl">
           Boot source
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', introCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', introCss)}>
           Choose how the virtual machine will start. You can attach storage later if needed.
         </Content>
       </StackItem>

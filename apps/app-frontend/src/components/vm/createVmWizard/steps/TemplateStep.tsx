@@ -47,7 +47,6 @@ const WORKLOAD_FILTER_OPTIONS: { value: 'all' | TemplateWorkloadProfile; label: 
   { value: 'data-processing', label: 'Data processing' },
 ]
 
-
 export function TemplateStep({ state, update }: { state: WizardState; update: UpdateFn }) {
   const [osFilter, setOsFilter] = useState<string>('all')
   const [workloadFilter, setWorkloadFilter] = useState<string>('all')
@@ -87,17 +86,13 @@ export function TemplateStep({ state, update }: { state: WizardState; update: Up
     setSearch('')
   }
 
-
   return (
     <Stack hasGutter>
       <StackItem>
         <Title id="template-step-heading" headingLevel="h2" size="xl">
           Templates
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', introCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', introCss)}>
           Select a template to create your virtual machine from
         </Content>
       </StackItem>

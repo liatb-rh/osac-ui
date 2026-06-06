@@ -72,73 +72,81 @@ export function ClusterNetworkingTab({ cluster }: ClusterNetworkingTabProps) {
     <div className={rootCss}>
       {/* ── Top row: Virtual network + Egress policies ───────────────────── */}
       <div className={topRowCss}>
-      {/* ── Virtual network ───────────────────────────────────────────────── */}
-      <Card>
-        <CardTitle>Virtual network</CardTitle>
-        <CardBody>
-          <DescriptionList isHorizontal isCompact columnModifier={{ default: '1Col' }}>
-            <DescriptionListGroup>
-              <DescriptionListTerm>VNet</DescriptionListTerm>
-              <DescriptionListDescription>
-                <code>{vnName}</code>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Node subnet</DescriptionListTerm>
-              <DescriptionListDescription>
-                <code>{subnetName}</code>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>CNI</DescriptionListTerm>
-              <DescriptionListDescription>OVN-Kubernetes</DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Pod CIDR</DescriptionListTerm>
-              <DescriptionListDescription>
-                <code>{podCidr}</code>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Service CIDR</DescriptionListTerm>
-              <DescriptionListDescription>
-                <code>{serviceCidr}</code>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            {sgRefs.length > 0 && (
+        {/* ── Virtual network ───────────────────────────────────────────────── */}
+        <Card>
+          <CardTitle>Virtual network</CardTitle>
+          <CardBody>
+            <DescriptionList isHorizontal isCompact columnModifier={{ default: '1Col' }}>
               <DescriptionListGroup>
-                <DescriptionListTerm>Security groups</DescriptionListTerm>
+                <DescriptionListTerm>VNet</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <LabelGroup numLabels={8}>
-                    {sgRefs.map((sgId) => (
-                      <Label key={sgId} color="blue" isCompact>
-                        {resolveSgName(sgId)}
-                      </Label>
-                    ))}
-                  </LabelGroup>
+                  <code>{vnName}</code>
                 </DescriptionListDescription>
               </DescriptionListGroup>
-            )}
-          </DescriptionList>
-        </CardBody>
-      </Card>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Node subnet</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <code>{subnetName}</code>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>CNI</DescriptionListTerm>
+                <DescriptionListDescription>OVN-Kubernetes</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Pod CIDR</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <code>{podCidr}</code>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Service CIDR</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <code>{serviceCidr}</code>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              {sgRefs.length > 0 && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Security groups</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <LabelGroup numLabels={8}>
+                      {sgRefs.map((sgId) => (
+                        <Label key={sgId} color="blue" isCompact>
+                          {resolveSgName(sgId)}
+                        </Label>
+                      ))}
+                    </LabelGroup>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+            </DescriptionList>
+          </CardBody>
+        </Card>
 
-       {/* ── Egress policies ───────────────────────────────────────────────── */}
-       <Card>
-        <CardTitle>Egress policies</CardTitle>
-        <CardBody>
-          <LabelGroup>
-            <Label color="green" isCompact>allow: vast.{vnName}.internal</Label>
-            <Label color="green" isCompact>allow: registry.osac.internal</Label>
-            {cluster.status.network?.dnsRecords?.map((r) => (
-              <Label key={r} color="green" isCompact>allow: {r}</Label>
-            ))}
-            <Label color="orange" isCompact>deny: 0.0.0.0/0</Label>
-          </LabelGroup>
-        </CardBody>
-      </Card>
-
-      </div>{/* end top row */}
+        {/* ── Egress policies ───────────────────────────────────────────────── */}
+        <Card>
+          <CardTitle>Egress policies</CardTitle>
+          <CardBody>
+            <LabelGroup>
+              <Label color="green" isCompact>
+                allow: vast.{vnName}.internal
+              </Label>
+              <Label color="green" isCompact>
+                allow: registry.osac.internal
+              </Label>
+              {cluster.status.network?.dnsRecords?.map((r) => (
+                <Label key={r} color="green" isCompact>
+                  allow: {r}
+                </Label>
+              ))}
+              <Label color="orange" isCompact>
+                deny: 0.0.0.0/0
+              </Label>
+            </LabelGroup>
+          </CardBody>
+        </Card>
+      </div>
+      {/* end top row */}
 
       {/* ── Load balancers ────────────────────────────────────────────────── */}
       <Card>
@@ -155,11 +163,20 @@ export function ClusterNetworkingTab({ cluster }: ClusterNetworkingTabProps) {
             </Thead>
             <Tbody>
               <Tr>
-                <Td><code>api-{clusterName}</code></Td>
+                <Td>
+                  <code>api-{clusterName}</code>
+                </Td>
                 <Td>internal</Td>
                 <Td>
                   {apiPublicIp ? (
-                    <ClipboardCopy isReadOnly isCode hoverTip="Copy" clickTip="Copied" aria-label="Copy API IP" variant="inline-compact">
+                    <ClipboardCopy
+                      isReadOnly
+                      isCode
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      aria-label="Copy API IP"
+                      variant="inline-compact"
+                    >
                       {apiPublicIp}
                     </ClipboardCopy>
                   ) : (
@@ -169,11 +186,20 @@ export function ClusterNetworkingTab({ cluster }: ClusterNetworkingTabProps) {
                 <Td>3 control plane nodes</Td>
               </Tr>
               <Tr>
-                <Td><code>ingress-{clusterName}</code></Td>
+                <Td>
+                  <code>ingress-{clusterName}</code>
+                </Td>
                 <Td>internal</Td>
                 <Td>
                   {ingressPublicIp ? (
-                    <ClipboardCopy isReadOnly isCode hoverTip="Copy" clickTip="Copied" aria-label="Copy Ingress IP" variant="inline-compact">
+                    <ClipboardCopy
+                      isReadOnly
+                      isCode
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      aria-label="Copy Ingress IP"
+                      variant="inline-compact"
+                    >
                       {ingressPublicIp}
                     </ClipboardCopy>
                   ) : (
@@ -181,14 +207,14 @@ export function ClusterNetworkingTab({ cluster }: ClusterNetworkingTabProps) {
                   )}
                 </Td>
                 <Td>
-                  {Object.values(cluster.spec.nodeSets ?? {}).reduce((s, ns) => s + ns.size, 0)} workers
+                  {Object.values(cluster.spec.nodeSets ?? {}).reduce((s, ns) => s + ns.size, 0)}{' '}
+                  workers
                 </Td>
               </Tr>
             </Tbody>
           </Table>
         </CardBody>
       </Card>
-
     </div>
   )
 }

@@ -77,10 +77,7 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
         <Title id="guest-os-heading" headingLevel="h2" size="xl">
           Guest operating system
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', guestOsIntroCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', guestOsIntroCss)}>
           Choose a platform, then pick a specific version from the list below.
         </Content>
       </StackItem>
@@ -155,10 +152,7 @@ export function GuestOsStep({ state, update }: { state: WizardState; update: Upd
                   <CardBody>
                     <Stack hasGutter className={guestOsCardBodyStackCss}>
                       <StackItem>
-                        <Content
-                          component="h3"
-                          className={guestOsCardTitleCss}
-                        >
+                        <Content component="h3" className={guestOsCardTitleCss}>
                           {opt.title}
                         </Content>
                       </StackItem>

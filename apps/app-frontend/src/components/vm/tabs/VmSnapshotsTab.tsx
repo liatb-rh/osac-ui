@@ -1,7 +1,7 @@
 import { css } from '@emotion/css'
-import { Button, Flex, FlexItem, Content } from '@patternfly/react-core'
+import { Button, Content, Flex, FlexItem } from '@patternfly/react-core'
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
-import { CameraIcon } from '@patternfly/react-icons'
+import { CameraIcon } from '@patternfly/react-icons/dist/esm/icons/camera-icon'
 import type { ComputeInstance } from '@osac/api-contracts'
 
 interface Props {
@@ -9,8 +9,20 @@ interface Props {
 }
 
 const PLACEHOLDER_SNAPSHOTS = [
-  { name: '-pre-upgrade',   disk: 'boot',    size: '—',      class: 'vast-snap', created: '2026-06-04 02:15' },
-  { name: '-nightly-0603',  disk: 'data-01', size: '500 GiB', class: 'vast-snap', created: '2026-06-03 00:00' },
+  {
+    name: '-pre-upgrade',
+    disk: 'boot',
+    size: '—',
+    class: 'vast-snap',
+    created: '2026-06-04 02:15',
+  },
+  {
+    name: '-nightly-0603',
+    disk: 'data-01',
+    size: '500 GiB',
+    class: 'vast-snap',
+    created: '2026-06-03 00:00',
+  },
 ]
 
 const tabPaddingCss = css`

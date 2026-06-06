@@ -10,7 +10,9 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core'
-import { CopyIcon, EditIcon, TrashIcon } from '@patternfly/react-icons'
+import { CopyIcon } from '@patternfly/react-icons/dist/esm/icons/copy-icon'
+import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
+import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import type { ComputeInstance } from '@osac/api-contracts'
 
 interface Props {
@@ -84,7 +86,10 @@ export function VmDangerZoneTab({ vm, onDelete }: Props) {
                 alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    spaceItems={{ default: 'spaceItemsMd' }}
+                  >
                     <FlexItem>{row.icon}</FlexItem>
                     <FlexItem>
                       <Stack>

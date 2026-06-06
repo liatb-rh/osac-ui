@@ -19,7 +19,10 @@ import {
 } from '@patternfly/react-core'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import { DEMO_TENANT_DISPLAY_USER } from '@osac/api-contracts'
-import type { CreateVmWizardHandle, DeploymentMode } from '../components/vm/createVmWizard/CreateVmWizard'
+import type {
+  CreateVmWizardHandle,
+  DeploymentMode,
+} from '../components/vm/createVmWizard/CreateVmWizard'
 import { CreateVmWizard } from '../components/vm/createVmWizard/CreateVmWizard'
 import { PageHeader } from '../components/layout'
 import { DashboardQuotaSection, DashboardUtilizationSection } from '../components/dashboard'

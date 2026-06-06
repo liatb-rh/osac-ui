@@ -29,9 +29,9 @@ import {
   WizardStep,
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
-import { PlusCircleIcon } from '@patternfly/react-icons'
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { Agent, AgentState } from '@osac/api-contracts'
-import { OcTable, OcLink } from '@osac/ui-components'
+import { OcLink, OcTable } from '@osac/ui-components'
 import type { OcTableColumn } from '@osac/ui-components'
 import { useAgents, useDeprovisionAgent, useProvisionAgent } from '../../hooks/useAgents'
 import { PageHeader } from '../../components/layout'
@@ -62,19 +62,19 @@ const subtleTextCss = css`
 `
 
 const STATE_TONE: Record<AgentState, 'green' | 'blue' | 'yellow' | 'red' | 'grey'> = {
-  AGENT_STATE_AVAILABLE:     'green',
-  AGENT_STATE_PROVISIONING:  'blue',
-  AGENT_STATE_PROVISIONED:   'grey',
-  AGENT_STATE_DEPROVISIONING:'yellow',
-  AGENT_STATE_UNAVAILABLE:   'red',
+  AGENT_STATE_AVAILABLE: 'green',
+  AGENT_STATE_PROVISIONING: 'blue',
+  AGENT_STATE_PROVISIONED: 'grey',
+  AGENT_STATE_DEPROVISIONING: 'yellow',
+  AGENT_STATE_UNAVAILABLE: 'red',
 }
 
 const STATE_LABEL: Record<AgentState, string> = {
-  AGENT_STATE_AVAILABLE:     'available',
-  AGENT_STATE_PROVISIONING:  'provisioning',
-  AGENT_STATE_PROVISIONED:   'provisioned',
-  AGENT_STATE_DEPROVISIONING:'deprovisioning',
-  AGENT_STATE_UNAVAILABLE:   'unreachable',
+  AGENT_STATE_AVAILABLE: 'available',
+  AGENT_STATE_PROVISIONING: 'provisioning',
+  AGENT_STATE_PROVISIONED: 'provisioned',
+  AGENT_STATE_DEPROVISIONING: 'deprovisioning',
+  AGENT_STATE_UNAVAILABLE: 'unreachable',
 }
 
 function AgentStatusLabel({ state }: { state: AgentState }) {
@@ -83,9 +83,9 @@ function AgentStatusLabel({ state }: { state: AgentState }) {
       isCompact
       color={STATE_TONE[state] ?? 'grey'}
       icon={
-        (state === 'AGENT_STATE_PROVISIONING' || state === 'AGENT_STATE_DEPROVISIONING')
-          ? <Spinner size="sm" aria-label={STATE_LABEL[state]} />
-          : undefined
+        state === 'AGENT_STATE_PROVISIONING' || state === 'AGENT_STATE_DEPROVISIONING' ? (
+          <Spinner size="sm" aria-label={STATE_LABEL[state]} />
+        ) : undefined
       }
     >
       {STATE_LABEL[state] ?? state}
@@ -96,7 +96,8 @@ function AgentStatusLabel({ state }: { state: AgentState }) {
 function shortProfile(profile: string | undefined): string {
   if (!profile) return '—'
   const m = profile.match(/baremetal-([^-]+)-(\d+c)-(\d+g)(?:-(.+))?/)
-  if (m) return `${m[1]} · ${m[2].toUpperCase()} / ${m[3].toUpperCase()}${m[4] ? ` · ${m[4].toUpperCase()}` : ''}`
+  if (m)
+    return `${m[1]} · ${m[2].toUpperCase()} / ${m[3].toUpperCase()}${m[4] ? ` · ${m[4].toUpperCase()}` : ''}`
   return profile
 }
 
@@ -112,8 +113,7 @@ function ProvisionAgentWizard({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [cluster, setCluster] = useState('prod-ocp')
   const [sshKey, setSshKey] = useState('ssh-ed25519 AAAA... ops@northstar')
 
-  const enrollCmd =
-    `curl -sSL https://osac.northstar/agent/install.sh | sudo bash -s -- \\
+  const enrollCmd = `curl -sSL https://osac.northstar/agent/install.sh | sudo bash -s -- \\
   --hostname ${hostname} --az ${az} --host-type ${hostType} \\
   --vnet ${vnet} --channel ${channel} \\
   --enroll-token $(osac-cli agents new-token)`
@@ -147,7 +147,7 @@ function ProvisionAgentWizard({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 <FormSelect id="ht" value={hostType} onChange={(_, v) => setHostType(v)}>
                   {[
                     { id: 'baremetal-standard-48c-192g', label: 'Standard (48c / 192G)' },
-                    { id: 'baremetal-high-64c-1024g',    label: 'High memory (64c / 1024G)' },
+                    { id: 'baremetal-high-64c-1024g', label: 'High memory (64c / 1024G)' },
                     { id: 'baremetal-gpu-96c-1024g-h100', label: 'GPU (96c / 1024G · H100)' },
                   ].map((h) => (
                     <FormSelectOption key={h.id} value={h.id} label={h.label} />
@@ -224,15 +224,24 @@ function ProvisionAgentWizard({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 <div className={summaryCardPaddingCss}>
                   <strong>Summary</strong>
                   <ul className={summaryListCss}>
-                    <li>{hostname} · {az} · <code>{shortProfile(hostType)}</code></li>
-                    <li>Network: {vnet} · Channel: {channel}</li>
+                    <li>
+                      {hostname} · {az} · <code>{shortProfile(hostType)}</code>
+                    </li>
+                    <li>
+                      Network: {vnet} · Channel: {channel}
+                    </li>
                     <li>{autoJoin ? `Auto-join cluster ${cluster}` : 'Manual cluster join'}</li>
                   </ul>
                 </div>
               </Card>
               <div>
                 <div className={enrollLabelCss}>Run on the target host</div>
-                <ClipboardCopy isCode hoverTip="Copy" clickTip="Copied" variant={ClipboardCopyVariant.expansion}>
+                <ClipboardCopy
+                  isCode
+                  hoverTip="Copy"
+                  clickTip="Copied"
+                  variant={ClipboardCopyVariant.expansion}
+                >
                   {enrollCmd}
                 </ClipboardCopy>
               </div>
@@ -272,9 +281,7 @@ export function InfrastructureAgentsPage() {
     {
       label: 'Hostname',
       render: (a) => (
-        <OcLink onClick={() => navigate(`/agents/${a.id}`)}>
-          {a.metadata?.name ?? a.id}
-        </OcLink>
+        <OcLink onClick={() => navigate(`/agents/${a.id}`)}>{a.metadata?.name ?? a.id}</OcLink>
       ),
     },
     {

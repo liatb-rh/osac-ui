@@ -827,12 +827,32 @@ export const DEMO_ORGANIZATIONS: Organization[] = [
       lastHealthCheck: '2026-06-04T01:00:00Z',
     },
     tenantAdmins: [
-      { id: 'ta-northstar-1', email: 'admin@northstar-bank.internal', isBreakGlass: false, createdAt: '2024-03-15T00:00:00Z' },
-      { id: 'ta-northstar-bg', email: 'breakglass@northstar.osac.internal', isBreakGlass: true, createdAt: '2024-03-15T00:00:00Z' },
+      {
+        id: 'ta-northstar-1',
+        email: 'admin@northstar-bank.internal',
+        isBreakGlass: false,
+        createdAt: '2024-03-15T00:00:00Z',
+      },
+      {
+        id: 'ta-northstar-bg',
+        email: 'breakglass@northstar.osac.internal',
+        isBreakGlass: true,
+        createdAt: '2024-03-15T00:00:00Z',
+      },
     ],
     projects: [
-      { id: 'proj-northstar-default', name: 'default', openshiftNamespace: 'osac-org-northstar-project-default', createdAt: '2024-03-15T00:00:00Z' },
-      { id: 'proj-northstar-prod', name: 'production', openshiftNamespace: 'osac-org-northstar-project-production', createdAt: '2024-06-01T00:00:00Z' },
+      {
+        id: 'proj-northstar-default',
+        name: 'default',
+        openshiftNamespace: 'osac-org-northstar-project-default',
+        createdAt: '2024-03-15T00:00:00Z',
+      },
+      {
+        id: 'proj-northstar-prod',
+        name: 'production',
+        openshiftNamespace: 'osac-org-northstar-project-production',
+        createdAt: '2024-06-01T00:00:00Z',
+      },
     ],
   },
   {
@@ -851,10 +871,20 @@ export const DEMO_ORGANIZATIONS: Organization[] = [
       lastHealthCheck: '2026-06-03T18:30:00Z',
     },
     tenantAdmins: [
-      { id: 'ta-evergreen-bg', email: 'breakglass@evergreen.osac.internal', isBreakGlass: true, createdAt: '2024-05-01T00:00:00Z' },
+      {
+        id: 'ta-evergreen-bg',
+        email: 'breakglass@evergreen.osac.internal',
+        isBreakGlass: true,
+        createdAt: '2024-05-01T00:00:00Z',
+      },
     ],
     projects: [
-      { id: 'proj-evergreen-default', name: 'default', openshiftNamespace: 'osac-org-evergreen-project-default', createdAt: '2024-05-01T00:00:00Z' },
+      {
+        id: 'proj-evergreen-default',
+        name: 'default',
+        openshiftNamespace: 'osac-org-evergreen-project-default',
+        createdAt: '2024-05-01T00:00:00Z',
+      },
     ],
   },
 ]
@@ -978,21 +1008,43 @@ export const DEMO_CLUSTERS: Cluster[] = [
       network: {
         apiPublicIp: '203.0.113.10',
         ingressPublicIp: '203.0.113.11',
-        dnsRecords: [
-          'api.northstar-prod-1.example.com',
-          '*.apps.northstar-prod-1.example.com',
-        ],
+        dnsRecords: ['api.northstar-prod-1.example.com', '*.apps.northstar-prod-1.example.com'],
       },
       storage: {
         csiDriver: 'csi.vastdata.com',
         storageClasses: [
-          { name: 'vast-standard', tier: 'tier-standard', isDefault: true, parameters: { backend: 'vast-prod', qos: 'standard-qos' } },
-          { name: 'vast-fast', tier: 'tier-fast', isDefault: false, parameters: { backend: 'vast-prod', qos: 'high-performance-qos' } },
-          { name: 'vast-archive', tier: 'tier-archive', isDefault: false, parameters: { backend: 'vast-prod', qos: 'low-qos' } },
+          {
+            name: 'vast-standard',
+            tier: 'tier-standard',
+            isDefault: true,
+            parameters: { backend: 'vast-prod', qos: 'standard-qos' },
+          },
+          {
+            name: 'vast-fast',
+            tier: 'tier-fast',
+            isDefault: false,
+            parameters: { backend: 'vast-prod', qos: 'high-performance-qos' },
+          },
+          {
+            name: 'vast-archive',
+            tier: 'tier-archive',
+            isDefault: false,
+            parameters: { backend: 'vast-prod', qos: 'low-qos' },
+          },
         ],
         volumeSnapshotClasses: [
-          { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
-          { name: 'vast-snapshot-retain', driver: 'csi.vastdata.com', deletionPolicy: 'Retain', isDefault: false },
+          {
+            name: 'vast-snapshot',
+            driver: 'csi.vastdata.com',
+            deletionPolicy: 'Delete',
+            isDefault: true,
+          },
+          {
+            name: 'vast-snapshot-retain',
+            driver: 'csi.vastdata.com',
+            deletionPolicy: 'Retain',
+            isDefault: false,
+          },
         ],
       },
       conditions: [
@@ -1073,18 +1125,25 @@ export const DEMO_CLUSTERS: Cluster[] = [
       network: {
         apiPublicIp: '203.0.113.20',
         ingressPublicIp: '203.0.113.21',
-        dnsRecords: [
-          'api.evergreen-prod-1.example.com',
-          '*.apps.evergreen-prod-1.example.com',
-        ],
+        dnsRecords: ['api.evergreen-prod-1.example.com', '*.apps.evergreen-prod-1.example.com'],
       },
       storage: {
         csiDriver: 'csi.vastdata.com',
         storageClasses: [
-          { name: 'vast-standard', tier: 'tier-standard', isDefault: true, parameters: { backend: 'vast-prod', qos: 'standard-qos' } },
+          {
+            name: 'vast-standard',
+            tier: 'tier-standard',
+            isDefault: true,
+            parameters: { backend: 'vast-prod', qos: 'standard-qos' },
+          },
         ],
         volumeSnapshotClasses: [
-          { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
+          {
+            name: 'vast-snapshot',
+            driver: 'csi.vastdata.com',
+            deletionPolicy: 'Delete',
+            isDefault: true,
+          },
         ],
       },
       conditions: [
@@ -1135,7 +1194,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
           type: 'CLUSTER_CONDITION_TYPE_FAILED',
           status: 'CONDITION_STATUS_TRUE',
           reason: 'InsufficientBaremetalCapacity',
-          message: 'Could not allocate baremetal hosts: no available hosts matching profile "baremetal-standard" in zone eu-west-1a. Quota exhausted or all hosts are in use.',
+          message:
+            'Could not allocate baremetal hosts: no available hosts matching profile "baremetal-standard" in zone eu-west-1a. Quota exhausted or all hosts are in use.',
           lastTransitionTime: '2026-05-28T09:45:00Z',
         },
         {
@@ -1188,7 +1248,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
           type: 'CLUSTER_CONDITION_TYPE_PROGRESSING',
           status: 'CONDITION_STATUS_TRUE',
           reason: 'RollingUpdate',
-          message: 'Upgrading cluster from 4.16.8 to 4.17.3. Worker nodes rolling update in progress: 1 of 3 nodes updated.',
+          message:
+            'Upgrading cluster from 4.16.8 to 4.17.3. Worker nodes rolling update in progress: 1 of 3 nodes updated.',
           lastTransitionTime: '2026-06-03T22:10:00Z',
         },
         {
@@ -1244,7 +1305,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
           type: 'CLUSTER_CONDITION_TYPE_FAILED',
           status: 'CONDITION_STATUS_TRUE',
           reason: 'UpgradeOperatorTimeout',
-          message: 'Cluster upgrade to 4.17.3 failed: machine-config operator did not complete rollout within 60 minutes. Node "worker-2" is stuck in degraded state. Manual intervention may be required.',
+          message:
+            'Cluster upgrade to 4.17.3 failed: machine-config operator did not complete rollout within 60 minutes. Node "worker-2" is stuck in degraded state. Manual intervention may be required.',
           lastTransitionTime: '2026-06-01T14:22:00Z',
         },
         {
@@ -1304,19 +1366,31 @@ export const DEMO_CLUSTERS: Cluster[] = [
       network: {
         apiPublicIp: '203.0.113.40',
         ingressPublicIp: '203.0.113.41',
-        dnsRecords: [
-          'api.vertexa-ml-1.example.com',
-          '*.apps.vertexa-ml-1.example.com',
-        ],
+        dnsRecords: ['api.vertexa-ml-1.example.com', '*.apps.vertexa-ml-1.example.com'],
       },
       storage: {
         csiDriver: 'csi.vastdata.com',
         storageClasses: [
-          { name: 'vast-standard', tier: 'tier-standard', isDefault: true, parameters: { backend: 'vast-prod', qos: 'standard-qos' } },
-          { name: 'vast-fast', tier: 'tier-fast', isDefault: false, parameters: { backend: 'vast-prod', qos: 'high-performance-qos' } },
+          {
+            name: 'vast-standard',
+            tier: 'tier-standard',
+            isDefault: true,
+            parameters: { backend: 'vast-prod', qos: 'standard-qos' },
+          },
+          {
+            name: 'vast-fast',
+            tier: 'tier-fast',
+            isDefault: false,
+            parameters: { backend: 'vast-prod', qos: 'high-performance-qos' },
+          },
         ],
         volumeSnapshotClasses: [
-          { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Retain', isDefault: true },
+          {
+            name: 'vast-snapshot',
+            driver: 'csi.vastdata.com',
+            deletionPolicy: 'Retain',
+            isDefault: true,
+          },
         ],
       },
       conditions: [
@@ -1627,13 +1701,21 @@ export const DEMO_PUBLIC_IPS: PublicIP[] = [
     id: 'pip-1',
     metadata: { name: 'web-frontend-ip', createdAt: '2025-03-10T10:00:00Z' },
     spec: { pool: 'pool-public-main', computeInstance: 'ci-001' },
-    status: { state: 'PUBLIC_IP_STATE_ATTACHED', address: '203.0.113.10', pool: 'pool-public-main' },
+    status: {
+      state: 'PUBLIC_IP_STATE_ATTACHED',
+      address: '203.0.113.10',
+      pool: 'pool-public-main',
+    },
   },
   {
     id: 'pip-2',
     metadata: { name: 'spare-ip', createdAt: '2025-04-01T14:00:00Z' },
     spec: { pool: 'pool-public-main' },
-    status: { state: 'PUBLIC_IP_STATE_ALLOCATED', address: '203.0.113.25', pool: 'pool-public-main' },
+    status: {
+      state: 'PUBLIC_IP_STATE_ALLOCATED',
+      address: '203.0.113.25',
+      pool: 'pool-public-main',
+    },
   },
   {
     id: 'pip-3',

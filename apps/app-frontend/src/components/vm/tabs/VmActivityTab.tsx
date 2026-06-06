@@ -33,13 +33,17 @@ const tabPaddingCss = css`
 `
 
 const ACTIVITY_COLUMNS: OcTableColumn<Condition>[] = [
-  { label: 'When',    dataLabel: 'When',    render: (c) => formatIsoDate(c.lastTransitionTime) },
-  { label: 'Type',    dataLabel: 'Type',    render: (c) => humanizeType(c.type) },
-  { label: 'Status',  dataLabel: 'Status',  render: (c) => (
-    <Label color={conditionStatusColor(c.status)} isCompact>
-      {formatConditionStatusForDisplay(c.status)}
-    </Label>
-  )},
+  { label: 'When', dataLabel: 'When', render: (c) => formatIsoDate(c.lastTransitionTime) },
+  { label: 'Type', dataLabel: 'Type', render: (c) => humanizeType(c.type) },
+  {
+    label: 'Status',
+    dataLabel: 'Status',
+    render: (c) => (
+      <Label color={conditionStatusColor(c.status)} isCompact>
+        {formatConditionStatusForDisplay(c.status)}
+      </Label>
+    ),
+  },
   { label: 'Message', dataLabel: 'Message', render: (c) => c.message ?? c.reason ?? '—' },
 ]
 

@@ -66,7 +66,11 @@ export interface ClusterOfferingsPageProps {
 export function ClusterOfferingsPage({ role = 'providerAdmin' }: ClusterOfferingsPageProps) {
   const navigate = useNavigate()
   const isProvider = role === 'providerAdmin'
-  const { data: items, isLoading, error } = useClusterCatalogItems({ includeUnpublished: isProvider })
+  const {
+    data: items,
+    isLoading,
+    error,
+  } = useClusterCatalogItems({ includeUnpublished: isProvider })
 
   const [enabled, setEnabled] = useState<Record<string, boolean>>({})
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -99,12 +103,7 @@ export function ClusterOfferingsPage({ role = 'providerAdmin' }: ClusterOffering
       />
 
       {saveSuccess && (
-        <Alert
-          variant="success"
-          title={saveSuccess}
-          isInline
-          className={alertSpacingCss}
-        />
+        <Alert variant="success" title={saveSuccess} isInline className={alertSpacingCss} />
       )}
 
       {error && (
@@ -249,11 +248,22 @@ function NewOfferingWizard({ onDone }: { onDone: () => void }) {
 
       <WizardStep name="Review" id="rev" footer={{ nextButtonText: 'Publish offering' }}>
         <div className={reviewGridCss}>
-          <div><strong>Name:</strong> {name}</div>
-          <div><strong>OCP version:</strong> {ocp}</div>
-          <div><strong>Maturity:</strong> {risk}</div>
-          <div><strong>Min nodes:</strong> {minNodes}{multiZone ? ' · multi-AZ control plane' : ''}</div>
-          <div><strong>GPU:</strong> {gpu ? 'enabled' : 'disabled'}</div>
+          <div>
+            <strong>Name:</strong> {name}
+          </div>
+          <div>
+            <strong>OCP version:</strong> {ocp}
+          </div>
+          <div>
+            <strong>Maturity:</strong> {risk}
+          </div>
+          <div>
+            <strong>Min nodes:</strong> {minNodes}
+            {multiZone ? ' · multi-AZ control plane' : ''}
+          </div>
+          <div>
+            <strong>GPU:</strong> {gpu ? 'enabled' : 'disabled'}
+          </div>
           <div className={reviewFootnoteCss}>
             This offering will be available to tenants once enabled in the list.
           </div>

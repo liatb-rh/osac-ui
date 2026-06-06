@@ -8,7 +8,14 @@ interface ClusterStatusLabelProps {
   state: ClusterState
 }
 
-const STATE_CONFIG: Record<ClusterState, { color: 'blue' | 'green' | 'red' | 'grey' | 'orange' | 'purple' | 'cyan' | 'gold'; text: string; spinning?: boolean }> = {
+const STATE_CONFIG: Record<
+  ClusterState,
+  {
+    color: 'blue' | 'green' | 'red' | 'grey' | 'orange' | 'purple' | 'cyan' | 'gold'
+    text: string
+    spinning?: boolean
+  }
+> = {
   CLUSTER_STATE_PROGRESSING: { color: 'blue', text: 'Provisioning', spinning: true },
   CLUSTER_STATE_READY: { color: 'green', text: 'Ready' },
   CLUSTER_STATE_FAILED: { color: 'red', text: 'Failed' },
@@ -20,7 +27,10 @@ const STATE_CONFIG: Record<ClusterState, { color: 'blue' | 'green' | 'red' | 'gr
 export function ClusterStatusLabel({ state }: ClusterStatusLabelProps) {
   const config = STATE_CONFIG[state] ?? STATE_CONFIG.CLUSTER_STATE_UNSPECIFIED
   return (
-    <Label color={config.color} icon={config.spinning ? <Spinner size="sm" aria-label={config.text} /> : undefined}>
+    <Label
+      color={config.color}
+      icon={config.spinning ? <Spinner size="sm" aria-label={config.text} /> : undefined}
+    >
       <span className="pf-v5-screen-reader">{`Cluster state: `}</span>
       {config.text}
     </Label>

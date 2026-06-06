@@ -42,12 +42,7 @@ function MetricCard({ title, unit, amplitude, offset }: MetricCardProps) {
     <Card>
       <CardTitle>{title}</CardTitle>
       <CardBody>
-        <svg
-          viewBox="0 0 300 60"
-          preserveAspectRatio="none"
-          aria-hidden
-          className={svgCss}
-        >
+        <svg viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden className={svgCss}>
           <polyline
             points={pts}
             fill="none"
@@ -62,10 +57,10 @@ function MetricCard({ title, unit, amplitude, offset }: MetricCardProps) {
 }
 
 const METRICS: MetricCardProps[] = [
-  { title: 'CPU utilization',    unit: '% over last hour',   amplitude: 12, offset: 0   },
-  { title: 'Memory usage',       unit: 'GiB over last hour', amplitude: 5,  offset: 1.2 },
-  { title: 'Disk read / write',  unit: 'MiB/s',              amplitude: 18, offset: 2.4 },
-  { title: 'Network in / out',   unit: 'Mbps',               amplitude: 9,  offset: 3.7 },
+  { title: 'CPU utilization', unit: '% over last hour', amplitude: 12, offset: 0 },
+  { title: 'Memory usage', unit: 'GiB over last hour', amplitude: 5, offset: 1.2 },
+  { title: 'Disk read / write', unit: 'MiB/s', amplitude: 18, offset: 2.4 },
+  { title: 'Network in / out', unit: 'Mbps', amplitude: 9, offset: 3.7 },
 ]
 
 export function VmMetricsTab() {

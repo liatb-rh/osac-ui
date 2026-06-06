@@ -5,7 +5,7 @@
  */
 import { css, cx } from '@emotion/css'
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,16 +26,16 @@ import {
   PageSection,
   Spinner,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
 } from '@patternfly/react-core'
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table'
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import { OcCard } from '@osac/ui-components'
 import { useStorageTiers } from '../../hooks/useAgents'
 import { PageHeader } from '../../components/layout'
-import { tierMeta, MOCK_CONSUMERS } from './StorageTiersPage'
+import { MOCK_CONSUMERS, tierMeta } from './StorageTiersPage'
 
 const tabContentCss = css`
   padding-top: 16px;
@@ -113,7 +113,11 @@ export function StorageTierDetailPage() {
   const tier = (tiers ?? []).find((t) => t.id === id)
 
   if (isLoading) {
-    return <PageSection><Spinner aria-label="Loading tier" /></PageSection>
+    return (
+      <PageSection>
+        <Spinner aria-label="Loading tier" />
+      </PageSection>
+    )
   }
 
   if (!tier) {
@@ -153,10 +157,10 @@ export function StorageTierDetailPage() {
   ].join('\n')
 
   const conditions = [
-    { type: 'TIER_CONDITION_BACKEND_HEALTHY',        ok: true },
-    { type: 'TIER_CONDITION_CSI_INSTALLED',          ok: true },
+    { type: 'TIER_CONDITION_BACKEND_HEALTHY', ok: true },
+    { type: 'TIER_CONDITION_CSI_INSTALLED', ok: true },
     { type: 'TIER_CONDITION_STORAGECLASS_RECONCILED', ok: consumers.length > 0 },
-    { type: 'TIER_CONDITION_QUOTA_AVAILABLE',         ok: usedPct < 90 },
+    { type: 'TIER_CONDITION_QUOTA_AVAILABLE', ok: usedPct < 90 },
   ]
 
   return (
@@ -177,8 +181,12 @@ export function StorageTierDetailPage() {
         description={meta.description}
         actions={
           <>
-            <Button variant="secondary" icon={<EditIcon />}>Edit tier</Button>
-            <Button variant="danger" icon={<TrashIcon />} isDisabled={consumers.length > 0}>Retire</Button>
+            <Button variant="secondary" icon={<EditIcon />}>
+              Edit tier
+            </Button>
+            <Button variant="danger" icon={<TrashIcon />} isDisabled={consumers.length > 0}>
+              Retire
+            </Button>
           </>
         }
       />
@@ -188,9 +196,11 @@ export function StorageTierDetailPage() {
         <OcCard
           label="Status"
           value={tier.available ? 'Available' : 'Disabled'}
-          accentColor={tier.available
-            ? 'var(--pf-t--global--color--status--success--default)'
-            : 'var(--pf-t--global--color--status--danger--default)'}
+          accentColor={
+            tier.available
+              ? 'var(--pf-t--global--color--status--success--default)'
+              : 'var(--pf-t--global--color--status--danger--default)'
+          }
         />
         <OcCard label="IOPS" value={meta.iops} hint="per view" />
         <OcCard label="Throughput" value={`${meta.throughputGbps} GB/s`} hint="sustained" />
@@ -199,9 +209,15 @@ export function StorageTierDetailPage() {
           label="Capacity"
           value={`${meta.usedTib} / ${meta.capacityTib} TiB`}
           hint={`${usedPct}% used`}
-          accentColor={usedPct > 80 ? 'var(--pf-t--global--color--status--warning--default)' : undefined}
+          accentColor={
+            usedPct > 80 ? 'var(--pf-t--global--color--status--warning--default)' : undefined
+          }
         />
-        <OcCard label="Consumers" value={totalPvcs} hint={`${consumers.length} tenant${consumers.length !== 1 ? 's' : ''}`} />
+        <OcCard
+          label="Consumers"
+          value={totalPvcs}
+          hint={`${consumers.length} tenant${consumers.length !== 1 ? 's' : ''}`}
+        />
       </div>
 
       <Tabs activeKey={tab} onSelect={(_, k) => setTab(k)} aria-label="Tier detail tabs">
@@ -214,7 +230,9 @@ export function StorageTierDetailPage() {
                 <DescriptionList isHorizontal isCompact>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Tier ID</DescriptionListTerm>
-                    <DescriptionListDescription><code>{tier.id}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{tier.id}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Media</DescriptionListTerm>
@@ -255,10 +273,15 @@ export function StorageTierDetailPage() {
                   {conditions.map((c, i) => (
                     <li
                       key={c.type}
-                      className={cx(conditionItemBaseCss, i < conditions.length - 1 && conditionItemBorderCss)}
+                      className={cx(
+                        conditionItemBaseCss,
+                        i < conditions.length - 1 && conditionItemBorderCss,
+                      )}
                     >
                       <code className={conditionTypeCodeCss}>{c.type}</code>
-                      <Label isCompact color={c.ok ? 'green' : 'red'}>{c.ok ? 'True' : 'False'}</Label>
+                      <Label isCompact color={c.ok ? 'green' : 'red'}>
+                        {c.ok ? 'True' : 'False'}
+                      </Label>
                     </li>
                   ))}
                 </ul>
@@ -276,7 +299,9 @@ export function StorageTierDetailPage() {
                 <DescriptionList isHorizontal isCompact>
                   <DescriptionListGroup>
                     <DescriptionListTerm>VAST cluster</DescriptionListTerm>
-                    <DescriptionListDescription><code>{meta.vastCluster}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{meta.vastCluster}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Protocol</DescriptionListTerm>
@@ -284,11 +309,15 @@ export function StorageTierDetailPage() {
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>VIP Pool</DescriptionListTerm>
-                    <DescriptionListDescription><code>{tier.vipPool ?? '—'}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{tier.vipPool ?? '—'}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>View prefix</DescriptionListTerm>
-                    <DescriptionListDescription><code>{viewPrefix}</code></DescriptionListDescription>
+                    <DescriptionListDescription>
+                      <code>{viewPrefix}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Example view ({sampleTenant})</DescriptionListTerm>
@@ -306,13 +335,21 @@ export function StorageTierDetailPage() {
         <Tab eventKey="csi" title={<TabTitleText>CSI / StorageClass</TabTitleText>}>
           <div className={tabContentCss}>
             <Card>
-              <CardTitle>Per-tenant manifest (example: <code>{sampleTenant}</code>)</CardTitle>
+              <CardTitle>
+                Per-tenant manifest (example: <code>{sampleTenant}</code>)
+              </CardTitle>
               <CardBody>
-                <ClipboardCopy isCode hoverTip="Copy" clickTip="Copied" variant={ClipboardCopyVariant.expansion}>
+                <ClipboardCopy
+                  isCode
+                  hoverTip="Copy"
+                  clickTip="Copied"
+                  variant={ClipboardCopyVariant.expansion}
+                >
                   {scYaml}
                 </ClipboardCopy>
                 <div className={csiNoteCss}>
-                  VolumeSnapshotClass installed alongside: <code>{vscTemplate.replace('{tenant}', sampleTenant)}</code>
+                  VolumeSnapshotClass installed alongside:{' '}
+                  <code>{vscTemplate.replace('{tenant}', sampleTenant)}</code>
                 </div>
               </CardBody>
             </Card>
@@ -320,26 +357,39 @@ export function StorageTierDetailPage() {
         </Tab>
 
         {/* ── Consumers ── */}
-        <Tab eventKey="consumers" title={<TabTitleText>Consumers ({consumers.length})</TabTitleText>}>
+        <Tab
+          eventKey="consumers"
+          title={<TabTitleText>Consumers ({consumers.length})</TabTitleText>}
+        >
           <div className={tabContentCss}>
             <div className={panelCss}>
               {consumers.length === 0 ? (
-                <div className={emptyConsumersCss}>
-                  No tenants are consuming this tier yet.
-                </div>
+                <div className={emptyConsumersCss}>No tenants are consuming this tier yet.</div>
               ) : (
                 <Table aria-label="Consumers">
                   <Thead>
-                    <Tr><Th>Tenant</Th><Th>Clusters</Th><Th>PVCs</Th><Th>Used</Th><Th>StorageClass</Th></Tr>
+                    <Tr>
+                      <Th>Tenant</Th>
+                      <Th>Clusters</Th>
+                      <Th>PVCs</Th>
+                      <Th>Used</Th>
+                      <Th>StorageClass</Th>
+                    </Tr>
                   </Thead>
                   <Tbody>
                     {consumers.map((c) => (
                       <Tr key={c.tenant}>
-                        <Td><strong>{c.tenant}</strong></Td>
+                        <Td>
+                          <strong>{c.tenant}</strong>
+                        </Td>
                         <Td>{c.clusters.join(', ')}</Td>
                         <Td>{c.pvcs}</Td>
                         <Td>{c.usedTib} TiB</Td>
-                        <Td><code className={storageClassCodeCss}>{scTemplate.replace('{tenant}', c.tenant)}</code></Td>
+                        <Td>
+                          <code className={storageClassCodeCss}>
+                            {scTemplate.replace('{tenant}', c.tenant)}
+                          </code>
+                        </Td>
                       </Tr>
                     ))}
                   </Tbody>
@@ -355,23 +405,43 @@ export function StorageTierDetailPage() {
             <div className={panelCss}>
               <Table aria-label="Activity log">
                 <Thead>
-                  <Tr><Th>When</Th><Th>Actor</Th><Th>Action</Th><Th>Result</Th></Tr>
+                  <Tr>
+                    <Th>When</Th>
+                    <Th>Actor</Th>
+                    <Th>Action</Th>
+                    <Th>Result</Th>
+                  </Tr>
                 </Thead>
                 <Tbody>
                   <Tr>
-                    <Td>2026-06-05 09:14</Td><Td>system</Td>
+                    <Td>2026-06-05 09:14</Td>
+                    <Td>system</Td>
                     <Td>Reconciled StorageClass on dev-ocp</Td>
-                    <Td><Label color="green" isCompact>success</Label></Td>
+                    <Td>
+                      <Label color="green" isCompact>
+                        success
+                      </Label>
+                    </Td>
                   </Tr>
                   <Tr>
-                    <Td>2026-06-03 17:02</Td><Td>platform@osac</Td>
+                    <Td>2026-06-03 17:02</Td>
+                    <Td>platform@osac</Td>
                     <Td>Increased capacity by 80 TiB</Td>
-                    <Td><Label color="green" isCompact>success</Label></Td>
+                    <Td>
+                      <Label color="green" isCompact>
+                        success
+                      </Label>
+                    </Td>
                   </Tr>
                   <Tr>
-                    <Td>2026-05-22 11:30</Td><Td>platform@osac</Td>
+                    <Td>2026-05-22 11:30</Td>
+                    <Td>platform@osac</Td>
                     <Td>Installed CSI driver {meta.csiDriver}</Td>
-                    <Td><Label color="green" isCompact>success</Label></Td>
+                    <Td>
+                      <Label color="green" isCompact>
+                        success
+                      </Label>
+                    </Td>
                   </Tr>
                 </Tbody>
               </Table>

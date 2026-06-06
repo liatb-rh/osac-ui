@@ -36,7 +36,11 @@ import {
 } from '@patternfly/react-core'
 import type { ClusterCatalogItem } from '@osac/api-contracts'
 import { useCreateCluster } from '../../hooks/useCreateCluster'
-import { useClusterCatalogItems, useSubnets, useVirtualNetworks } from '../../hooks/useClusterCatalogItems'
+import {
+  useClusterCatalogItems,
+  useSubnets,
+  useVirtualNetworks,
+} from '../../hooks/useClusterCatalogItems'
 import { useSecurityGroups } from '../../hooks/useNetworking'
 
 interface CreateClusterModalProps {
@@ -96,7 +100,9 @@ function buildPayload(catalogItem: ClusterCatalogItem, form: FormState) {
     if (fd.path.startsWith('spec.node_sets.') && fd.path.endsWith('.size')) {
       const parts = fd.path.split('.')
       const nodeSetKey = parts[2]
-      nodeSets[nodeSetKey] = { size: Number(form.fieldValues[fd.path] ?? (fd.default as { value?: number })?.value ?? 1) }
+      nodeSets[nodeSetKey] = {
+        size: Number(form.fieldValues[fd.path] ?? (fd.default as { value?: number })?.value ?? 1),
+      }
     }
   }
   return {
@@ -125,7 +131,12 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
   const [nameError, setNameError] = useState<string | null>(null)
   const [sgSelectOpen, setSgSelectOpen] = useState(false)
 
-  const { data: catalogItems, isLoading: catalogLoading, error: catalogError, refetch: retryCatalog } = useClusterCatalogItems()
+  const {
+    data: catalogItems,
+    isLoading: catalogLoading,
+    error: catalogError,
+    refetch: retryCatalog,
+  } = useClusterCatalogItems()
   const { data: virtualNetworks, isLoading: vnLoading } = useVirtualNetworks()
   const { data: subnets, isLoading: subnetLoading } = useSubnets(form.virtualNetworkId || undefined)
   const { data: securityGroups } = useSecurityGroups()
@@ -135,7 +146,7 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
     setSelectedItem(item)
     const defaults: Record<string, number | string> = {}
     for (const fd of item.fieldDefinitions ?? []) {
-      if (fd.default && typeof fd.default === 'object' && 'value' in (fd.default as object)) {
+      if (fd.default && typeof fd.default === 'object' && 'value' in fd.default) {
         defaults[fd.path] = (fd.default as { value: number | string }).value
       }
     }
@@ -151,7 +162,9 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
 
   function validateName(val: string): boolean {
     const valid = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(val) && val.length <= 253
-    setNameError(valid ? null : 'Name must be lowercase alphanumeric, may contain hyphens, max 253 chars.')
+    setNameError(
+      valid ? null : 'Name must be lowercase alphanumeric, may contain hyphens, max 253 chars.',
+    )
     return valid
   }
 
@@ -175,7 +188,12 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
       <ModalHeader title={title} labelId="create-cluster-modal-title" />
       <ModalBody>
         {submitError && (
-          <Alert variant="danger" title="Failed to create cluster" isInline className={submitErrorAlertCss}>
+          <Alert
+            variant="danger"
+            title="Failed to create cluster"
+            isInline
+            className={submitErrorAlertCss}
+          >
             {submitError}. Please try again.
           </Alert>
         )}
@@ -185,7 +203,9 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
             {catalogLoading && <Spinner aria-label="Loading cluster types" />}
             {catalogError && (
               <Alert variant="danger" title="Failed to load catalog" isInline>
-                <Button variant="link" isInline onClick={() => retryCatalog()}>Retry</Button>
+                <Button variant="link" isInline onClick={() => retryCatalog()}>
+                  Retry
+                </Button>
               </Alert>
             )}
             {!catalogLoading && !catalogError && (
@@ -216,7 +236,10 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
               <TextInput
                 id="cluster-name"
                 value={form.name}
-                onChange={(_e, v) => { setForm((f) => ({ ...f, name: v })); validateName(v) }}
+                onChange={(_e, v) => {
+                  setForm((f) => ({ ...f, name: v }))
+                  validateName(v)
+                }}
                 validated={nameError ? 'error' : 'default'}
                 placeholder="my-cluster-name"
                 isRequired
@@ -228,30 +251,61 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
               )}
             </FormGroup>
 
-            {(selectedItem.fieldDefinitions ?? []).filter((fd) => fd.editable).map((fd) => {
-              const isInt = fd.validationSchema?.includes('"integer"')
-              const val = form.fieldValues[fd.path]
-              return (
-                <FormGroup key={fd.path} label={fd.displayName} fieldId={`field-${fd.path}`}>
-                  {isInt ? (
-                    <NumberInput
-                      id={`field-${fd.path}`}
-                      value={typeof val === 'number' ? val : Number(val ?? 1)}
-                      min={1}
-                      onMinus={() => setForm((f) => ({ ...f, fieldValues: { ...f.fieldValues, [fd.path]: Math.max(1, Number(f.fieldValues[fd.path] ?? 1) - 1) } }))}
-                      onPlus={() => setForm((f) => ({ ...f, fieldValues: { ...f.fieldValues, [fd.path]: Number(f.fieldValues[fd.path] ?? 1) + 1 } }))}
-                      onChange={(e) => setForm((f) => ({ ...f, fieldValues: { ...f.fieldValues, [fd.path]: Number((e.target as HTMLInputElement).value) } }))}
-                    />
-                  ) : (
-                    <TextInput
-                      id={`field-${fd.path}`}
-                      value={String(val ?? '')}
-                      onChange={(_e, v) => setForm((f) => ({ ...f, fieldValues: { ...f.fieldValues, [fd.path]: v } }))}
-                    />
-                  )}
-                </FormGroup>
-              )
-            })}
+            {(selectedItem.fieldDefinitions ?? [])
+              .filter((fd) => fd.editable)
+              .map((fd) => {
+                const isInt = fd.validationSchema?.includes('"integer"')
+                const val = form.fieldValues[fd.path]
+                return (
+                  <FormGroup key={fd.path} label={fd.displayName} fieldId={`field-${fd.path}`}>
+                    {isInt ? (
+                      <NumberInput
+                        id={`field-${fd.path}`}
+                        value={typeof val === 'number' ? val : Number(val ?? 1)}
+                        min={1}
+                        onMinus={() =>
+                          setForm((f) => ({
+                            ...f,
+                            fieldValues: {
+                              ...f.fieldValues,
+                              [fd.path]: Math.max(1, Number(f.fieldValues[fd.path] ?? 1) - 1),
+                            },
+                          }))
+                        }
+                        onPlus={() =>
+                          setForm((f) => ({
+                            ...f,
+                            fieldValues: {
+                              ...f.fieldValues,
+                              [fd.path]: Number(f.fieldValues[fd.path] ?? 1) + 1,
+                            },
+                          }))
+                        }
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            fieldValues: {
+                              ...f.fieldValues,
+                              [fd.path]: Number((e.target as HTMLInputElement).value),
+                            },
+                          }))
+                        }
+                      />
+                    ) : (
+                      <TextInput
+                        id={`field-${fd.path}`}
+                        value={String(val ?? '')}
+                        onChange={(_e, v) =>
+                          setForm((f) => ({
+                            ...f,
+                            fieldValues: { ...f.fieldValues, [fd.path]: v },
+                          }))
+                        }
+                      />
+                    )}
+                  </FormGroup>
+                )
+              })}
 
             <FormGroup label="SSH public key" fieldId="ssh-key">
               <TextInput
@@ -265,7 +319,9 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
               </HelperText>
             </FormGroup>
 
-            <Title headingLevel="h3" size="md" className={networkingTitleCss}>Networking</Title>
+            <Title headingLevel="h3" size="md" className={networkingTitleCss}>
+              Networking
+            </Title>
 
             <FormGroup label="Virtual Network" isRequired fieldId="virtual-network">
               <FormSelect
@@ -275,9 +331,17 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                 isDisabled={vnLoading}
                 aria-label="Select virtual network"
               >
-                <FormSelectOption value="" label={vnLoading ? 'Loading…' : 'Select a virtual network'} isDisabled />
+                <FormSelectOption
+                  value=""
+                  label={vnLoading ? 'Loading…' : 'Select a virtual network'}
+                  isDisabled
+                />
                 {(virtualNetworks ?? []).map((vn) => (
-                  <FormSelectOption key={vn.id} value={vn.id} label={`${vn.metadata.name}${vn.spec.ipv4Cidr ? ` (${vn.spec.ipv4Cidr})` : ''}`} />
+                  <FormSelectOption
+                    key={vn.id}
+                    value={vn.id}
+                    label={`${vn.metadata.name}${vn.spec.ipv4Cidr ? ` (${vn.spec.ipv4Cidr})` : ''}`}
+                  />
                 ))}
               </FormSelect>
             </FormGroup>
@@ -296,13 +360,17 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                     !form.virtualNetworkId
                       ? 'Select a virtual network first'
                       : subnetLoading
-                      ? 'Loading…'
-                      : 'Select a subnet'
+                        ? 'Loading…'
+                        : 'Select a subnet'
                   }
                   isDisabled
                 />
                 {(subnets ?? []).map((s) => (
-                  <FormSelectOption key={s.id} value={s.id} label={`${s.metadata.name}${s.spec.ipv4Cidr ? ` (${s.spec.ipv4Cidr})` : ''}`} />
+                  <FormSelectOption
+                    key={s.id}
+                    value={s.id}
+                    label={`${s.metadata.name}${s.spec.ipv4Cidr ? ` (${s.spec.ipv4Cidr})` : ''}`}
+                  />
                 ))}
               </FormSelect>
             </FormGroup>
@@ -320,7 +388,9 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                     className={menuToggleFullWidthCss}
                     aria-label="Select security groups"
                   >
-                    {form.securityGroupIds.length === 0 ? 'None (use defaults)' : `${form.securityGroupIds.length} selected`}
+                    {form.securityGroupIds.length === 0
+                      ? 'None (use defaults)'
+                      : `${form.securityGroupIds.length} selected`}
                   </MenuToggle>
                 )}
               >
@@ -353,7 +423,10 @@ export function CreateClusterModal({ onClose }: CreateClusterModalProps) {
                       <Label
                         key={id}
                         onClose={() =>
-                          setForm((f) => ({ ...f, securityGroupIds: f.securityGroupIds.filter((sid) => sid !== id) }))
+                          setForm((f) => ({
+                            ...f,
+                            securityGroupIds: f.securityGroupIds.filter((sid) => sid !== id),
+                          }))
                         }
                         closeBtnAriaLabel={`Remove ${sg?.metadata.name ?? id}`}
                       >

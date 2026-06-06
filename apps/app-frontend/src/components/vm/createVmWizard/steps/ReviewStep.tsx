@@ -229,10 +229,7 @@ export function ReviewStep({
         <Title id="review-heading" headingLevel="h2" size="xl">
           Review and create
         </Title>
-        <Content
-          component="p"
-          className={cx('pf-v6-u-color-text-subtle', introCss)}
-        >
+        <Content component="p" className={cx('pf-v6-u-color-text-subtle', introCss)}>
           Confirm the choices below, then create the virtual machine.
         </Content>
       </StackItem>

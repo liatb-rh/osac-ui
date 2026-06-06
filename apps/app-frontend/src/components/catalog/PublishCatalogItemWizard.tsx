@@ -35,7 +35,10 @@ export interface PublishCatalogItemWizardProps {
   onDone: () => void
 }
 
-export function PublishCatalogItemWizard({ backingTemplates, onDone }: PublishCatalogItemWizardProps) {
+export function PublishCatalogItemWizard({
+  backingTemplates,
+  onDone,
+}: PublishCatalogItemWizardProps) {
   const allTemplates = [...new Set([...backingTemplates, ...EXTRA_TEMPLATES])]
 
   const [name, setName] = useState('RHEL 9 — Edge')
@@ -83,7 +86,9 @@ export function PublishCatalogItemWizard({ backingTemplates, onDone }: PublishCa
             >
               <SelectList>
                 {allTemplates.map((o) => (
-                  <SelectOption key={o} value={o}>{o}</SelectOption>
+                  <SelectOption key={o} value={o}>
+                    {o}
+                  </SelectOption>
                 ))}
               </SelectList>
             </Select>
@@ -106,7 +111,7 @@ export function PublishCatalogItemWizard({ backingTemplates, onDone }: PublishCa
               max={64}
               onMinus={() => setCpu((n) => Math.max(1, n - 1))}
               onPlus={() => setCpu((n) => n + 1)}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               onChange={(e: any) => setCpu(Number((e.target as HTMLInputElement).value) || 1)}
             />
           </FormGroup>
@@ -117,7 +122,7 @@ export function PublishCatalogItemWizard({ backingTemplates, onDone }: PublishCa
               max={512}
               onMinus={() => setRam((n) => Math.max(1, n - 1))}
               onPlus={() => setRam((n) => n + 2)}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
               onChange={(e: any) => setRam(Number((e.target as HTMLInputElement).value) || 1)}
             />
           </FormGroup>
@@ -149,8 +154,12 @@ export function PublishCatalogItemWizard({ backingTemplates, onDone }: PublishCa
         </Form>
         <Card className={summaryCardCss}>
           <CardBody className={summaryCardBodyCss}>
-            <div><strong>Name:</strong> {name} ({variant})</div>
-            <div><strong>Template:</strong> <code>{template}</code></div>
+            <div>
+              <strong>Name:</strong> {name} ({variant})
+            </div>
+            <div>
+              <strong>Template:</strong> <code>{template}</code>
+            </div>
             <div>
               <strong>Preset:</strong> {cpu} vCPU · {ram} GiB RAM · resize{' '}
               {allowResize ? 'allowed' : 'locked'}

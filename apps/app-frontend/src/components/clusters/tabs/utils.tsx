@@ -23,8 +23,12 @@ export function UnavailableRow({ label }: { label: string }) {
       alignItems={{ default: 'alignItemsCenter' }}
       className={unavailableRowCss}
     >
-      <FlexItem><LockIcon aria-hidden /></FlexItem>
-      <FlexItem><em>{label} not available yet</em></FlexItem>
+      <FlexItem>
+        <LockIcon aria-hidden />
+      </FlexItem>
+      <FlexItem>
+        <em>{label} not available yet</em>
+      </FlexItem>
     </Flex>
   )
 }

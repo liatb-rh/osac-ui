@@ -296,7 +296,12 @@ export interface Subnet {
   status: SubnetStatus
 }
 
-export type Protocol = 'PROTOCOL_UNSPECIFIED' | 'PROTOCOL_TCP' | 'PROTOCOL_UDP' | 'PROTOCOL_ICMP' | 'PROTOCOL_ALL'
+export type Protocol =
+  | 'PROTOCOL_UNSPECIFIED'
+  | 'PROTOCOL_TCP'
+  | 'PROTOCOL_UDP'
+  | 'PROTOCOL_ICMP'
+  | 'PROTOCOL_ALL'
 
 export interface SecurityRule {
   protocol: Protocol

@@ -134,12 +134,18 @@ export async function listAgents(): Promise<PageOfT<Agent>> {
 }
 
 export async function provisionAgent(id: string): Promise<Agent> {
-  const raw = await request<unknown>(`/agents/${encodeURIComponent(id)}/provision`, { method: 'POST', body: '{}' })
+  const raw = await request<unknown>(`/agents/${encodeURIComponent(id)}/provision`, {
+    method: 'POST',
+    body: '{}',
+  })
   return normalizeAgent(raw)
 }
 
 export async function deprovisionAgent(id: string): Promise<Agent> {
-  const raw = await request<unknown>(`/agents/${encodeURIComponent(id)}/deprovision`, { method: 'POST', body: '{}' })
+  const raw = await request<unknown>(`/agents/${encodeURIComponent(id)}/deprovision`, {
+    method: 'POST',
+    body: '{}',
+  })
   return normalizeAgent(raw)
 }
 
@@ -156,7 +162,10 @@ export async function listStorageTiers(): Promise<PageOfT<StorageTier>> {
   }
 }
 
-export async function patchStorageTier(id: string, patch: Partial<StorageTier>): Promise<StorageTier> {
+export async function patchStorageTier(
+  id: string,
+  patch: Partial<StorageTier>,
+): Promise<StorageTier> {
   const raw = await request<unknown>(`/storage_tiers/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
