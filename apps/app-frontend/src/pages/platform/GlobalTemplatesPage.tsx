@@ -144,7 +144,7 @@ export function GlobalTemplatesPage() {
         <OcCard
           label="Published"
           value={String(published)}
-          accentColor="var(--pf-t--global--color--status--success--default)"
+          tone="success"
         />
         <OcCard
           label="Backing templates"

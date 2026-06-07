@@ -245,11 +245,7 @@ export function ClusterOfferingDetailPage() {
         <OcCard
           label="Maturity"
           value={maturity}
-          accentColor={
-            maturity === 'preview'
-              ? 'var(--pf-t--global--color--status--warning--default)'
-              : 'var(--pf-t--global--color--status--success--default)'
-          }
+          tone={maturity === 'preview' ? 'warning' : 'success'}
         />
         <OcCard
           label="OCP version"
@@ -271,11 +267,7 @@ export function ClusterOfferingDetailPage() {
           label="Eligible agents"
           value={`${healthyAgents.length} / ${eligibleAgents.length}`}
           hint="healthy hosts"
-          accentColor={
-            healthyAgents.length === eligibleAgents.length
-              ? 'var(--pf-t--global--color--status--success--default)'
-              : 'var(--pf-t--global--color--status--warning--default)'
-          }
+          tone={healthyAgents.length === eligibleAgents.length ? 'success' : 'warning'}
         />
       </div>
 

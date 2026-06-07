@@ -11,7 +11,7 @@ interface ClusterStatusLabelProps {
 const STATE_CONFIG: Record<
   ClusterState,
   {
-    color: 'blue' | 'green' | 'red' | 'grey' | 'orange' | 'purple' | 'cyan' | 'gold'
+    color: 'blue' | 'green' | 'red' | 'grey' | 'orange' | 'purple' | 'teal' | 'yellow'
     text: string
     spinning?: boolean
   }

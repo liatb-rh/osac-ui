@@ -196,11 +196,7 @@ export function StorageTierDetailPage() {
         <OcCard
           label="Status"
           value={tier.available ? 'Available' : 'Disabled'}
-          accentColor={
-            tier.available
-              ? 'var(--pf-t--global--color--status--success--default)'
-              : 'var(--pf-t--global--color--status--danger--default)'
-          }
+          tone={tier.available ? 'success' : 'danger'}
         />
         <OcCard label="IOPS" value={meta.iops} hint="per view" />
         <OcCard label="Throughput" value={`${meta.throughputGbps} GB/s`} hint="sustained" />
@@ -209,9 +205,7 @@ export function StorageTierDetailPage() {
           label="Capacity"
           value={`${meta.usedTib} / ${meta.capacityTib} TiB`}
           hint={`${usedPct}% used`}
-          accentColor={
-            usedPct > 80 ? 'var(--pf-t--global--color--status--warning--default)' : undefined
-          }
+          tone={usedPct > 80 ? 'warning' : 'default'}
         />
         <OcCard
           label="Consumers"
