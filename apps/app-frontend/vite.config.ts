@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 const isMsw = process.env.VITE_MSW === 'true'
+const base = process.env.VITE_BASE_URL ?? '/'
 
 export default defineConfig({
+  base,
   plugins: [react()],
   resolve: {
     alias: {
@@ -37,7 +39,7 @@ export default defineConfig({
     include: ['@patternfly/react-charts > victory-core'],
   },
   build: {
-    outDir: '../app-backend/public',
+    outDir: isMsw ? 'dist' : '../app-backend/public',
     emptyOutDir: true,
   },
 })
