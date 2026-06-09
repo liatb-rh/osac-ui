@@ -79,7 +79,6 @@ const conditionTypeCodeCss = css`
   font-size: 11px;
 `
 
-
 const emptyConsumersCss = css`
   padding: 24px;
   text-align: center;
