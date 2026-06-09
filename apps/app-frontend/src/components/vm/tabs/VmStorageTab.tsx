@@ -26,7 +26,6 @@ const tabPaddingCss = css`
 
 const DISK_COLUMNS: OcTableColumn<DiskRow>[] = [
   { label: 'Disk', dataLabel: 'Disk', render: (r) => r.disk },
-  { label: 'Bus', dataLabel: 'Bus', render: (r) => r.bus },
   {
     label: 'Tier',
     dataLabel: 'Tier',
@@ -37,8 +36,6 @@ const DISK_COLUMNS: OcTableColumn<DiskRow>[] = [
     ),
   },
   { label: 'Size', dataLabel: 'Size', render: (r) => r.size },
-  { label: 'IOPS', dataLabel: 'IOPS', render: (r) => r.iops },
-  { label: 'Backing PVC', dataLabel: 'Backing PVC', render: (r) => <code>{r.pvc}</code> },
 ]
 
 export function VmStorageTab({ vm }: Props) {

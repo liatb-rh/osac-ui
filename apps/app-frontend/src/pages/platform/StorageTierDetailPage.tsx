@@ -13,8 +13,6 @@ import {
   Card,
   CardBody,
   CardTitle,
-  ClipboardCopy,
-  ClipboardCopyVariant,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -29,10 +27,9 @@ import {
   TabTitleText,
   Tabs,
 } from '@patternfly/react-core'
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
-import { OcCard } from '@osac/ui-components'
+import { OcKpiHeader, OcTable } from '@osac/ui-components'
 import { useStorageTiers } from '../../hooks/useAgents'
 import { PageHeader } from '../../components/layout'
 import { MOCK_CONSUMERS, tierMeta } from './StorageTiersPage'
@@ -52,12 +49,6 @@ const breadcrumbCss = css`
   margin-bottom: 12px;
 `
 
-const kpiRowCss = css`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-`
 
 const overviewGridCss = css`
   padding-top: 16px;
@@ -88,11 +79,6 @@ const conditionTypeCodeCss = css`
   font-size: 11px;
 `
 
-const csiNoteCss = css`
-  margin-top: 12px;
-  font-size: 13px;
-  color: #5b6b7c;
-`
 
 const emptyConsumersCss = css`
   padding: 24px;
@@ -156,6 +142,12 @@ export function StorageTierDetailPage() {
     `  view: ${viewPrefix.replace('{tenant}', sampleTenant)}`,
   ].join('\n')
 
+  const activityLog = [
+    { when: '2026-06-05 09:14', actor: 'system', action: 'Reconciled StorageClass on dev-ocp', result: 'success' },
+    { when: '2026-06-03 17:02', actor: 'platform@osac', action: 'Increased capacity by 80 TiB', result: 'success' },
+    { when: '2026-05-22 11:30', actor: 'platform@osac', action: `Installed CSI driver ${meta.csiDriver}`, result: 'success' },
+  ]
+
   const conditions = [
     { type: 'TIER_CONDITION_BACKEND_HEALTHY', ok: true },
     { type: 'TIER_CONDITION_CSI_INSTALLED', ok: true },
@@ -192,27 +184,29 @@ export function StorageTierDetailPage() {
       />
 
       {/* KPI row */}
-      <div className={kpiRowCss}>
-        <OcCard
-          label="Status"
-          value={tier.available ? 'Available' : 'Disabled'}
-          tone={tier.available ? 'success' : 'danger'}
-        />
-        <OcCard label="IOPS" value={meta.iops} hint="per view" />
-        <OcCard label="Throughput" value={`${meta.throughputGbps} GB/s`} hint="sustained" />
-        <OcCard label="Latency" value={meta.latency} hint="p99" />
-        <OcCard
-          label="Capacity"
-          value={`${meta.usedTib} / ${meta.capacityTib} TiB`}
-          hint={`${usedPct}% used`}
-          tone={usedPct > 80 ? 'warning' : 'default'}
-        />
-        <OcCard
-          label="Consumers"
-          value={totalPvcs}
-          hint={`${consumers.length} tenant${consumers.length !== 1 ? 's' : ''}`}
-        />
-      </div>
+      <OcKpiHeader
+        items={[
+          {
+            label: 'Status',
+            value: tier.available ? 'Available' : 'Disabled',
+            tone: tier.available ? 'success' : 'danger',
+          },
+          { label: 'IOPS', value: meta.iops, hint: 'per view' },
+          { label: 'Throughput', value: `${meta.throughputGbps} GB/s`, hint: 'sustained' },
+          { label: 'Latency', value: meta.latency, hint: 'p99' },
+          {
+            label: 'Capacity',
+            value: `${meta.usedTib} / ${meta.capacityTib} TiB`,
+            hint: `${usedPct}% used`,
+            tone: usedPct > 80 ? 'warning' : 'default',
+          },
+          {
+            label: 'Consumers',
+            value: totalPvcs,
+            hint: `${consumers.length} tenant${consumers.length !== 1 ? 's' : ''}`,
+          },
+        ]}
+      />
 
       <Tabs activeKey={tab} onSelect={(_, k) => setTab(k)} aria-label="Tier detail tabs">
         {/* ── Overview ── */}
@@ -285,7 +279,7 @@ export function StorageTierDetailPage() {
         </Tab>
 
         {/* ── Backend ── */}
-        <Tab eventKey="backend" title={<TabTitleText>Backend</TabTitleText>}>
+        {/* <Tab eventKey="backend" title={<TabTitleText>Backend</TabTitleText>}>
           <div className={tabContentCss}>
             <Card>
               <CardTitle>VAST view binding</CardTitle>
@@ -323,32 +317,7 @@ export function StorageTierDetailPage() {
               </CardBody>
             </Card>
           </div>
-        </Tab>
-
-        {/* ── CSI ── */}
-        <Tab eventKey="csi" title={<TabTitleText>CSI / StorageClass</TabTitleText>}>
-          <div className={tabContentCss}>
-            <Card>
-              <CardTitle>
-                Per-tenant manifest (example: <code>{sampleTenant}</code>)
-              </CardTitle>
-              <CardBody>
-                <ClipboardCopy
-                  isCode
-                  hoverTip="Copy"
-                  clickTip="Copied"
-                  variant={ClipboardCopyVariant.expansion}
-                >
-                  {scYaml}
-                </ClipboardCopy>
-                <div className={csiNoteCss}>
-                  VolumeSnapshotClass installed alongside:{' '}
-                  <code>{vscTemplate.replace('{tenant}', sampleTenant)}</code>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        </Tab>
+        </Tab> */}
 
         {/* ── Consumers ── */}
         <Tab
@@ -360,34 +329,25 @@ export function StorageTierDetailPage() {
               {consumers.length === 0 ? (
                 <div className={emptyConsumersCss}>No tenants are consuming this tier yet.</div>
               ) : (
-                <Table aria-label="Consumers">
-                  <Thead>
-                    <Tr>
-                      <Th>Tenant</Th>
-                      <Th>Clusters</Th>
-                      <Th>PVCs</Th>
-                      <Th>Used</Th>
-                      <Th>StorageClass</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {consumers.map((c) => (
-                      <Tr key={c.tenant}>
-                        <Td>
-                          <strong>{c.tenant}</strong>
-                        </Td>
-                        <Td>{c.clusters.join(', ')}</Td>
-                        <Td>{c.pvcs}</Td>
-                        <Td>{c.usedTib} TiB</Td>
-                        <Td>
-                          <code className={storageClassCodeCss}>
-                            {scTemplate.replace('{tenant}', c.tenant)}
-                          </code>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                <OcTable
+                  ariaLabel="Consumers"
+                  rows={consumers}
+                  getRowKey={(c) => c.tenant}
+                  columns={[
+                    { label: 'Tenant', render: (c) => <strong>{c.tenant}</strong> },
+                    { label: 'Clusters', render: (c) => c.clusters.join(', ') },
+                    { label: 'PVCs', render: (c) => c.pvcs },
+                    { label: 'Used', render: (c) => `${c.usedTib} TiB` },
+                    {
+                      label: 'StorageClass',
+                      render: (c) => (
+                        <code className={storageClassCodeCss}>
+                          {scTemplate.replace('{tenant}', c.tenant)}
+                        </code>
+                      ),
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>
@@ -397,48 +357,24 @@ export function StorageTierDetailPage() {
         <Tab eventKey="activity" title={<TabTitleText>Activity</TabTitleText>}>
           <div className={tabContentCss}>
             <div className={panelCss}>
-              <Table aria-label="Activity log">
-                <Thead>
-                  <Tr>
-                    <Th>When</Th>
-                    <Th>Actor</Th>
-                    <Th>Action</Th>
-                    <Th>Result</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  <Tr>
-                    <Td>2026-06-05 09:14</Td>
-                    <Td>system</Td>
-                    <Td>Reconciled StorageClass on dev-ocp</Td>
-                    <Td>
+              <OcTable
+                ariaLabel="Activity log"
+                rows={activityLog}
+                getRowKey={(entry) => entry.when}
+                columns={[
+                  { label: 'When', render: (entry) => entry.when },
+                  { label: 'Actor', render: (entry) => entry.actor },
+                  { label: 'Action', render: (entry) => entry.action },
+                  {
+                    label: 'Result',
+                    render: (entry) => (
                       <Label color="green" isCompact>
-                        success
+                        {entry.result}
                       </Label>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>2026-06-03 17:02</Td>
-                    <Td>platform@osac</Td>
-                    <Td>Increased capacity by 80 TiB</Td>
-                    <Td>
-                      <Label color="green" isCompact>
-                        success
-                      </Label>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>2026-05-22 11:30</Td>
-                    <Td>platform@osac</Td>
-                    <Td>Installed CSI driver {meta.csiDriver}</Td>
-                    <Td>
-                      <Label color="green" isCompact>
-                        success
-                      </Label>
-                    </Td>
-                  </Tr>
-                </Tbody>
-              </Table>
+                    ),
+                  },
+                ]}
+              />
             </div>
           </div>
         </Tab>

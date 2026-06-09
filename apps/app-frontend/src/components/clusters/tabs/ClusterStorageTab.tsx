@@ -267,7 +267,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
       </Card>
 
       {/* ── CSI driver ────────────────────────────────────────────────────── */}
-      <Card>
+      {/* <Card>
         <CardTitle>CSI driver</CardTitle>
         <CardBody>
           <DescriptionList isHorizontal isCompact columnModifier={{ default: '1Col' }}>
@@ -289,7 +289,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
             </DescriptionListGroup>
           </DescriptionList>
         </CardBody>
-      </Card>
+      </Card> */}
 
       {/* ── Available StorageClasses ───────────────────────────────────────── */}
       <div>
@@ -334,18 +334,6 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                     {TIER_DESCRIPTION[tier] && (
                       <p className={tierDescriptionCss}>{TIER_DESCRIPTION[tier]}</p>
                     )}
-                    <div className={tierMetaRowCss}>
-                      {TIER_IOPS[tier] && (
-                        <span>
-                          IOPS: <strong className={tierMetaValueCss}>{TIER_IOPS[tier]}</strong>
-                        </span>
-                      )}
-                      {TIER_MEDIA[tier] && (
-                        <span>
-                          Media: <strong className={tierMetaValueCss}>{TIER_MEDIA[tier]}</strong>
-                        </span>
-                      )}
-                    </div>
                     <div className={fieldLabelCss}>storageClassName</div>
                     <ClipboardCopy
                       isReadOnly
@@ -356,7 +344,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                     >
                       {sc.name}
                     </ClipboardCopy>
-                    <div className={pvcExampleLabelCss}>PVC example</div>
+                    {/* <div className={pvcExampleLabelCss}>PVC example</div>
                     <ClipboardCopy
                       isReadOnly
                       isCode
@@ -366,7 +354,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                       aria-label={`Copy PVC for ${sc.name}`}
                     >
                       {pvcSnippet(sc.name)}
-                    </ClipboardCopy>
+                    </ClipboardCopy> */}
                   </CardBody>
                 </Card>
               )
@@ -380,7 +368,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
       </div>
 
       {/* ── VolumeSnapshotClasses ─────────────────────────────────────────── */}
-      <Card>
+      {/* <Card>
         <CardTitle>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -443,7 +431,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
             <div className={emptySnapshotClassesCss}>No snapshot classes available.</div>
           )}
         </CardBody>
-      </Card>
+      </Card> */}
     </div>
   )
 }
