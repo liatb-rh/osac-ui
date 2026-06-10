@@ -22,7 +22,7 @@ import {
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import type { PublicIP } from '@osac/api-contracts'
-import { OcTable } from '@osac/ui-components'
+import { ObjectsTable } from '@osac/ui-components'
 import { useComputeInstances } from '../../hooks/hooks'
 import {
   useAllocatePublicIP,
@@ -32,7 +32,7 @@ import {
   usePublicIPPools,
   usePublicIPs,
 } from '../../hooks/useNetworking'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 
 // ---------------------------------------------------------------------------
 // State label
@@ -196,7 +196,7 @@ export function PublicIPsPage() {
         </Alert>
       )}
       {!isLoading && !error && (
-        <OcTable
+        <ObjectsTable
           ariaLabel="Public IPs"
           rows={ips ?? []}
           getRowKey={(pip) => pip.id}

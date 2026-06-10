@@ -19,7 +19,8 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons/dist/esm/icons/external-link-alt-icon'
 import { css } from '@emotion/css'
 import type { Cluster, ClusterCatalogItem } from '@osac/api-contracts'
-import { UnavailableRow, formatDate } from './utils'
+import { UnavailableRow } from '@osac/ui-components'
+import { formatIsoDate as formatDate } from '../../../utils/format'
 
 const STATUS_BORDER: Record<string, string> = {
   CLUSTER_STATE_READY: 'var(--pf-t--global--color--status--success--default)',

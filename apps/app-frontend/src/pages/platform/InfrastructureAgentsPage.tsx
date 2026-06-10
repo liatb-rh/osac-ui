@@ -31,10 +31,10 @@ import {
 import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { Agent, AgentState } from '@osac/api-contracts'
-import { OcLink, OcTable } from '@osac/ui-components'
-import type { OcTableColumn } from '@osac/ui-components'
+import { CustomTableLink, ObjectsTable } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 import { useAgents, useDeprovisionAgent, useProvisionAgent } from '../../hooks/useAgents'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -277,11 +277,13 @@ export function InfrastructureAgentsPage() {
     ]
   }
 
-  const columns: OcTableColumn<Agent>[] = [
+  const columns: ObjectsTableColumn<Agent>[] = [
     {
       label: 'Hostname',
       render: (a) => (
-        <OcLink onClick={() => navigate(`/agents/${a.id}`)}>{a.metadata?.name ?? a.id}</OcLink>
+        <CustomTableLink onClick={() => navigate(`/agents/${a.id}`)}>
+          {a.metadata?.name ?? a.id}
+        </CustomTableLink>
       ),
     },
     {
@@ -322,7 +324,7 @@ export function InfrastructureAgentsPage() {
       {isLoading ? (
         <Spinner aria-label="Loading agents" />
       ) : (
-        <OcTable
+        <ObjectsTable
           ariaLabel="Infrastructure agents"
           columns={columns}
           rows={allAgents}

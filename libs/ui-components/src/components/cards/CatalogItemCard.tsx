@@ -1,52 +1,33 @@
-import { css } from '@emotion/css'
 import { Button, Card, CardBody, Flex, FlexItem, Label } from '@patternfly/react-core'
-import type { CatalogItem } from './types'
+import styles from './CatalogItemCard.module.css'
 
-const cardCss = css`
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-`
-
-const cardBodyCss = css`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`
-
-const itemNameCss = css`
-  font-size: 0.9375rem;
-`
-
-const templateMetaCss = css`
-  font-size: 12px;
-  color: var(--pf-t--global--text--color--subtle);
-`
-
-const specsFlexCss = css`
-  font-size: 13px;
-`
-
-const actionsFlexCss = css`
-  margin-top: auto;
-  padding-top: 4px;
-`
+export interface CatalogItem {
+  id: string
+  name: string
+  template: string
+  variant: string
+  cpu: number
+  ram: number
+  presets: number
+  published: boolean
+}
 
 export interface CatalogItemCardProps {
   item: CatalogItem
   onTogglePublish: (id: string, published: boolean) => void
+  onEditPresets: (id: string) => void
 }
 
-export function CatalogItemCard({ item, onTogglePublish }: CatalogItemCardProps) {
+export function CatalogItemCard({ item, onTogglePublish, onEditPresets }: CatalogItemCardProps) {
   return (
-    <Card className={cardCss}>
-      <CardBody className={cardBodyCss}>
+    <Card className={styles.card}>
+      <CardBody className={styles.cardBody}>
         <Flex
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsCenter' }}
         >
           <FlexItem>
-            <strong className={itemNameCss}>{item.name}</strong>
+            <strong className={styles.itemName}>{item.name}</strong>
           </FlexItem>
           <FlexItem>
             <Label isCompact color={item.published ? 'green' : 'grey'}>
@@ -55,11 +36,11 @@ export function CatalogItemCard({ item, onTogglePublish }: CatalogItemCardProps)
           </FlexItem>
         </Flex>
 
-        <div className={templateMetaCss}>
+        <div className={styles.templateMeta}>
           Template: <code>{item.template}</code> · variant <strong>{item.variant}</strong>
         </div>
 
-        <Flex spaceItems={{ default: 'spaceItemsMd' }} className={specsFlexCss}>
+        <Flex spaceItems={{ default: 'spaceItemsMd' }} className={styles.specsFlex}>
           <FlexItem>
             <strong>{item.cpu}</strong> vCPU
           </FlexItem>
@@ -71,9 +52,9 @@ export function CatalogItemCard({ item, onTogglePublish }: CatalogItemCardProps)
           </FlexItem>
         </Flex>
 
-        <Flex className={actionsFlexCss} spaceItems={{ default: 'spaceItemsSm' }}>
+        <Flex className={styles.actionsFlex} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
-            <Button variant="secondary" size="sm">
+            <Button variant="secondary" size="sm" onClick={() => onEditPresets(item.id)}>
               Edit presets
             </Button>
           </FlexItem>

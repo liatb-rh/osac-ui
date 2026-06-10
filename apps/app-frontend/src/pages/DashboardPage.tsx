@@ -24,7 +24,7 @@ import type {
   DeploymentMode,
 } from '../components/vm/createVmWizard/CreateVmWizard'
 import { CreateVmWizard } from '../components/vm/createVmWizard/CreateVmWizard'
-import { PageHeader } from '../components/layout'
+import { PageHeader } from '@osac/ui-components'
 import { DashboardQuotaSection, DashboardUtilizationSection } from '../components/dashboard'
 import { useSession } from '../contexts/SessionContext'
 import { useComputeInstances, useProvisionVm } from '../hooks/hooks'

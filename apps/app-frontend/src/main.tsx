@@ -15,23 +15,10 @@ const queryClient = new QueryClient({
   },
 })
 
-async function prepare(): Promise<void> {
+async function prepare() {
   if (import.meta.env.VITE_MSW === 'true') {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { worker } = await import('./mocks/browser')
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await worker.start({
-      serviceWorker: {
-        url: `${import.meta.env.BASE_URL}mockServiceWorker.js`,
-      },
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      onUnhandledRequest(request: Request, print: { warning: () => void }) {
-        // Navigation requests (HTML documents) are handled by Vite's dev server,
-        // not MSW — silently ignore them to avoid "Failed to fetch" errors.
-        if (request.headers.get('accept')?.includes('text/html')) return
-        print.warning()
-      },
-    })
+    await worker.start({ onUnhandledRequest: 'bypass' })
   }
 }
 

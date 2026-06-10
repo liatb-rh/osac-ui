@@ -1,0 +1,25 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.leftGroup {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.body {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: 13px;
+}
+
+.iconDanger {
+  color: var(--pf-t--global--color--status--danger--default);
+}

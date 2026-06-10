@@ -1,0 +1,11 @@
+.card {
+  min-width: 120px;
+}
+
+.valueTitle {
+  margin: 0;
+}
+
+.label {
+  color: var(--pf-t--global--text--color--subtle);
+}

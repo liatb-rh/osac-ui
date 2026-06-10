@@ -1,0 +1,43 @@
+.card {
+  transition: opacity 0.2s ease;
+}
+
+.card[data-inactive='true'] {
+  opacity: 0.65;
+}
+
+.title {
+  font-weight: 600;
+  color: #0066cc;
+  cursor: default;
+}
+
+.title[data-clickable='true'] {
+  cursor: pointer;
+}
+
+.desc {
+  font-size: 13px;
+  color: var(--pf-t--global--text--color--subtle);
+  margin-top: 2px;
+}
+
+.chipsRow {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.headerInner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

@@ -1,0 +1,10 @@
+.link {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  text-decoration-style: dashed;
+  text-decoration-color: var(--pf-t--global--border--color--default);
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  text-decoration-color: var(--pf-t--global--color--brand--default);
+}

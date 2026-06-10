@@ -8,15 +8,11 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core'
-import { css } from '@emotion/css'
 import type { ClusterTemplate } from '@osac/api-contracts'
-import { OcTemplateCard } from './cards/oc-template-card'
+import { TemplateCard } from './cards/TemplateCard'
+import styles from './TemplatesGallery.module.css'
 
-const spinnerWrapCss = css`
-  padding: var(--pf-t--global--spacer--2xl);
-`
-
-export interface OcTemplatesGalleryProps {
+export interface TemplatesGalleryProps {
   templates: ClusterTemplate[]
   isLoading: boolean
   /** Called when a card is clicked (open detail panel or select in wizard). */
@@ -30,7 +26,7 @@ export interface OcTemplatesGalleryProps {
   onProvision?: (template: ClusterTemplate) => void
 }
 
-export function OcTemplatesGallery({
+export function TemplatesGallery({
   templates,
   isLoading,
   onProvision,
@@ -38,7 +34,7 @@ export function OcTemplatesGallery({
   search,
   onSearchChange,
   selectedTemplateId,
-}: OcTemplatesGalleryProps) {
+}: TemplatesGalleryProps) {
   return (
     <Stack hasGutter>
       <StackItem>
@@ -60,7 +56,7 @@ export function OcTemplatesGallery({
 
       <StackItem>
         {isLoading ? (
-          <Bullseye className={spinnerWrapCss}>
+          <Bullseye className={styles.spinnerWrap}>
             <Spinner aria-label="Loading templates" />
           </Bullseye>
         ) : templates.length === 0 ? (
@@ -78,20 +74,13 @@ export function OcTemplatesGallery({
                   aria-label={`Open template details for ${template.title}`}
                   onClick={() => onSelectTemplate(template)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      onSelectTemplate(template)
-                    }
+                    if (event.key === 'Enter' || event.key === ' ') onSelectTemplate(template)
                   }}
                 >
-                  <OcTemplateCard
+                  <TemplateCard
                     template={template}
-                    isSelected={
-                      selectedTemplateId !== undefined
-                        ? selectedTemplateId === template.id
-                        : undefined
-                    }
-                    onProvision={onProvision}
+                    isSelected={template.id === selectedTemplateId}
+                    onProvision={onProvision ? () => onProvision(template) : undefined}
                   />
                 </div>
               </GalleryItem>

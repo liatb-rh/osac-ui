@@ -32,6 +32,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await res.text().catch(() => '')
     throw new Error(`API ${res.status}: ${body || res.statusText}`)
   }
+  const ct = res.headers.get('content-type') ?? ''
+  if (res.status === 204 || res.status === 205 || !ct.includes('application/json')) {
+    return undefined as T
+  }
   return res.json() as Promise<T>
 }
 

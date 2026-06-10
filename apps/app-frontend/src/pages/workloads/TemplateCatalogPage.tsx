@@ -40,13 +40,13 @@ import { useLocation } from 'react-router-dom'
 import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
 import { useSession } from '../../contexts/SessionContext'
 import { useComputeInstanceTemplates, useComputeInstances, useProvisionVm } from '../../hooks/hooks'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 import type {
   CreateVmWizardHandle,
   DeploymentMode,
 } from '../../components/vm/createVmWizard/CreateVmWizard'
 import { CreateVmWizard } from '../../components/vm/createVmWizard/CreateVmWizard'
-import { OcTemplatesGallery } from '@osac/ui-components'
+import { TemplatesGallery } from '@osac/ui-components'
 
 interface Props {
   isProviderGlobal?: boolean
@@ -351,7 +351,7 @@ export function TemplateCatalogPage({ isProviderGlobal = false }: Props) {
             </StackItem>
           ) : (
             <StackItem>
-              <OcTemplatesGallery
+              <TemplatesGallery
                 templates={filtered}
                 isLoading={templatesLoading}
                 search={search}

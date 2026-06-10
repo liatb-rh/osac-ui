@@ -21,7 +21,7 @@ import {
   Spinner,
 } from '@patternfly/react-core'
 import { useNetworkClasses } from '../../hooks/useNetworking'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 
 function NcStateLabel({ state }: { state: string }) {
   if (state === 'NETWORK_CLASS_STATE_READY')

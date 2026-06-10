@@ -1,0 +1,10 @@
+.wrap {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--medium);
+  overflow: hidden;
+  padding: 20px;
+}
+
+.pagination {
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+}

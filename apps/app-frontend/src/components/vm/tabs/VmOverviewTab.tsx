@@ -20,6 +20,7 @@ import {
 import { css } from '@emotion/css'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { formatConditionStatusForDisplay, resolveVmOsForUi } from '@osac/api-contracts'
+import { formatIsoDate } from '../../../utils/format'
 
 interface Props {
   vm: ComputeInstance
@@ -49,12 +50,6 @@ const conditionTitleCss = css`
 const subtleTextCss = css`
   color: var(--pf-t--global--text--color--subtle);
 `
-
-function formatIsoDate(iso?: string): string {
-  if (!iso?.trim()) return '—'
-  const t = Date.parse(iso.trim())
-  return Number.isNaN(t) ? iso : new Date(t).toLocaleString()
-}
 
 function humanizeConditionType(type: string): string {
   return type.replace(/^CONDITION_TYPE_/i, '').replace(/_/g, ' ') || type

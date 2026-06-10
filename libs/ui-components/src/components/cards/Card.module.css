@@ -1,0 +1,49 @@
+.card {
+  box-shadow: -3px 0 0 0 var(--pf-t--global--color--brand--200) !important;
+}
+
+.bodyInner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--pf-t--global--font--size--body--lg);
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin: 0;
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--pf-t--global--text--color--regular);
+  margin: 0;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--pf-t--global--text--color--subtle);
+  margin: 0;
+}
+
+.toneSuccess {
+  box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--success--default) !important;
+}
+
+.toneWarning {
+  box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--warning--default) !important;
+}
+
+.toneDanger {
+  box-shadow: -3px 0 0 0 var(--pf-t--global--color--status--danger--default) !important;
+}
+
+.toneMuted {
+  box-shadow: -3px 0 0 0 var(--pf-t--global--text--color--subtle) !important;
+}

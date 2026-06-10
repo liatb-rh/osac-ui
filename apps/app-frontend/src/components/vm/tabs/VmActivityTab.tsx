@@ -2,17 +2,12 @@ import { css } from '@emotion/css'
 import { EmptyState, EmptyStateBody, Label } from '@patternfly/react-core'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { formatConditionStatusForDisplay } from '@osac/api-contracts'
-import { OcTable } from '@osac/ui-components'
-import type { OcTableColumn } from '@osac/ui-components'
+import { ObjectsTable } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
+import { formatIsoDate } from '../../../utils/format'
 
 interface Props {
   vm: ComputeInstance
-}
-
-function formatIsoDate(iso?: string): string {
-  if (!iso?.trim()) return '—'
-  const t = Date.parse(iso.trim())
-  return Number.isNaN(t) ? iso : new Date(t).toLocaleString()
 }
 
 function humanizeType(type: string): string {
@@ -20,9 +15,9 @@ function humanizeType(type: string): string {
 }
 
 function conditionStatusColor(status: string): 'green' | 'red' | 'grey' {
-  const s = status.toLowerCase()
-  if (s.includes('true')) return 'green'
-  if (s.includes('false')) return 'red'
+  const s = status.trim().toLowerCase()
+  if (s === 'true') return 'green'
+  if (s === 'false') return 'red'
   return 'grey'
 }
 
@@ -32,7 +27,7 @@ const tabPaddingCss = css`
   padding-top: var(--pf-t--global--spacer--md);
 `
 
-const ACTIVITY_COLUMNS: OcTableColumn<Condition>[] = [
+const ACTIVITY_COLUMNS: ObjectsTableColumn<Condition>[] = [
   { label: 'When', dataLabel: 'When', render: (c) => formatIsoDate(c.lastTransitionTime) },
   { label: 'Type', dataLabel: 'Type', render: (c) => humanizeType(c.type) },
   {
@@ -62,7 +57,7 @@ export function VmActivityTab({ vm }: Props) {
 
   return (
     <div className={tabPaddingCss}>
-      <OcTable
+      <ObjectsTable
         ariaLabel="VM activity"
         columns={ACTIVITY_COLUMNS}
         rows={conditions}

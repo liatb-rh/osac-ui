@@ -10,8 +10,8 @@ import {
 import { css } from '@emotion/css'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { shortSubnetDisplay } from '@osac/api-contracts'
-import { OcTable } from '@osac/ui-components'
-import type { OcTableColumn } from '@osac/ui-components'
+import { ObjectsTable } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 
 type LabelColor = 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'grey' | 'teal' | 'yellow'
 
@@ -48,7 +48,7 @@ const tabPaddingCss = css`
   padding-top: var(--pf-t--global--spacer--md);
 `
 
-const NIC_COLUMNS: OcTableColumn<NicRow>[] = [
+const NIC_COLUMNS: ObjectsTableColumn<NicRow>[] = [
   { label: 'Interface', dataLabel: 'Interface', render: (r) => r.iface },
   { label: 'Virtual network', dataLabel: 'Virtual network', render: (r) => r.vnet },
   { label: 'Subnet', dataLabel: 'Subnet', render: (r) => r.subnet },
@@ -93,7 +93,7 @@ export function VmNetworkingTab({ vm }: Props) {
   return (
     <Stack hasGutter className={tabPaddingCss}>
       <StackItem>
-        <OcTable
+        <ObjectsTable
           ariaLabel="Network interfaces"
           columns={NIC_COLUMNS}
           rows={nics}

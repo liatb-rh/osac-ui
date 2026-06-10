@@ -14,10 +14,8 @@ import {
   PageSection,
 } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
-import { OcCard } from '@osac/ui-components'
-import { PageHeader } from '../../components/layout'
-import type { CatalogItem } from '../../components/catalog'
-import { CatalogItemCard, PublishCatalogItemWizard } from '../../components/catalog'
+import { type CatalogItem, CatalogItemCard, PageHeader, StatCard } from '@osac/ui-components'
+import { PublishCatalogItemWizard } from '../../components/catalog'
 
 // ── Mock data (osac-pilot catalog items model) ────────────────────────────────
 
@@ -140,24 +138,27 @@ export function GlobalTemplatesPage() {
 
       {/* KPI row */}
       <div className={kpiGridCss}>
-        <OcCard label="Catalog items" value={String(items.length)} />
-        <OcCard
-          label="Published"
-          value={String(published)}
-          tone="success"
-        />
-        <OcCard
+        <StatCard label="Catalog items" value={String(items.length)} />
+        <StatCard label="Published" value={String(published)} tone="success" />
+        <StatCard
           label="Backing templates"
           value={String(BACKING_TEMPLATES.length)}
           hint="Ansible roles"
         />
-        <OcCard label="Avg presets / item" value={String(avgPresets)} />
+        <StatCard label="Avg presets / item" value={String(avgPresets)} />
       </div>
 
       {/* Card grid */}
       <div className={cardGridCss}>
         {items.map((item) => (
-          <CatalogItemCard key={item.id} item={item} onTogglePublish={handleTogglePublish} />
+          <CatalogItemCard
+            key={item.id}
+            item={item}
+            onTogglePublish={handleTogglePublish}
+            onEditPresets={() => {
+              /* TODO: open preset editor */
+            }}
+          />
         ))}
       </div>
 

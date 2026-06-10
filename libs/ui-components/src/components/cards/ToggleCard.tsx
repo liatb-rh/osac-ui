@@ -1,50 +1,6 @@
 import type { ReactNode } from 'react'
 import { Button, Card, CardBody, CardHeader, Label, Switch } from '@patternfly/react-core'
-import { css } from '@emotion/css'
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const cardCss = css`
-  transition: opacity 0.2s ease;
-  &[data-inactive='true'] {
-    opacity: 0.65;
-  }
-`
-
-const titleCss = css`
-  font-weight: 600;
-  color: #0066cc;
-  cursor: default;
-  &[data-clickable='true'] {
-    cursor: pointer;
-  }
-`
-
-const descCss = css`
-  font-size: 13px;
-  color: var(--pf-t--global--text--color--subtle);
-  margin-top: 2px;
-`
-
-const chipsRowCss = css`
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-`
-
-const headerInnerCss = css`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-`
-
-const actionsRowCss = css`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-`
+import styles from './ToggleCard.module.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,26 +15,26 @@ type LabelColor =
   | 'orangered'
   | 'yellow'
 
-export interface OcToggleCardLabel {
+export interface ToggleCardLabel {
   text: string
   color?: LabelColor
 }
 
-export interface OcToggleCardChip {
+export interface ToggleCardChip {
   key: string
   text: string
   color?: LabelColor
 }
 
-export interface OcToggleCardProps {
+export interface ToggleCardProps {
   /** Title text — displayed in blue. */
   title: ReactNode
   /** Status / metadata labels shown beside the title. */
-  labels?: OcToggleCardLabel[]
+  labels?: ToggleCardLabel[]
   /** Optional description text below the title. */
   description?: ReactNode
   /** Small chip labels (e.g. version numbers) rendered below the description. */
-  chips?: OcToggleCardChip[]
+  chips?: ToggleCardChip[]
   /** Whether the item is currently active / enabled. Controls toggle state and card opacity. */
   isActive: boolean
   /** Called with the new boolean value when the toggle changes. */
@@ -99,7 +55,7 @@ export interface OcToggleCardProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function OcToggleCard({
+export function ToggleCard({
   title,
   labels = [],
   description,
@@ -112,13 +68,13 @@ export function OcToggleCard({
   onAction,
   switchId,
   extra,
-}: OcToggleCardProps) {
+}: ToggleCardProps) {
   return (
-    <Card className={cardCss} data-inactive={!isActive}>
+    <Card className={styles.card} data-inactive={!isActive}>
       <CardHeader
         actions={{
           actions: (
-            <div className={actionsRowCss}>
+            <div className={styles.actionsRow}>
               {onAction && (
                 <Button variant="link" onClick={onAction}>
                   {actionLabel}
@@ -139,8 +95,8 @@ export function OcToggleCard({
           hasNoOffset: true,
         }}
       >
-        <div className={headerInnerCss}>
-          <span className={titleCss} data-clickable={!!onAction} onClick={onAction}>
+        <div className={styles.headerInner}>
+          <span className={styles.title} data-clickable={!!onAction} onClick={onAction}>
             {title}
           </span>
           {labels.map((l, i) => (
@@ -153,9 +109,9 @@ export function OcToggleCard({
 
       {(description || chips.length > 0 || extra) && (
         <CardBody>
-          {description && <div className={descCss}>{description}</div>}
+          {description && <div className={styles.desc}>{description}</div>}
           {chips.length > 0 && (
-            <div className={chipsRowCss}>
+            <div className={styles.chipsRow}>
               {chips.map((c) => (
                 <Label key={c.key} isCompact color={c.color ?? 'blue'}>
                   {c.text}

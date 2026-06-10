@@ -28,9 +28,9 @@ import {
 } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { StorageTier } from '@osac/api-contracts'
-import { OcLink } from '@osac/ui-components'
+import { CustomTableLink } from '@osac/ui-components'
 import { usePatchStorageTier, useStorageTiers } from '../../hooks/useAgents'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 
 // ── Mock enrichment ────────────────────────────────────────────────────────────
 
@@ -247,7 +247,9 @@ function TierRow({
       }}
     >
       <div>
-        <OcLink onClick={() => navigate(`/storage-tiers/${tier.id}`)}>{tier.name}</OcLink>{' '}
+        <CustomTableLink onClick={() => navigate(`/storage-tiers/${tier.id}`)}>
+          {tier.name}
+        </CustomTableLink>{' '}
         <Label isCompact color={tier.available ? 'green' : 'grey'}>
           {tier.available ? 'available' : 'disabled'}
         </Label>{' '}

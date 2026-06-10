@@ -21,12 +21,12 @@ import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import { resolveVmOsForUi } from '@osac/api-contracts'
-import { OcLink, OcTable, VmStatusLabel } from '@osac/ui-components'
-import type { OcTableColumn } from '@osac/ui-components'
+import { CustomTableLink, ObjectsTable, VmStatusLabel } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 import { useComputeInstances, useDeleteVm, usePatchVm, useProvisionVm } from '../../../hooks/hooks'
 import { useVmPowerActionDisplay } from '../../../hooks/useVmPowerActionDisplay'
 import { useSession } from '../../../contexts/SessionContext'
-import { PageHeader } from '../../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 import { VmDeleteConfirmModal } from '../../../components/vm/VmDeleteConfirmModal'
 import type {
   CreateVmWizardHandle,
@@ -183,16 +183,16 @@ export function VmsPage() {
     return getDisplayState(vm) === statusFilter
   })
 
-  const vmColumns: OcTableColumn<ComputeInstance>[] = [
+  const vmColumns: ObjectsTableColumn<ComputeInstance>[] = [
     {
       label: 'Name',
       dataLabel: 'Name',
       render: (vm) => {
         const locked = isPendingDelete(vm.id)
         return (
-          <OcLink isDisabled={locked} onClick={() => navigate(`/vms/${vm.id}`)}>
+          <CustomTableLink isDisabled={locked} onClick={() => navigate(`/vms/${vm.id}`)}>
             {vm.metadata.name}
-          </OcLink>
+          </CustomTableLink>
         )
       },
     },
@@ -338,7 +338,7 @@ export function VmsPage() {
             : 'No virtual machines yet. Create one to get started.'}
         </Content>
       ) : (
-        <OcTable
+        <ObjectsTable
           ariaLabel="Virtual machines"
           columns={vmColumns}
           rows={filteredVms}

@@ -1,5 +1,5 @@
 import { css } from '@emotion/css'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   Alert,
   Card,
@@ -17,6 +17,8 @@ import {
   Wizard,
   WizardStep,
 } from '@patternfly/react-core'
+
+const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 
 const EXTRA_TEMPLATES = ['vm-rhel9-gpu', 'vm-ubuntu22', 'vm-win2022', 'ocp-4.17-ai']
 
@@ -110,9 +112,10 @@ export function PublishCatalogItemWizard({
               min={1}
               max={64}
               onMinus={() => setCpu((n) => Math.max(1, n - 1))}
-              onPlus={() => setCpu((n) => n + 1)}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-              onChange={(e: any) => setCpu(Number((e.target as HTMLInputElement).value) || 1)}
+              onPlus={() => setCpu((n) => clamp(n + 1, 1, 64))}
+              onChange={(e: React.FormEvent<HTMLInputElement>) =>
+                setCpu(clamp(Number(e.currentTarget.value) || 1, 1, 64))
+              }
             />
           </FormGroup>
           <FormGroup label="Preset RAM (GiB)" fieldId="gtr">
@@ -121,9 +124,10 @@ export function PublishCatalogItemWizard({
               min={1}
               max={512}
               onMinus={() => setRam((n) => Math.max(1, n - 1))}
-              onPlus={() => setRam((n) => n + 2)}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-              onChange={(e: any) => setRam(Number((e.target as HTMLInputElement).value) || 1)}
+              onPlus={() => setRam((n) => clamp(n + 2, 1, 512))}
+              onChange={(e: React.FormEvent<HTMLInputElement>) =>
+                setRam(clamp(Number(e.currentTarget.value) || 1, 1, 512))
+              }
             />
           </FormGroup>
           <FormGroup fieldId="gtar">

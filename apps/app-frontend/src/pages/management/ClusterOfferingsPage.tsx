@@ -26,9 +26,9 @@ import {
 } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { ClusterCatalogItem } from '@osac/api-contracts'
-import { OcToggleCard } from '@osac/ui-components'
+import { ToggleCard } from '@osac/ui-components'
 import { useClusterCatalogItems } from '../../hooks/useClusterCatalogItems'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 
 const alertSpacingCss = css`
   margin-bottom: var(--pf-t--global--spacer--md);
@@ -124,7 +124,7 @@ export function ClusterOfferingsPage({ role = 'providerAdmin' }: ClusterOffering
             const isPreview = versions.some((v) => v.includes('preview'))
             const active = isActive(item)
             return (
-              <OcToggleCard
+              <ToggleCard
                 key={item.id}
                 switchId={`toggle-${item.id}`}
                 title={item.title}
@@ -155,7 +155,8 @@ export function ClusterOfferingsPage({ role = 'providerAdmin' }: ClusterOffering
         />
         <ModalBody className={modalBodyCss}>
           <NewOfferingWizard
-            onDone={() => {
+            onCancel={() => setWizardOpen(false)}
+            onSave={() => {
               setWizardOpen(false)
               flash('Offering created (demo — not persisted in mock mode).')
             }}
@@ -168,7 +169,7 @@ export function ClusterOfferingsPage({ role = 'providerAdmin' }: ClusterOffering
 
 // ── New offering wizard ────────────────────────────────────────────────────────
 
-function NewOfferingWizard({ onDone }: { onDone: () => void }) {
+function NewOfferingWizard({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
   const [name, setName] = useState('OpenShift 4.17 — Edge')
   const [desc, setDesc] = useState('Lightweight OCP profile for edge and branch sites.')
   const [ocp, setOcp] = useState('4.17.3')
@@ -178,7 +179,7 @@ function NewOfferingWizard({ onDone }: { onDone: () => void }) {
   const [multiZone, setMultiZone] = useState(true)
 
   return (
-    <Wizard onClose={onDone} onSave={onDone} height={460}>
+    <Wizard onClose={onCancel} onSave={onSave} height={460}>
       <WizardStep name="Identity" id="ident">
         <Form>
           <FormGroup label="Offering name" isRequired fieldId="off-name">

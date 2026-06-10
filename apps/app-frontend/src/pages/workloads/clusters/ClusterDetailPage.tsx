@@ -29,15 +29,15 @@ import {
 import { ArrowCircleUpIcon } from '@patternfly/react-icons/dist/esm/icons/arrow-circle-up-icon'
 import { DownloadIcon } from '@patternfly/react-icons/dist/esm/icons/download-icon'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
-import { OcKpiHeader } from '@osac/ui-components'
+import { KpiHeader } from '@osac/ui-components'
 import { useCluster } from '../../../hooks/useCluster'
 import { useClusterCatalogItems } from '../../../hooks/useClusterCatalogItems'
 import { downloadKubeconfig } from '../../../api/clusterClient'
 import { useDeleteCluster } from '../../../hooks/useDeleteCluster'
 import { useVirtualNetworks } from '../../../hooks/useNetworking'
-import { ClusterStatusLabel } from '../../../components/clusters/ClusterStatusLabel'
+import { ClusterStatusLabel } from '@osac/ui-components'
 import { UpgradeClusterModal } from '../../../components/clusters/UpgradeClusterModal'
-import { PageHeader } from '../../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 import {
   ClusterNetworkingTab,
   ClusterOverviewTab,
@@ -211,7 +211,7 @@ export function ClusterDetailPage() {
         )}
 
         {/* KPI row */}
-        <OcKpiHeader
+        <KpiHeader
           className={kpiTopMarginCss}
           items={[
             {

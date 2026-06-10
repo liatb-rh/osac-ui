@@ -69,7 +69,7 @@ import {
   useSubnets,
   useVirtualNetworks,
 } from '../../hooks/useNetworking'
-import { PageHeader } from '../../components/layout'
+import { PageHeader } from '@osac/ui-components'
 
 type ActiveTab = 0 | 1 | 2 | 3
 

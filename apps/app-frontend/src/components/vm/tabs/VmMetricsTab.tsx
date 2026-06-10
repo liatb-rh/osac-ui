@@ -1,15 +1,6 @@
-import { Card, CardBody, CardTitle, Grid, GridItem } from '@patternfly/react-core'
 import { css } from '@emotion/css'
-
-const svgCss = css`
-  width: 100%;
-  height: 60px;
-  display: block;
-`
-
-const metricUnitCss = css`
-  color: var(--pf-t--global--text--color--subtle);
-`
+import { Grid, GridItem } from '@patternfly/react-core'
+import { SparklineCard } from '@osac/ui-components'
 
 const gridPaddingCss = css`
   padding-top: var(--pf-t--global--spacer--md);
@@ -29,34 +20,14 @@ function sinePoints(
   }).join(' ')
 }
 
-interface MetricCardProps {
+interface MetricConfig {
   title: string
   unit: string
   amplitude: number
   offset: number
 }
 
-function MetricCard({ title, unit, amplitude, offset }: MetricCardProps) {
-  const pts = sinePoints(300, 60, amplitude, offset)
-  return (
-    <Card>
-      <CardTitle>{title}</CardTitle>
-      <CardBody>
-        <svg viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden className={svgCss}>
-          <polyline
-            points={pts}
-            fill="none"
-            stroke="var(--pf-t--global--active-color--100)"
-            strokeWidth="2"
-          />
-        </svg>
-        <small className={metricUnitCss}>{unit}</small>
-      </CardBody>
-    </Card>
-  )
-}
-
-const METRICS: MetricCardProps[] = [
+const METRICS: MetricConfig[] = [
   { title: 'CPU utilization', unit: '% over last hour', amplitude: 12, offset: 0 },
   { title: 'Memory usage', unit: 'GiB over last hour', amplitude: 5, offset: 1.2 },
   { title: 'Disk read / write', unit: 'MiB/s', amplitude: 18, offset: 2.4 },
@@ -68,7 +39,11 @@ export function VmMetricsTab() {
     <Grid hasGutter className={gridPaddingCss}>
       {METRICS.map((m) => (
         <GridItem key={m.title} span={6}>
-          <MetricCard {...m} />
+          <SparklineCard
+            title={m.title}
+            unit={m.unit}
+            points={sinePoints(300, 60, m.amplitude, m.offset)}
+          />
         </GridItem>
       ))}
     </Grid>

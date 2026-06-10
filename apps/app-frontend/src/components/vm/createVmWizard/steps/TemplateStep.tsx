@@ -16,7 +16,7 @@ import type { ClusterTemplate, TemplateWorkloadProfile } from '@osac/api-contrac
 import { useComputeInstanceTemplates } from '../../../../hooks/hooks'
 import { defaultTemplateBootDiskGib } from '../constants'
 import type { UpdateFn, WizardState } from '../types'
-import { OcTemplatesGallery } from '@osac/ui-components'
+import { TemplatesGallery } from '@osac/ui-components'
 
 function applySelectedTemplate(tpl: ClusterTemplate, update: UpdateFn) {
   update('selectedTemplateId', tpl.id)
@@ -160,7 +160,7 @@ export function TemplateStep({ state, update }: { state: WizardState; update: Up
       ) : null}
       {!templatesError && (
         <StackItem>
-          <OcTemplatesGallery
+          <TemplatesGallery
             templates={filtered}
             isLoading={templatesLoading}
             search={search}

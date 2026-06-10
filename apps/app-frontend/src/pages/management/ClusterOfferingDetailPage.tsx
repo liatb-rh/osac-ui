@@ -34,8 +34,8 @@ import type { Cluster, StorageTier } from '@osac/api-contracts'
 import { useClusterCatalogItems } from '../../hooks/useClusterCatalogItems'
 import { useClustersList } from '../../hooks/useClustersList'
 import { useAgents, useStorageTiers } from '../../hooks/useAgents'
-import { OcCard } from '@osac/ui-components'
-import { PageHeader } from '../../components/layout'
+import { StatCard } from '@osac/ui-components'
+import { PageHeader } from '@osac/ui-components'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -242,28 +242,28 @@ export function ClusterOfferingDetailPage() {
 
       {/* KPI row */}
       <div className={kpiRowCss}>
-        <OcCard
+        <StatCard
           label="Maturity"
           value={maturity}
           tone={maturity === 'preview' ? 'warning' : 'success'}
         />
-        <OcCard
+        <StatCard
           label="OCP version"
           value={primaryVersion}
           hint={versions.length > 1 ? `+${versions.length - 1} more` : undefined}
         />
-        <OcCard label="Min worker nodes" value={minWorkers} />
-        <OcCard
+        <StatCard label="Min worker nodes" value={minWorkers} />
+        <StatCard
           label="GPU"
           value={isGpu ? 'Enabled' : 'Disabled'}
           hint={isGpu ? 'NVIDIA operator' : undefined}
         />
-        <OcCard
+        <StatCard
           label="Active clusters"
           value={consumingClusters.length}
           hint={`${consumingClusters.reduce((a, c) => a + clusterTotalWorkers(c), 0)} workers`}
         />
-        <OcCard
+        <StatCard
           label="Eligible agents"
           value={`${healthyAgents.length} / ${eligibleAgents.length}`}
           hint="healthy hosts"

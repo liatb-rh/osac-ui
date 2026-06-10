@@ -23,14 +23,14 @@ import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circ
 import type { Cluster } from '@osac/api-contracts'
 import { useClustersList } from '../../../hooks/useClustersList'
 import { useClusterCatalogItems } from '../../../hooks/useClusterCatalogItems'
-import { ClusterStatusLabel } from '../../../components/clusters/ClusterStatusLabel'
+import { ClusterStatusLabel } from '@osac/ui-components'
 import { CreateClusterModal } from '../../../components/clusters/CreateClusterModal'
 import { UpgradeClusterModal } from '../../../components/clusters/UpgradeClusterModal'
 import { ClusterActionsMenu } from '../../../components/clusters/ClusterActionsMenu'
 import { useDeleteCluster } from '../../../hooks/useDeleteCluster'
-import { PageHeader } from '../../../components/layout'
-import { OcLink, OcTable } from '@osac/ui-components'
-import type { OcTableColumn } from '@osac/ui-components'
+import { PageHeader } from '@osac/ui-components'
+import { CustomTableLink, ObjectsTable } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 
 type StateFilter =
   | 'all'
@@ -107,12 +107,14 @@ export function ClustersPage() {
     })
   }, [clusters, search, stateFilter])
 
-  const columns: OcTableColumn<Cluster>[] = [
+  const columns: ObjectsTableColumn<Cluster>[] = [
     {
       label: 'Name',
       dataLabel: 'Name',
       render: (cluster) => (
-        <OcLink onClick={() => navigate(`/clusters/${cluster.id}`)}>{cluster.metadata.name}</OcLink>
+        <CustomTableLink onClick={() => navigate(`/clusters/${cluster.id}`)}>
+          {cluster.metadata.name}
+        </CustomTableLink>
       ),
     },
     {
@@ -242,7 +244,7 @@ export function ClustersPage() {
             : 'No clusters yet. Create one to get started.'}
         </Content>
       ) : (
-        <OcTable
+        <ObjectsTable
           ariaLabel="Clusters"
           columns={columns}
           rows={filteredClusters}

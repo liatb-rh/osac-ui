@@ -14,9 +14,9 @@ import {
   Tooltip,
 } from '@patternfly/react-core'
 import type { ClusterTemplate } from '@osac/api-contracts'
-import linuxMascotUrl from '../assets/guest-os-tux-linux.png'
+import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
 
-export interface OcTemplateCardProps {
+export interface TemplateCardProps {
   template: ClusterTemplate
   /** Highlights the card as currently selected (wizard selection mode). */
   isSelected?: boolean
@@ -54,7 +54,7 @@ function OsIcon({ icon }: { icon?: string }) {
   )
 }
 
-export function OcTemplateCard({ template, isSelected, onProvision }: OcTemplateCardProps) {
+export function TemplateCard({ template, isSelected, onProvision }: TemplateCardProps) {
   const diskGib = template.defaultBootDiskSizeGib ?? 40
   const workload = workloadLabel(template)
   const subtitle = subtitleForTemplate(template)

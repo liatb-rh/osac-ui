@@ -31,10 +31,10 @@ import { RedoIcon } from '@patternfly/react-icons/dist/esm/icons/redo-icon'
 import { SyncAltIcon } from '@patternfly/react-icons/dist/esm/icons/sync-alt-icon'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import type { Agent, AgentState } from '@osac/api-contracts'
-import { OcKpiHeader, OcTable } from '@osac/ui-components'
-import type { OcTableColumn } from '@osac/ui-components'
+import { KpiHeader, ObjectsTable } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 import { useAgent, useDeprovisionAgent } from '../../hooks/useAgents'
-import { ActionRow, PageHeader } from '../../components/layout'
+import { ActionRow, PageHeader } from '@osac/ui-components'
 
 // ── Hardware profile helpers ──────────────────────────────────────────────────
 
@@ -270,7 +270,7 @@ export function AgentDetailPage() {
       />
 
       {/* KPI row */}
-      <OcKpiHeader
+      <KpiHeader
         items={[
           {
             label: 'Status',
@@ -384,7 +384,7 @@ export function AgentDetailPage() {
         {/* ── Networking ────────────────────────────────────────────────────── */}
         <Tab eventKey="networking" title={<TabTitleText>Networking</TabTitleText>}>
           <div className={tabContentCss}>
-            <OcTable
+            <ObjectsTable
               ariaLabel="NICs"
               rows={nics}
               getRowKey={(n) => n.name}
@@ -405,7 +405,7 @@ export function AgentDetailPage() {
                     label: 'Bound to',
                     render: (n) => <code className={boundCodeCss}>{n.bound}</code>,
                   },
-                ] satisfies OcTableColumn<(typeof nics)[number]>[]
+                ] satisfies ObjectsTableColumn<(typeof nics)[number]>[]
               }
             />
           </div>
@@ -414,7 +414,7 @@ export function AgentDetailPage() {
         {/* ── Storage ───────────────────────────────────────────────────────── */}
         <Tab eventKey="storage" title={<TabTitleText>Storage</TabTitleText>}>
           <div className={tabContentCss}>
-            <OcTable
+            <ObjectsTable
               ariaLabel="Storage devices"
               rows={[
                 {

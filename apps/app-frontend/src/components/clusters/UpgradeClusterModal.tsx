@@ -35,9 +35,16 @@ interface UpgradeClusterModalProps {
 }
 
 function semverGt(a: string, b: string): boolean {
-  const parse = (v: string) => v.split('.').map(Number)
-  const [a1, a2 = 0, a3 = 0] = parse(a)
-  const [b1, b2 = 0, b3 = 0] = parse(b)
+  const parse = (v: string): [number, number, number] | null => {
+    const m = v.trim().match(/^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?/)
+    if (!m) return null
+    return [Number(m[1]), Number(m[2] ?? 0), Number(m[3] ?? 0)]
+  }
+  const av = parse(a)
+  const bv = parse(b)
+  if (!av || !bv) return false
+  const [a1, a2, a3] = av
+  const [b1, b2, b3] = bv
   if (a1 !== b1) return a1 > b1
   if (a2 !== b2) return a2 > b2
   return a3 > b3

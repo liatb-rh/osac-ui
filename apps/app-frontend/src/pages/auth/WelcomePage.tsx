@@ -11,7 +11,7 @@ import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt
 import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
 import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
 import type { DemoTenantId, OsacRole } from '@osac/api-contracts'
-import { LightDarkToggle, OcCardActive, type OcCardActiveTone } from '@osac/ui-components'
+import { CardActive, type CardActiveTone, LightDarkToggle } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
 
 // ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ interface Persona {
   badge: string
   orgName: string
   roleLabel: string
-  tone: OcCardActiveTone
+  tone: CardActiveTone
   accentColor: string
   desc: string
   Icon: ElementType
@@ -186,7 +186,7 @@ export function WelcomePage() {
           {/* Persona grid */}
           <div className="osac-persona-grid" role="list" aria-label="Select a persona">
             {personas.map((p) => (
-              <OcCardActive
+              <CardActive
                 key={p.id}
                 tone={p.tone}
                 badge={p.badge}
