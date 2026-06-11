@@ -12,12 +12,9 @@ interface Props {
 interface DiskRow {
   id: string
   disk: string
-  bus: string
   tier: string
   tierColor: 'yellow' | 'grey'
   size: string
-  iops: string
-  pvc: string
 }
 
 const tabPaddingCss = css`
@@ -26,7 +23,6 @@ const tabPaddingCss = css`
 
 const DISK_COLUMNS: ObjectsTableColumn<DiskRow>[] = [
   { label: 'Disk', dataLabel: 'Disk', render: (r) => r.disk },
-  { label: 'Bus', dataLabel: 'Bus', render: (r) => r.bus },
   {
     label: 'Tier',
     dataLabel: 'Tier',
@@ -37,8 +33,6 @@ const DISK_COLUMNS: ObjectsTableColumn<DiskRow>[] = [
     ),
   },
   { label: 'Size', dataLabel: 'Size', render: (r) => r.size },
-  { label: 'IOPS', dataLabel: 'IOPS', render: (r) => r.iops },
-  { label: 'Backing PVC', dataLabel: 'Backing PVC', render: (r) => <code>{r.pvc}</code> },
 ]
 
 export function VmStorageTab({ vm }: Props) {
@@ -50,22 +44,16 @@ export function VmStorageTab({ vm }: Props) {
         {
           id: 'boot',
           disk: 'boot',
-          bus: 'virtio',
           tier: 'gold',
           tierColor: 'yellow',
           size: storageGiB,
-          iops: '100k',
-          pvc: `${vm.metadata.name}-root`,
         },
         ...(vm.spec.additionalDisks ?? []).map((_, i) => ({
           id: `data-0${i + 1}`,
           disk: `data-0${i + 1}`,
-          bus: 'virtio',
           tier: 'silver',
           tierColor: 'grey' as const,
           size: '500 GiB',
-          iops: '30k',
-          pvc: `${vm.metadata.name}-data-0${i + 1}`,
         })),
       ]
     : []

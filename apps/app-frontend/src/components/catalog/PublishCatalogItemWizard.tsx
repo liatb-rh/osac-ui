@@ -6,6 +6,7 @@ import {
   CardBody,
   Form,
   FormGroup,
+  Label,
   MenuToggle,
   NumberInput,
   Select,
@@ -17,10 +18,9 @@ import {
   Wizard,
   WizardStep,
 } from '@patternfly/react-core'
+import type { CatalogItemType, FullCatalogItem } from '@osac/ui-components'
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
-
-const EXTRA_TEMPLATES = ['vm-rhel9-gpu', 'vm-ubuntu22', 'vm-win2022', 'ocp-4.17-ai']
 
 const summaryCardCss = css`
   margin-top: 12px;
@@ -31,53 +31,136 @@ const summaryCardBodyCss = css`
   gap: 6px;
 `
 
+const TYPE_OPTIONS: { value: CatalogItemType; label: string }[] = [
+  { value: 'vm', label: 'Virtual Machine' },
+  { value: 'cluster', label: 'Cluster' },
+  { value: 'baremetal', label: 'Bare Metal' },
+]
+
 export interface PublishCatalogItemWizardProps {
-  /** Available Ansible template names to pick from. */
-  backingTemplates: string[]
-  onDone: () => void
+  /** Available backing template names assigned to this tenant's groups. */
+  availableTemplates: string[]
+  onDone: (item?: FullCatalogItem) => void
 }
 
 export function PublishCatalogItemWizard({
-  backingTemplates,
+  availableTemplates,
   onDone,
 }: PublishCatalogItemWizardProps) {
-  const allTemplates = [...new Set([...backingTemplates, ...EXTRA_TEMPLATES])]
+  // Step 1 — Identity
+  const [title, setTitle] = useState('')
+  const [desc, setDesc] = useState('')
+  const [variant, setVariant] = useState('')
+  const [type, setType] = useState<CatalogItemType>('vm')
+  const [typeOpen, setTypeOpen] = useState(false)
 
-  const [name, setName] = useState('RHEL 9 — Edge')
-  const [desc, setDesc] = useState('Compact RHEL 9 profile preset for branch deployments.')
-  const [template, setTemplate] = useState(allTemplates[0] ?? '')
+  // Step 2 — Template
+  const [template, setTemplate] = useState(availableTemplates[0] ?? '')
   const [tOpen, setTOpen] = useState(false)
-  const [variant, setVariant] = useState('Edge')
+
+  // Step 3 — Fixed Defaults
   const [cpu, setCpu] = useState(2)
   const [ram, setRam] = useState(4)
+  const [disk, setDisk] = useState(40)
   const [allowResize, setAllowResize] = useState(false)
+
+  // Step 4 — Dynamic Parameters
+  const [paramSchemaRaw, setParamSchemaRaw] = useState('')
+  const [schemaError, setSchemaError] = useState<string | null>(null)
+
+  function validateSchema(raw: string) {
+    if (!raw.trim()) {
+      setSchemaError(null)
+      return
+    }
+    try {
+      JSON.parse(raw)
+      setSchemaError(null)
+    } catch {
+      setSchemaError('Invalid JSON. Please enter a valid JSON Schema object.')
+    }
+  }
+
+  // Step 5 — Publish
   const [publish, setPublish] = useState(true)
 
+  function handleSave() {
+    const item: FullCatalogItem = {
+      id: `ci-${Date.now()}`,
+      metadata: { name: title.toLowerCase().replace(/\s+/g, '-') },
+      title: variant ? `${title} — ${variant}` : title,
+      description: desc || undefined,
+      type,
+      published: publish,
+      tenantEnabled: publish,
+      templateRef: template,
+      fixedDefaults: { cpu, memoryGib: ram, bootDiskSizeGib: disk, allowUserResize: allowResize },
+      paramSchema: paramSchemaRaw.trim() ? (JSON.parse(paramSchemaRaw) as object) : undefined,
+    }
+    onDone(item)
+  }
+
   return (
-    <Wizard onClose={onDone} onSave={onDone} height={500}>
-      <WizardStep name="Identity" id="gt-id">
+    <Wizard onClose={() => onDone()} onSave={handleSave} height={520}>
+      {/* Step 1 — Identity */}
+      <WizardStep name="Identity" id="ci-id">
         <Form>
-          <FormGroup label="Catalog item name" isRequired fieldId="gtn">
-            <TextInput id="gtn" value={name} onChange={(_, v) => setName(v)} />
+          <FormGroup label="Catalog item name" isRequired fieldId="ci-name">
+            <TextInput
+              id="ci-name"
+              value={title}
+              onChange={(_, v) => setTitle(v)}
+              placeholder="e.g. RHEL 9"
+            />
           </FormGroup>
-          <FormGroup label="Description" fieldId="gtd">
-            <TextArea id="gtd" value={desc} onChange={(_, v) => setDesc(v)} rows={3} />
+          <FormGroup label="Description" fieldId="ci-desc">
+            <TextArea id="ci-desc" value={desc} onChange={(_, v) => setDesc(v)} rows={3} />
           </FormGroup>
-          <FormGroup label="Variant label" fieldId="gtv">
-            <TextInput id="gtv" value={variant} onChange={(_, v) => setVariant(v)} />
+          <FormGroup label="Variant label" fieldId="ci-variant">
+            <TextInput
+              id="ci-variant"
+              value={variant}
+              onChange={(_, v) => setVariant(v)}
+              placeholder="e.g. Small, Medium, GPU"
+            />
+          </FormGroup>
+          <FormGroup label="Type" fieldId="ci-type" isRequired>
+            <Select
+              isOpen={typeOpen}
+              onOpenChange={setTypeOpen}
+              toggle={(ref) => (
+                <MenuToggle ref={ref} onClick={() => setTypeOpen((v) => !v)}>
+                  {TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type}
+                </MenuToggle>
+              )}
+              selected={type}
+              onSelect={(_, v) => {
+                setType(v as CatalogItemType)
+                setTypeOpen(false)
+              }}
+            >
+              <SelectList>
+                {TYPE_OPTIONS.map((o) => (
+                  <SelectOption key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
           </FormGroup>
         </Form>
       </WizardStep>
 
-      <WizardStep name="Template" id="gt-tpl">
+      {/* Step 2 — Template */}
+      <WizardStep name="Template" id="ci-tpl">
         <Form>
-          <FormGroup label="Backing Ansible template" fieldId="gtt">
+          <FormGroup label="Backing template" fieldId="ci-tpl-select" isRequired>
             <Select
               isOpen={tOpen}
               onOpenChange={setTOpen}
               toggle={(ref) => (
                 <MenuToggle ref={ref} onClick={() => setTOpen((v) => !v)}>
-                  {template}
+                  {template || 'Select a template'}
                 </MenuToggle>
               )}
               selected={template}
@@ -87,7 +170,7 @@ export function PublishCatalogItemWizard({
               }}
             >
               <SelectList>
-                {allTemplates.map((o) => (
+                {availableTemplates.map((o) => (
                   <SelectOption key={o} value={o}>
                     {o}
                   </SelectOption>
@@ -99,26 +182,27 @@ export function PublishCatalogItemWizard({
             variant="info"
             isInline
             isPlain
-            title="One template can back many catalog items. Use variants to expose S / M / L sizes."
+            title="Only templates assigned to your tenant's groups are shown. Contact the provider admin to add more."
           />
         </Form>
       </WizardStep>
 
-      <WizardStep name="Presets & constraints" id="gt-pre">
+      {/* Step 3 — Fixed Defaults */}
+      <WizardStep name="Fixed Defaults" id="ci-pre">
         <Form>
-          <FormGroup label="Preset vCPU" fieldId="gtc">
+          <FormGroup label="Preset vCPU" fieldId="ci-cpu">
             <NumberInput
               value={cpu}
               min={1}
-              max={64}
+              max={128}
               onMinus={() => setCpu((n) => Math.max(1, n - 1))}
-              onPlus={() => setCpu((n) => clamp(n + 1, 1, 64))}
+              onPlus={() => setCpu((n) => clamp(n + 1, 1, 128))}
               onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                setCpu(clamp(Number(e.currentTarget.value) || 1, 1, 64))
+                setCpu(clamp(Number(e.currentTarget.value) || 1, 1, 128))
               }
             />
           </FormGroup>
-          <FormGroup label="Preset RAM (GiB)" fieldId="gtr">
+          <FormGroup label="Preset RAM (GiB)" fieldId="ci-ram">
             <NumberInput
               value={ram}
               min={1}
@@ -130,10 +214,22 @@ export function PublishCatalogItemWizard({
               }
             />
           </FormGroup>
-          <FormGroup fieldId="gtar">
+          <FormGroup label="Boot disk size (GiB)" fieldId="ci-disk">
+            <NumberInput
+              value={disk}
+              min={10}
+              max={2048}
+              onMinus={() => setDisk((n) => Math.max(10, n - 10))}
+              onPlus={() => setDisk((n) => clamp(n + 10, 10, 2048))}
+              onChange={(e: React.FormEvent<HTMLInputElement>) =>
+                setDisk(clamp(Number(e.currentTarget.value) || 10, 10, 2048))
+              }
+            />
+          </FormGroup>
+          <FormGroup fieldId="ci-resize">
             <Switch
-              id="gtar"
-              label="Allow tenants to override cpu / ram at order time"
+              id="ci-resize"
+              label="Allow tenants to override CPU / RAM at order time"
               isChecked={allowResize}
               onChange={(_, v) => setAllowResize(v)}
             />
@@ -141,15 +237,53 @@ export function PublishCatalogItemWizard({
         </Form>
       </WizardStep>
 
+      {/* Step 4 — Dynamic Parameters */}
+      <WizardStep name="Dynamic Parameters" id="ci-dyn">
+        <Form>
+          <FormGroup
+            label="Parameter schema (JSON Schema draft-07)"
+            fieldId="ci-schema"
+            labelHelp={
+              <span style={{ fontSize: '0.8125rem' }}>
+                Optional. Leave blank if no user-configurable parameters are needed.
+              </span>
+            }
+          >
+            <TextArea
+              id="ci-schema"
+              value={paramSchemaRaw}
+              onChange={(_, v) => {
+                setParamSchemaRaw(v)
+                validateSchema(v)
+              }}
+              rows={10}
+              placeholder={'{\n  "properties": {\n    "region": { "type": "string" }\n  }\n}'}
+              resizeOrientation="vertical"
+              validated={schemaError ? 'error' : 'default'}
+            />
+          </FormGroup>
+          {schemaError && <Alert variant="danger" isInline isPlain title={schemaError} />}
+          {!paramSchemaRaw.trim() && (
+            <Alert
+              variant="info"
+              isInline
+              isPlain
+              title="No dynamic parameters — users will see only the fixed defaults defined in the previous step."
+            />
+          )}
+        </Form>
+      </WizardStep>
+
+      {/* Step 5 — Publish */}
       <WizardStep
         name="Publish"
-        id="gt-pub"
+        id="ci-pub"
         footer={{ nextButtonText: publish ? 'Publish' : 'Save draft' }}
       >
         <Form>
-          <FormGroup fieldId="gtp">
+          <FormGroup fieldId="ci-pub-toggle">
             <Switch
-              id="gtp"
+              id="ci-pub-toggle"
               label="Publish to tenant catalog immediately"
               isChecked={publish}
               onChange={(_, v) => setPublish(v)}
@@ -159,15 +293,24 @@ export function PublishCatalogItemWizard({
         <Card className={summaryCardCss}>
           <CardBody className={summaryCardBodyCss}>
             <div>
-              <strong>Name:</strong> {name} ({variant})
+              <strong>Name:</strong> {title}
+              {variant ? ` — ${variant}` : ''}{' '}
+              <Label color="blue" isCompact>
+                {type}
+              </Label>
             </div>
             <div>
               <strong>Template:</strong> <code>{template}</code>
             </div>
             <div>
-              <strong>Preset:</strong> {cpu} vCPU · {ram} GiB RAM · resize{' '}
-              {allowResize ? 'allowed' : 'locked'}
+              <strong>Preset:</strong> {cpu} vCPU · {ram} GiB RAM · {disk} GiB disk
+              {allowResize ? ' · resize allowed' : ''}
             </div>
+            {paramSchemaRaw.trim() && (
+              <div>
+                <strong>Dynamic parameters:</strong> JSON schema provided
+              </div>
+            )}
           </CardBody>
         </Card>
       </WizardStep>

@@ -3,8 +3,8 @@
  * step: mvm_list_view
  */
 import { css } from '@emotion/css'
-import { useCallback, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Bullseye,
   Button,
@@ -95,8 +95,18 @@ function osLabel(vm: ComputeInstance): string {
 
 export function VmsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { role, selectedTenant } = useSession()
   const wizardRef = useRef<CreateVmWizardHandle>(null)
+
+  // Auto-open wizard pre-seeded from catalog navigation
+  const catalogItemId = searchParams.get('catalogItem')
+  useEffect(() => {
+    if (catalogItemId) {
+      wizardRef.current?.openFromTemplate(catalogItemId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')

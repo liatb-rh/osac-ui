@@ -220,7 +220,6 @@ export function VmDetailPage() {
                 label: 'Memory',
                 value: vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—',
               },
-              { label: 'Storage', value: '100 GiB' },
               { label: 'IP address', value: vm.status.ipAddress ?? '—' },
             ]}
           />

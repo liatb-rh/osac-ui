@@ -20,18 +20,31 @@ import { useSession } from '../contexts/SessionContext'
 // Pages
 import { RecentActivitiesPage } from './RecentActivitiesPage'
 import { SparsePlaceholderPage } from './SparsePlaceholderPage'
-import { TemplateCatalogPage } from './workloads'
+import { CatalogItemsPage } from './workloads'
 import { ClusterDetailPage, ClustersPage, VmDetailPage, VmsPage } from './workloads'
 import {
   AgentDetailPage,
+  BaremetalHostDetailPage,
+  BaremetalInventoryPage,
+  GlobalTemplateDetailPage,
   GlobalTemplatesPage,
   InfrastructureAgentsPage,
   ProviderInfraTopologyPage,
+  ProviderPublicIPPoolDetailPage,
+  ProviderPublicIPPoolsPage,
   StorageTierDetailPage,
   StorageTiersPage,
 } from './platform'
-import { NetworkClassesPage, PublicIPsPage } from './infrastructure'
-import { ClusterOfferingDetailPage, ClusterOfferingsPage, NetworksPage } from './management'
+import { BaremetalDetailPage, BaremetalPage } from './baremetal'
+import { NetworkClassesPage } from './infrastructure'
+import {
+  AdminCatalogItemsPage,
+  ClusterOfferingDetailPage,
+  ClusterOfferingsPage,
+  NetworksPage,
+  TenantAdminPublicIPPoolDetailPage,
+  TenantAdminPublicIPPoolsPage,
+} from './management'
 import { ShellBreadcrumb } from './shell/ShellBreadcrumb'
 import { ShellMasthead } from './shell/ShellMasthead'
 import { ShellSidebar } from './shell/ShellSidebar'
@@ -119,14 +132,16 @@ export function AppShell() {
         <Route path="/dashboard" element={<VmsPage />} />
         <Route path="/vms" element={<VmsPage />} />
         <Route path="/vms/:id" element={<VmDetailPage />} />
-        <Route path="/templates" element={<TemplateCatalogPage />} />
+        <Route path="/catalog-items" element={<CatalogItemsPage />} />
         <Route path="/activities" element={<RecentActivitiesPage />} />
         <Route path="/clusters" element={<ClustersPage />} />
         <Route path="/clusters/:id" element={<ClusterDetailPage />} />
         <Route path="/cluster-offerings" element={<ClusterOfferingsPage />} />
         <Route path="/cluster-offerings/:id" element={<ClusterOfferingDetailPage />} />
         <Route path="/networks" element={<NetworksPage />} />
-        <Route path="/admin/public-ips" element={<PublicIPsPage />} />
+        <Route path="/admin/public-ips" element={<TenantAdminPublicIPPoolsPage />} />
+        <Route path="/admin/public-ips/:id" element={<TenantAdminPublicIPPoolDetailPage />} />
+        <Route path="/admin/catalog-items" element={<AdminCatalogItemsPage />} />
         {ADMIN_PLACEHOLDER_ROUTES.map((route) => (
           <Route
             key={route.path}
@@ -155,7 +170,14 @@ export function AppShell() {
           />
         ))}
         <Route path="/global-templates" element={<GlobalTemplatesPage />} />
+        <Route path="/global-templates/:id" element={<GlobalTemplateDetailPage />} />
         <Route path="/provider/infrastructure" element={<ProviderInfraTopologyPage />} />
+        <Route path="/provider/public-ip-pools" element={<ProviderPublicIPPoolsPage />} />
+        <Route path="/provider/public-ip-pools/:id" element={<ProviderPublicIPPoolDetailPage />} />
+        <Route path="/baremetal" element={<BaremetalPage />} />
+        <Route path="/baremetal/:name" element={<BaremetalDetailPage />} />
+        <Route path="/provider/baremetal" element={<BaremetalInventoryPage />} />
+        <Route path="/provider/baremetal/:id" element={<BaremetalHostDetailPage />} />
 
         {/* Fallback */}
         <Route

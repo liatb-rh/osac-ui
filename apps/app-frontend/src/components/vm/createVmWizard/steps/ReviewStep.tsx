@@ -19,8 +19,8 @@ import {
   parseTemplateBootDiskGibInput,
   parseTemplateCoresInput,
   parseTemplateMemoryGibInput,
-  parseTemplateSecurityGroupsInput,
 } from '../constants'
+import { useSecurityGroups } from '../../../../hooks/useNetworking'
 import type { UpdateFn, WizardState } from '../types'
 
 const introCss = css`
@@ -48,6 +48,7 @@ export function ReviewStep({
 }) {
   void vms
   const { data: templates = [] } = useComputeInstanceTemplates()
+  const { data: securityGroups = [] } = useSecurityGroups()
   const tpl = useMemo(
     () =>
       state.selectedTemplateId
@@ -64,7 +65,10 @@ export function ReviewStep({
   const templateCores = parseTemplateCoresInput(state.templateCores)
   const templateMemoryGib = parseTemplateMemoryGibInput(state.templateMemoryGib)
   const additionalDisks = parseTemplateAdditionalDisksGibInput(state.templateAdditionalDisksGibRaw)
-  const securityGroups = parseTemplateSecurityGroupsInput(state.templateSecurityGroupsRaw)
+
+  const selectedSgNames = state.templateSecurityGroupIds
+    .map((id) => securityGroups.find((sg) => sg.id === id)?.metadata.name ?? id)
+    .join(', ')
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
@@ -96,6 +100,14 @@ export function ReviewStep({
           <DescriptionListGroup>
             <DescriptionListTerm>VM name</DescriptionListTerm>
             <DescriptionListDescription>{state.templateVmName || '—'}</DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Operating System</DescriptionListTerm>
+            <DescriptionListDescription>
+              {state.templateOsType
+                ? state.templateOsType.charAt(0).toUpperCase() + state.templateOsType.slice(1)
+                : '—'}
+            </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm>vCPU</DescriptionListTerm>
@@ -149,8 +161,12 @@ export function ReviewStep({
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm>Security groups</DescriptionListTerm>
+            <DescriptionListDescription>{selectedSgNames || '—'}</DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Public IP</DescriptionListTerm>
             <DescriptionListDescription>
-              {securityGroups.length ? securityGroups.join(', ') : '—'}
+              {state.publicIp?.enabled ? state.publicIp.label : 'None'}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>,
@@ -163,20 +179,6 @@ export function ReviewStep({
             <DescriptionListTerm>SSH public key</DescriptionListTerm>
             <DescriptionListDescription>
               {state.templateSshPublicKey.trim() ? 'Provided' : 'None'}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>,
-      )}
-      {renderSection(
-        'template-initial-run',
-        'Image & user data',
-        <DescriptionList isCompact>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Image</DescriptionListTerm>
-            <DescriptionListDescription>
-              {state.templateImageSourceType.trim() && state.templateImageSourceRef.trim()
-                ? `${state.templateImageSourceType} — ${state.templateImageSourceRef}`
-                : '—'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

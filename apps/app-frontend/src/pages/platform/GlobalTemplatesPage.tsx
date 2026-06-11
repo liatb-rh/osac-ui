@@ -1,184 +1,122 @@
 /**
  * flow: provider-administration
  * step: pad_global_templates
- * route: /provider/templates
+ * route: /global-templates
+ *
+ * Provider admin view — template library. Assign backing templates to tenant groups.
+ * Publishing catalog items is a tenant admin action (see AdminCatalogItemsPage).
  */
-import { css } from '@emotion/css'
-import { useState } from 'react'
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalVariant,
-  PageSection,
-} from '@patternfly/react-core'
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
-import { type CatalogItem, CatalogItemCard, PageHeader, StatCard } from '@osac/ui-components'
-import { PublishCatalogItemWizard } from '../../components/catalog'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Label, LabelGroup, PageSection } from '@patternfly/react-core'
+import { ActionsColumn } from '@patternfly/react-table'
+import type { CatalogItemType } from '@osac/ui-components'
+import { KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
+import type { BackingTemplate } from './templatesStore'
+import { templatesStore } from './templatesStore'
 
-// ── Mock data (osac-pilot catalog items model) ────────────────────────────────
+const TYPE_COLOR: Record<CatalogItemType, 'blue' | 'green' | 'orange'> = {
+  vm: 'blue',
+  cluster: 'green',
+  baremetal: 'orange',
+}
 
-const GLOBAL_ITEMS: CatalogItem[] = [
-  {
-    id: 'vm-rhel9-s',
-    name: 'RHEL 9 — Small',
-    template: 'vm-rhel9',
-    variant: 'S',
-    cpu: 2,
-    ram: 8,
-    presets: 4,
-    published: true,
-  },
-  {
-    id: 'vm-rhel9-m',
-    name: 'RHEL 9 — Medium',
-    template: 'vm-rhel9',
-    variant: 'M',
-    cpu: 4,
-    ram: 16,
-    presets: 4,
-    published: true,
-  },
-  {
-    id: 'vm-rhel9-l',
-    name: 'RHEL 9 — Large',
-    template: 'vm-rhel9',
-    variant: 'L',
-    cpu: 8,
-    ram: 32,
-    presets: 4,
-    published: true,
-  },
-  {
-    id: 'vm-rhel9-gpu',
-    name: 'RHEL 9 — GPU A100',
-    template: 'vm-rhel9-gpu',
-    variant: 'XL',
-    cpu: 32,
-    ram: 256,
-    presets: 6,
-    published: false,
-  },
-  {
-    id: 'ocp-edge',
-    name: 'OpenShift 4.17 — Edge',
-    template: 'ocp-4.17',
-    variant: 'Edge',
-    cpu: 3,
-    ram: 24,
-    presets: 8,
-    published: true,
-  },
-  {
-    id: 'vm-ubuntu22-s',
-    name: 'Ubuntu 22 — Small',
-    template: 'vm-ubuntu22',
-    variant: 'S',
-    cpu: 2,
-    ram: 8,
-    presets: 3,
-    published: true,
-  },
-  {
-    id: 'vm-win2022-m',
-    name: 'Windows 2022 — Medium',
-    template: 'vm-win2022',
-    variant: 'M',
-    cpu: 4,
-    ram: 16,
-    presets: 4,
-    published: false,
-  },
-]
-
-const BACKING_TEMPLATES = [...new Set(GLOBAL_ITEMS.map((i) => i.template))]
-
-const kpiGridCss = css`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 1.5rem;
-`
-
-const cardGridCss = css`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-`
-
-const modalBodyCss = css`
-  min-height: 480px;
-`
-
-// ── Page ──────────────────────────────────────────────────────────────────────
+const TYPE_LABEL: Record<CatalogItemType, string> = {
+  vm: 'VM',
+  cluster: 'Cluster',
+  baremetal: 'Bare Metal',
+}
 
 export function GlobalTemplatesPage() {
-  const [items, setItems] = useState<CatalogItem[]>(GLOBAL_ITEMS)
-  const [publishOpen, setPublishOpen] = useState(false)
+  const navigate = useNavigate()
+  const [templates, setTemplates] = useState<BackingTemplate[]>(() => templatesStore.getAll())
 
-  const published = items.filter((i) => i.published).length
-  const avgPresets = Math.round(items.reduce((a, i) => a + i.presets, 0) / items.length)
+  useEffect(() => {
+    const unsub = templatesStore.subscribe(() => setTemplates(templatesStore.getAll()))
+    return () => {
+      unsub()
+    }
+  }, [])
 
-  function handleTogglePublish(id: string, pub: boolean) {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, published: pub } : i)))
-  }
+  const vmCount = templates.filter((t) => t.type === 'vm').length
+  const clusterCount = templates.filter((t) => t.type === 'cluster').length
+  const bmCount = templates.filter((t) => t.type === 'baremetal').length
+  const totalAssignments = templates.reduce((s, t) => s + t.assignedGroups.length, 0)
+
+  const columns: ObjectsTableColumn<BackingTemplate>[] = [
+    {
+      label: 'Name',
+      render: (t) => <strong>{t.name}</strong>,
+    },
+    {
+      label: 'Type',
+      render: (t) => (
+        <Label color={TYPE_COLOR[t.type]} isCompact>
+          {TYPE_LABEL[t.type]}
+        </Label>
+      ),
+    },
+    {
+      label: 'Description',
+      render: (t) => t.description,
+    },
+    {
+      label: 'Assigned groups',
+      render: (t) =>
+        t.assignedGroups.length ? (
+          <LabelGroup numLabels={3}>
+            {t.assignedGroups.map((g) => (
+              <Label key={g} color="blue" isCompact>
+                {g}
+              </Label>
+            ))}
+          </LabelGroup>
+        ) : (
+          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>None</span>
+        ),
+    },
+    {
+      isActionCell: true,
+      render: (t) => (
+        <ActionsColumn
+          items={[
+            {
+              title: 'View details',
+              onClick: () => navigate(`/global-templates/${t.id}`),
+            },
+          ]}
+        />
+      ),
+    },
+  ]
 
   return (
     <PageSection isFilled>
       <PageHeader
         title="Global Templates"
-        description="User-facing offerings layered on top of Ansible templates. Publish curated variants (S/M/L) with preset values and field constraints."
-        actions={
-          <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setPublishOpen(true)}>
-            Publish catalog item
-          </Button>
-        }
+        description="Platform template library. Assign templates to tenant groups so tenant admins can publish catalog items."
       />
 
-      {/* KPI row */}
-      <div className={kpiGridCss}>
-        <StatCard label="Catalog items" value={String(items.length)} />
-        <StatCard label="Published" value={String(published)} tone="success" />
-        <StatCard
-          label="Backing templates"
-          value={String(BACKING_TEMPLATES.length)}
-          hint="Ansible roles"
-        />
-        <StatCard label="Avg presets / item" value={String(avgPresets)} />
-      </div>
+      <KpiHeader
+        items={[
+          { label: 'Templates', value: String(templates.length) },
+          { label: 'VM templates', value: String(vmCount) },
+          { label: 'Cluster templates', value: String(clusterCount) },
+          { label: 'Bare Metal templates', value: String(bmCount) },
+          { label: 'Group assignments', value: String(totalAssignments) },
+        ]}
+      />
 
-      {/* Card grid */}
-      <div className={cardGridCss}>
-        {items.map((item) => (
-          <CatalogItemCard
-            key={item.id}
-            item={item}
-            onTogglePublish={handleTogglePublish}
-            onEditPresets={() => {
-              /* TODO: open preset editor */
-            }}
-          />
-        ))}
-      </div>
-
-      <Modal
-        variant={ModalVariant.large}
-        isOpen={publishOpen}
-        onClose={() => setPublishOpen(false)}
-        aria-label="Publish catalog item"
-      >
-        <ModalHeader
-          title="Publish catalog item"
-          description="Curated user-facing offering layered on top of an Ansible template."
+      <div style={{ marginTop: 24 }}>
+        <ObjectsTable
+          ariaLabel="Global templates"
+          rows={templates}
+          getRowKey={(t) => t.id}
+          columns={columns}
+          onRowClick={(t) => navigate(`/global-templates/${t.id}`)}
         />
-        <ModalBody className={modalBodyCss}>
-          <PublishCatalogItemWizard
-            backingTemplates={BACKING_TEMPLATES}
-            onDone={() => setPublishOpen(false)}
-          />
-        </ModalBody>
-      </Modal>
+      </div>
     </PageSection>
   )
 }

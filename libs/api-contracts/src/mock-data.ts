@@ -1681,18 +1681,46 @@ export const DEMO_NETWORK_CLASSES: NetworkClass[] = [
   },
 ]
 
-export const DEMO_PUBLIC_IP_POOLS: PublicIPPool[] = [
+export interface PublicIPPoolGroupAssignment {
+  group: string
+  quota: number | null
+  used: number
+}
+
+export interface PublicIPPoolExtended extends PublicIPPool {
+  zone?: string
+  groupAssignments?: PublicIPPoolGroupAssignment[]
+  capacity?: number
+  allocated?: number
+  tenants?: string[]
+}
+
+export const DEMO_PUBLIC_IP_POOLS: PublicIPPoolExtended[] = [
   {
     id: 'pool-public-main',
     metadata: { name: 'main-pool', createdAt: '2025-01-01T00:00:00Z' },
     spec: { cidr: '203.0.113.0/24' },
     status: { state: 'READY', availableCount: 200 },
+    zone: 'us-east-1',
+    capacity: 254,
+    allocated: 42,
+    tenants: ['northstar', 'evergreen'],
+    groupAssignments: [
+      { group: 'northstar-prod', quota: 50, used: 18 },
+      { group: 'northstar-dev', quota: 10, used: 4 },
+      { group: 'evergreen-prod', quota: 30, used: 20 },
+    ],
   },
   {
     id: 'pool-public-edge',
     metadata: { name: 'edge-pool', createdAt: '2025-06-01T00:00:00Z' },
     spec: { cidr: '198.51.100.0/26' },
     status: { state: 'READY', availableCount: 60 },
+    zone: 'us-east-2',
+    capacity: 62,
+    allocated: 2,
+    tenants: ['vertexa'],
+    groupAssignments: [{ group: 'vertexa-edge', quota: null, used: 2 }],
   },
 ]
 

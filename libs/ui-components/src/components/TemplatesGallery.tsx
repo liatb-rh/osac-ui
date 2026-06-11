@@ -9,8 +9,37 @@ import {
   StackItem,
 } from '@patternfly/react-core'
 import type { ClusterTemplate } from '@osac/api-contracts'
-import { TemplateCard } from './cards/TemplateCard'
+import type { FullCatalogItem } from './catalogitem/CatalogItem'
+import { FullCatalogItemCard } from './catalogitem/CatalogItemCard'
 import styles from './TemplatesGallery.module.css'
+
+// ---------------------------------------------------------------------------
+// Adapter — maps ClusterTemplate (backend shape) to FullCatalogItem (card shape)
+// ---------------------------------------------------------------------------
+
+function templateToItem(t: ClusterTemplate): FullCatalogItem {
+  return {
+    id: t.id,
+    metadata: { name: t.metadata.name },
+    title: t.title,
+    description: t.description,
+    icon: t.icon,
+    type: 'vm',
+    workloadProfile: t.workloadProfile,
+    tags: t.tags,
+    published: true,
+    templateRef: t.id,
+    fixedDefaults: {
+      cpu: t.defaultCores,
+      memoryGib: t.defaultMemoryGib,
+      bootDiskSizeGib: t.defaultBootDiskSizeGib,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export interface TemplatesGalleryProps {
   templates: ClusterTemplate[]
@@ -29,7 +58,6 @@ export interface TemplatesGalleryProps {
 export function TemplatesGallery({
   templates,
   isLoading,
-  onProvision,
   onSelectTemplate,
   search,
   onSearchChange,
@@ -67,22 +95,11 @@ export function TemplatesGallery({
           <Gallery hasGutter className="osac-template-gallery">
             {templates.map((template) => (
               <GalleryItem key={template.id}>
-                <div
-                  className="tenant-vm-catalog-template-card-wrap"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open template details for ${template.title}`}
+                <FullCatalogItemCard
+                  item={templateToItem(template)}
+                  isSelected={template.id === selectedTemplateId}
                   onClick={() => onSelectTemplate(template)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') onSelectTemplate(template)
-                  }}
-                >
-                  <TemplateCard
-                    template={template}
-                    isSelected={template.id === selectedTemplateId}
-                    onProvision={onProvision ? () => onProvision(template) : undefined}
-                  />
-                </div>
+                />
               </GalleryItem>
             ))}
           </Gallery>

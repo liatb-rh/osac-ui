@@ -3,8 +3,8 @@
  * step: csc_clusters_list
  * route: /clusters
  */
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { css } from '@emotion/css'
 import {
   Alert,
@@ -78,21 +78,26 @@ const apiUrlMonoCss = css`
 
 export function ClustersPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { data: clusters, isLoading, error, refetch } = useClustersList()
   const { data: catalogItems } = useClusterCatalogItems()
   const { mutateAsync: deleteCluster } = useDeleteCluster()
 
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  // Auto-open create modal when navigated from catalog
+  useEffect(() => {
+    if (searchParams.get('catalogItem')) {
+      setShowCreateModal(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [upgradeCluster, setUpgradeCluster] = useState<Cluster | null>(null)
   const [search, setSearch] = useState('')
   const [stateFilter, setStateFilter] = useState<StateFilter>('all')
 
   function getCatalogItem(cluster: Cluster) {
     return (catalogItems ?? []).find((ci) => ci.id === cluster.spec.catalogItem)
-  }
-
-  function getWorkerCount(cluster: Cluster): number {
-    return Object.values(cluster.spec.nodeSets ?? {}).reduce((sum, ns) => sum + ns.size, 0)
   }
 
   async function handleDelete(cluster: Cluster) {
@@ -128,12 +133,9 @@ export function ClustersPage() {
       render: (cluster) => cluster.status.version ?? '—',
     },
     {
-      label: 'Workers',
-      dataLabel: 'Workers',
-      render: (cluster) => {
-        const n = getWorkerCount(cluster)
-        return n ? `${n} workers` : '—'
-      },
+      label: 'Catalog Item',
+      dataLabel: 'Catalog Item',
+      render: (cluster) => getCatalogItem(cluster)?.title ?? '—',
     },
     {
       label: 'API URL',

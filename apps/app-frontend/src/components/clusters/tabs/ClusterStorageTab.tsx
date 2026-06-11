@@ -1,22 +1,15 @@
 import {
-  Button,
   Card,
   CardBody,
   CardTitle,
   ClipboardCopy,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Flex,
   FlexItem,
   Label,
 } from '@patternfly/react-core'
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { CheckCircleIcon } from '@patternfly/react-icons/dist/esm/icons/check-circle-icon'
 import { InProgressIcon } from '@patternfly/react-icons/dist/esm/icons/in-progress-icon'
 import { OutlinedCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-circle-icon'
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import { css } from '@emotion/css'
 import type { Cluster } from '@osac/api-contracts'
 
@@ -73,25 +66,6 @@ const codeSmCss = css`
   font-size: 0.9rem;
 `
 
-const tierDescriptionCss = css`
-  color: var(--pf-t--global--text--color--subtle);
-  font-size: 13px;
-  margin-top: 0;
-  margin-bottom: 10px;
-`
-
-const tierMetaRowCss = css`
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
-  color: var(--pf-t--global--text--color--subtle);
-  margin-bottom: 12px;
-`
-
-const tierMetaValueCss = css`
-  color: var(--pf-t--global--text--color--regular);
-`
-
 const fieldLabelCss = css`
   font-size: 11px;
   color: var(--pf-t--global--text--color--subtle);
@@ -110,17 +84,6 @@ const emptyStorageClassesCss = css`
   font-size: 13px;
 `
 
-const cardBodyNoPaddingCss = css`
-  padding: 0;
-`
-
-const emptySnapshotClassesCss = css`
-  padding: 1rem 1.5rem;
-  color: var(--pf-t--global--text--color--subtle);
-  font-style: italic;
-  font-size: 13px;
-`
-
 const TIER_COLOR: Record<string, 'purple' | 'blue' | 'grey' | 'yellow'> = {
   fast: 'yellow',
   'tier-fast': 'yellow',
@@ -128,33 +91,6 @@ const TIER_COLOR: Record<string, 'purple' | 'blue' | 'grey' | 'yellow'> = {
   'tier-standard': 'blue',
   archive: 'grey',
   'tier-archive': 'grey',
-}
-
-const TIER_DESCRIPTION: Record<string, string> = {
-  fast: 'Low-latency NVMe pool for transactional and OLTP workloads.',
-  'tier-fast': 'Low-latency NVMe pool for transactional and OLTP workloads.',
-  standard: 'Balanced SSD pool for general-purpose application data.',
-  'tier-standard': 'Balanced SSD pool for general-purpose application data.',
-  archive: 'Cost-optimized HDD pool for long-retention datasets and backups.',
-  'tier-archive': 'Cost-optimized HDD pool for long-retention datasets and backups.',
-}
-
-const TIER_IOPS: Record<string, string> = {
-  fast: '100k',
-  'tier-fast': '100k',
-  standard: '30k',
-  'tier-standard': '30k',
-  archive: '5k',
-  'tier-archive': '5k',
-}
-
-const TIER_MEDIA: Record<string, string> = {
-  fast: 'NVMe SSD',
-  'tier-fast': 'NVMe SSD',
-  standard: 'SATA SSD',
-  'tier-standard': 'SATA SSD',
-  archive: 'HDD (SMR)',
-  'tier-archive': 'HDD (SMR)',
 }
 
 function pvcSnippet(storageClassName: string): string {
@@ -232,16 +168,11 @@ interface ClusterStorageTabProps {
 
 export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
   const { storageReady, storage } = cluster.status
-  const isClusterReady =
-    cluster.status.state === 'CLUSTER_STATE_READY' ||
-    cluster.status.state === 'CLUSTER_STATE_UPGRADING' ||
-    cluster.status.state === 'CLUSTER_STATE_UPGRADE_FAILED'
   const hasStorageClasses = (storage?.storageClasses?.length ?? 0) > 0
 
   const steps = [
     { label: 'Cluster provisioned', done: true },
-    { label: 'CSI driver installed', done: isClusterReady && !!storage?.csiDriver },
-    { label: 'StorageClasses created', done: hasStorageClasses },
+    { label: 'Storage classes created', done: hasStorageClasses },
     { label: 'Ready for PVCs', done: storageReady === true },
   ]
   const currentIdx = steps.findIndex((s) => !s.done)
@@ -266,34 +197,9 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
         </CardBody>
       </Card>
 
-      {/* ── CSI driver ────────────────────────────────────────────────────── */}
-      <Card>
-        <CardTitle>CSI driver</CardTitle>
-        <CardBody>
-          <DescriptionList isHorizontal isCompact columnModifier={{ default: '1Col' }}>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Driver</DescriptionListTerm>
-              <DescriptionListDescription>
-                <code>{storage?.csiDriver ?? 'csi.vastdata.com'}</code>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Provider</DescriptionListTerm>
-              <DescriptionListDescription>VAST Data</DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Storage type</DescriptionListTerm>
-              <DescriptionListDescription>
-                Universal Storage (file + block + object)
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          </DescriptionList>
-        </CardBody>
-      </Card>
-
       {/* ── Available StorageClasses ───────────────────────────────────────── */}
       <div>
-        <h3 className={sectionHeadingCss}>Available StorageClasses</h3>
+        <h3 className={sectionHeadingCss}>Available Storage Tiers</h3>
 
         {hasStorageClasses ? (
           <div className={storageClassesGridCss}>
@@ -331,21 +237,6 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                     </Flex>
                   </CardTitle>
                   <CardBody>
-                    {TIER_DESCRIPTION[tier] && (
-                      <p className={tierDescriptionCss}>{TIER_DESCRIPTION[tier]}</p>
-                    )}
-                    <div className={tierMetaRowCss}>
-                      {TIER_IOPS[tier] && (
-                        <span>
-                          IOPS: <strong className={tierMetaValueCss}>{TIER_IOPS[tier]}</strong>
-                        </span>
-                      )}
-                      {TIER_MEDIA[tier] && (
-                        <span>
-                          Media: <strong className={tierMetaValueCss}>{TIER_MEDIA[tier]}</strong>
-                        </span>
-                      )}
-                    </div>
                     <div className={fieldLabelCss}>storageClassName</div>
                     <ClipboardCopy
                       isReadOnly
@@ -374,76 +265,10 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
           </div>
         ) : (
           <p className={emptyStorageClassesCss}>
-            StorageClasses will appear here once the CSI driver is installed.
+            Storage tiers will appear here once the cluster is fully provisioned.
           </p>
         )}
       </div>
-
-      {/* ── VolumeSnapshotClasses ─────────────────────────────────────────── */}
-      <Card>
-        <CardTitle>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          >
-            <FlexItem>VolumeSnapshotClasses</FlexItem>
-            <FlexItem>
-              <Button variant="link" icon={<PlusCircleIcon />} isInline>
-                Create snapshot class
-              </Button>
-            </FlexItem>
-          </Flex>
-        </CardTitle>
-        <CardBody className={cardBodyNoPaddingCss}>
-          {(storage?.volumeSnapshotClasses?.length ?? 0) > 0 ? (
-            <Table aria-label="VolumeSnapshotClasses">
-              <Thead>
-                <Tr>
-                  <Th>Name</Th>
-                  <Th>Driver</Th>
-                  <Th>Deletion policy</Th>
-                  <Th>Default</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {(storage!.volumeSnapshotClasses ?? []).map((vsc) => (
-                  <Tr key={vsc.name}>
-                    <Td>
-                      <code>{vsc.name}</code>
-                    </Td>
-                    <Td>
-                      <code>{vsc.driver ?? '—'}</code>
-                    </Td>
-                    <Td>
-                      {vsc.deletionPolicy ? (
-                        <Label
-                          color={vsc.deletionPolicy === 'Retain' ? 'green' : 'orange'}
-                          isCompact
-                        >
-                          {vsc.deletionPolicy}
-                        </Label>
-                      ) : (
-                        '—'
-                      )}
-                    </Td>
-                    <Td>
-                      {vsc.isDefault ? (
-                        <Label color="green" isCompact>
-                          default
-                        </Label>
-                      ) : (
-                        '—'
-                      )}
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          ) : (
-            <div className={emptySnapshotClassesCss}>No snapshot classes available.</div>
-          )}
-        </CardBody>
-      </Card>
     </div>
   )
 }

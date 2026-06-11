@@ -1,3 +1,6 @@
+import type { PublicIpSelection } from '@osac/ui-components'
+export type { PublicIpSelection }
+
 export interface CreateVmWizardHandle {
   open: () => void
   openFromTemplate: (templateId: string) => void
@@ -28,16 +31,14 @@ export interface WizardState {
   templateVirtualNetworkId?: string
   /** Optional subnet fulfillment id; maps to `spec.subnet`. */
   templateSubnetId: string
-  /** Comma-separated security group fulfillment ids; maps to `spec.security_groups`. */
-  templateSecurityGroupsRaw: string
+  /** Selected security group fulfillment ids; maps to `spec.security_groups`. */
+  templateSecurityGroupIds: string[]
+  /** Operating system family; temporary v0.1 stopgap until compute image construct is ready. */
+  templateOsType: 'linux' | 'windows' | ''
   /** SSH public key; maps to `spec.ssh_key`. */
   templateSshPublicKey: string
   /** Cloud-init / ignition-style payload; maps to `spec.user_data`. */
   templateUserData: string
-  /** Optional image `source_type` (proto enum string); maps with `templateImageSourceRef` to `spec.image`. */
-  templateImageSourceType: string
-  /** Optional image reference (e.g. registry URI); maps with `templateImageSourceType` to `spec.image`. */
-  templateImageSourceRef: string
   /**
    * Optional extra data disks as comma-separated GiB sizes (e.g. `50, 100`);
    * maps to `spec.additional_disks` as `{ size_gib }[]`.
@@ -47,6 +48,8 @@ export interface WizardState {
   cloneSourceVmId: string | null
   cloneNewName: string
   startAfterCreate: boolean
+  /** Optional public IP selection from the Network step. */
+  publicIp: PublicIpSelection | null
 }
 
 export type UpdateFn = <K extends keyof WizardState>(key: K, value: WizardState[K]) => void

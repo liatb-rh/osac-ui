@@ -86,16 +86,16 @@ export const INITIAL_STATE: WizardState = {
   templateMemoryGib: '',
   templateRunStrategy: 'Always',
   templateSubnetId: '',
-  templateSecurityGroupsRaw: '',
+  templateSecurityGroupIds: [],
+  templateOsType: '',
   templateSshPublicKey: '',
   templateUserData: '',
-  templateImageSourceType: '',
-  templateImageSourceRef: '',
   templateAdditionalDisksGibRaw: '',
   templateVmName: '',
   cloneSourceVmId: null,
   cloneNewName: '',
   startAfterCreate: true,
+  publicIp: null,
 }
 
 /** Merge BFF draft over defaults so omitted keys (older sessions) keep sensible defaults. */

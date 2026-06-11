@@ -48,11 +48,18 @@ const ALL_NAV: NavSection[] = [
         roles: ['tenantUser', 'tenantAdmin', 'providerAdmin'],
       },
       {
-        id: 'catalog',
-        label: 'Template Catalog',
-        path: '/templates',
+        id: 'catalog-items',
+        label: 'Catalog',
+        path: '/catalog-items',
         icon: CubesIcon,
         roles: ['tenantUser', 'tenantAdmin', 'providerAdmin'],
+      },
+      {
+        id: 'baremetal',
+        label: 'Bare Metal',
+        path: '/baremetal',
+        icon: ServerIcon,
+        roles: ['tenantUser', 'tenantAdmin'],
       },
       {
         id: 'clusters',
@@ -67,17 +74,67 @@ const ALL_NAV: NavSection[] = [
     groupLabel: 'Administration',
     items: [
       {
-        id: 'cluster-offerings',
-        label: 'Cluster offerings',
-        path: '/cluster-offerings',
-        icon: ListIcon,
-        roles: ['tenantAdmin', 'providerAdmin'],
-      },
-      {
         id: 'networks',
         label: 'Networks',
         path: '/networks',
         icon: NetworkIcon,
+        roles: ['tenantAdmin', 'providerAdmin'],
+      },
+    ],
+  },
+  {
+    groupLabel: 'Infrastructure',
+    items: [
+      {
+        id: 'admin-public-ips',
+        label: 'Public IP Pools',
+        path: '/admin/public-ips',
+        icon: NetworkIcon,
+        roles: ['tenantAdmin'],
+      },
+      {
+        id: 'admin-catalog-items',
+        label: 'Catalog Items',
+        path: '/admin/catalog-items',
+        icon: CubesIcon,
+        roles: ['tenantAdmin'],
+      },
+    ],
+  },
+  {
+    groupLabel: 'Platform',
+    items: [
+      {
+        id: 'platform-templates',
+        label: 'Global Templates',
+        path: '/global-templates',
+        icon: CubesIcon,
+        roles: ['providerAdmin'],
+      },
+      {
+        id: 'platform-public-ip-pools',
+        label: 'Public IP Pools',
+        path: '/provider/public-ip-pools',
+        icon: NetworkIcon,
+        roles: ['providerAdmin'],
+      },
+      {
+        id: 'provider-baremetal',
+        label: 'Bare Metal Inventory',
+        path: '/provider/baremetal',
+        icon: ServerIcon,
+        roles: ['providerAdmin'],
+      },
+    ],
+  },
+  {
+    groupLabel: 'Deprecated',
+    items: [
+      {
+        id: 'cluster-offerings',
+        label: 'Cluster offerings',
+        path: '/cluster-offerings',
+        icon: ListIcon,
         roles: ['tenantAdmin', 'providerAdmin'],
       },
       {
@@ -87,19 +144,6 @@ const ALL_NAV: NavSection[] = [
         icon: NetworkIcon,
         roles: ['providerAdmin'],
       },
-    ],
-  },
-
-  {
-    groupLabel: 'Infrastructure',
-    items: [
-      {
-        id: 'admin-public-ips',
-        label: 'Public IPs',
-        path: '/admin/public-ips',
-        icon: NetworkIcon,
-        roles: ['tenantAdmin', 'providerAdmin'],
-      },
       {
         id: 'admin-storage',
         label: 'Storage',
@@ -107,11 +151,6 @@ const ALL_NAV: NavSection[] = [
         icon: DatabaseIcon,
         roles: ['tenantAdmin', 'providerAdmin'],
       },
-    ],
-  },
-  {
-    groupLabel: 'Platform',
-    items: [
       {
         id: 'platform-storage-tiers',
         label: 'Storage Tiers',
@@ -124,13 +163,6 @@ const ALL_NAV: NavSection[] = [
         label: 'Agents',
         path: '/agents',
         icon: CogIcon,
-        roles: ['providerAdmin'],
-      },
-      {
-        id: 'platform-templates',
-        label: 'Global Templates',
-        path: '/global-templates',
-        icon: CubesIcon,
         roles: ['providerAdmin'],
       },
     ],

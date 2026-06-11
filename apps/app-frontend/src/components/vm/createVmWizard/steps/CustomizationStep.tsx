@@ -6,6 +6,10 @@ import {
   FormHelperText,
   FormSelect,
   FormSelectOption,
+  MenuToggle,
+  Select,
+  SelectList,
+  SelectOption,
   Stack,
   StackItem,
   Tab,
@@ -19,9 +23,12 @@ import { useLayoutEffect, useMemo, useState } from 'react'
 import { useComputeInstanceTemplates } from '../../../../hooks/hooks'
 import {
   useAllSubnets,
+  usePublicIPPools,
+  usePublicIPs,
   useSecurityGroups,
   useVirtualNetworks,
 } from '../../../../hooks/useNetworking'
+import { PublicIpField } from '@osac/ui-components'
 import {
   TEMPLATE_BOOT_DISK_MAX_GIB,
   TEMPLATE_BOOT_DISK_MIN_GIB,
@@ -50,24 +57,33 @@ const customizationTabPanelCss = css`
   padding-top: var(--pf-t--global--spacer--md);
 `
 
+const menuToggleFullWidthCss = css`
+  width: 100%;
+`
+
 const RUN_STRATEGY_OPTIONS = [
   { value: 'Always', label: 'Always' },
   { value: 'Halted', label: 'Halted' },
 ] as const
 
-const IMAGE_SOURCE_TYPE_OPTIONS = [
-  { value: '', label: 'Use template default image' },
-  { value: 'SOURCE_TYPE_REGISTRY', label: 'Container registry' },
+const OS_TYPE_OPTIONS = [
+  { value: '', label: 'Select operating system' },
+  { value: 'linux', label: 'Linux' },
+  { value: 'windows', label: 'Windows' },
 ] as const
 
-type CustomizationTabKey = 'overview' | 'storage' | 'network' | 'ssh' | 'advanced'
+type CustomizationTabKey = 'overview' | 'storage' | 'network' | 'ssh'
 
 export function CustomizationStep({ state, update }: { state: WizardState; update: UpdateFn }) {
   const [activeTab, setActiveTab] = useState<CustomizationTabKey>('overview')
+  const [sgSelectOpen, setSgSelectOpen] = useState(false)
   const { data: templates = [] } = useComputeInstanceTemplates()
   const { data: allSubnets } = useAllSubnets()
   const { data: securityGroups } = useSecurityGroups()
   const { data: virtualNetworks } = useVirtualNetworks()
+  const { data: publicIPPools = [] } = usePublicIPPools()
+  const { data: publicIPs = [] } = usePublicIPs()
+  const allocatedIPs = publicIPs.filter((ip) => ip.status.state === 'PUBLIC_IP_STATE_ALLOCATED')
 
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === state.selectedTemplateId) ?? null,
@@ -135,6 +151,12 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
     update,
   ])
 
+  function toggleSecurityGroup(id: string) {
+    const current = state.templateSecurityGroupIds
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+    update('templateSecurityGroupIds', next)
+  }
+
   return (
     <Stack hasGutter>
       <StackItem>
@@ -169,6 +191,27 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
             <Tab key="overview" eventKey="overview" title={<TabTitleText>Overview</TabTitleText>}>
               <Stack hasGutter className={customizationTabPanelCss}>
                 <Form>
+                  <FormGroup label="Operating System" fieldId="template-os-type" isRequired>
+                    <FormSelect
+                      id="template-os-type"
+                      value={state.templateOsType}
+                      onChange={(_e, v) =>
+                        update('templateOsType', v as WizardState['templateOsType'])
+                      }
+                      aria-label="Select operating system"
+                    >
+                      {OS_TYPE_OPTIONS.map((o) => (
+                        <FormSelectOption
+                          key={o.value || 'placeholder'}
+                          value={o.value}
+                          label={o.label}
+                        />
+                      ))}
+                    </FormSelect>
+                    <FormHelperText>
+                      Linux or Windows (v0.1 — image selection coming in v0.2).
+                    </FormHelperText>
+                  </FormGroup>
                   <FormGroup label="vCPU count" fieldId="template-cores" isRequired>
                     <TextInput
                       id="template-cores"
@@ -300,19 +343,45 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                     <FormHelperText>Optional. Filtered by selected virtual network.</FormHelperText>
                   </FormGroup>
                   <FormGroup label="Security groups" fieldId="template-security-groups">
-                    <FormSelect
+                    <Select
                       id="template-security-groups"
-                      value={state.templateSecurityGroupsRaw}
-                      onChange={(_e, v) => update('templateSecurityGroupsRaw', v)}
-                      aria-label="Select security group"
+                      isOpen={sgSelectOpen}
+                      onOpenChange={setSgSelectOpen}
+                      toggle={(ref) => (
+                        <MenuToggle
+                          ref={ref}
+                          onClick={() => setSgSelectOpen((o) => !o)}
+                          isExpanded={sgSelectOpen}
+                          className={menuToggleFullWidthCss}
+                          aria-label="Select security groups"
+                        >
+                          {state.templateSecurityGroupIds.length === 0
+                            ? 'None (use defaults)'
+                            : `${state.templateSecurityGroupIds.length} selected`}
+                        </MenuToggle>
+                      )}
                     >
-                      <FormSelectOption value="" label="None (use defaults)" />
-                      {(securityGroups ?? []).map((sg) => (
-                        <FormSelectOption key={sg.id} value={sg.id} label={sg.metadata.name} />
-                      ))}
-                    </FormSelect>
-                    <FormHelperText>Optional. Select one security group.</FormHelperText>
+                      <SelectList>
+                        {(securityGroups ?? []).map((sg) => (
+                          <SelectOption
+                            key={sg.id}
+                            value={sg.id}
+                            hasCheckbox
+                            isSelected={state.templateSecurityGroupIds.includes(sg.id)}
+                            onClick={() => toggleSecurityGroup(sg.id)}
+                          >
+                            {sg.metadata.name}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                    <FormHelperText>Optional. Select one or more security groups.</FormHelperText>
                   </FormGroup>
+                  <PublicIpField
+                    pools={publicIPPools}
+                    allocatedIPs={allocatedIPs}
+                    onChange={(sel) => update('publicIp', sel)}
+                  />
                 </Form>
               </Stack>
             </Tab>
@@ -329,38 +398,6 @@ export function CustomizationStep({ state, update }: { state: WizardState; updat
                       resizeOrientation="vertical"
                     />
                     <FormHelperText>Optional.</FormHelperText>
-                  </FormGroup>
-                </Form>
-              </Stack>
-            </Tab>
-            <Tab
-              key="advanced"
-              eventKey="advanced"
-              title={<TabTitleText>Image &amp; user data</TabTitleText>}
-            >
-              <Stack hasGutter className={customizationTabPanelCss}>
-                <Form>
-                  <FormGroup label="Image source type" fieldId="template-image-source-type">
-                    <FormSelect
-                      id="template-image-source-type"
-                      value={state.templateImageSourceType}
-                      onChange={(_e, v) => update('templateImageSourceType', v)}
-                    >
-                      {IMAGE_SOURCE_TYPE_OPTIONS.map((o) => (
-                        <FormSelectOption key={o.value || 'omit'} value={o.value} label={o.label} />
-                      ))}
-                    </FormSelect>
-                    <FormHelperText>
-                      Set both type and reference only if you need to override the template image.
-                    </FormHelperText>
-                  </FormGroup>
-                  <FormGroup label="Image source reference" fieldId="template-image-source-ref">
-                    <TextInput
-                      id="template-image-source-ref"
-                      value={state.templateImageSourceRef}
-                      onChange={(_e, v) => update('templateImageSourceRef', v)}
-                      placeholder="e.g. registry.redhat.io/rhel9:latest"
-                    />
                   </FormGroup>
                   <FormGroup label="User data" fieldId="template-user-data">
                     <TextArea
