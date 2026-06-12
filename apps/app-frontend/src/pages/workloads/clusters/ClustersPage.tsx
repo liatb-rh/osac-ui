@@ -181,7 +181,7 @@ export function ClustersPage() {
   const mainContent = (
     <PageSection isFilled>
       <PageHeader
-        title="Clusters"
+        title="Cluster Instances"
         description="OpenShift clusters provisioned for your organization."
         actions={
           <Button

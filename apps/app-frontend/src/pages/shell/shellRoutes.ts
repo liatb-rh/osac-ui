@@ -45,5 +45,5 @@ export const PROVIDER_PLACEHOLDER_ROUTES: ShellPlaceholderRoute[] = [
 export function defaultRouteForRole(role: OsacRole): string {
   if (role === 'providerAdmin') return '/agents'
   if (role === 'tenantAdmin') return '/admin/dashboard'
-  return '/dashboard'
+  return '/catalog-items'
 }

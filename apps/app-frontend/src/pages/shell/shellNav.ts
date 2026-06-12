@@ -37,21 +37,21 @@ export interface NavSection {
 
 const ALL_NAV: NavSection[] = [
   {
-    groupLabel: 'Workloads',
+    groupLabel: 'Services',
     items: [
       // { id: 'workloads-dashboard',   label: 'Dashboard',        path: '/dashboard', icon: ThIcon,       roles: ['tenantUser','tenantAdmin', 'providerAdmin'] },
-      {
-        id: 'vms-list',
-        label: 'Virtual Machines',
-        path: '/vms',
-        icon: ServerIcon,
-        roles: ['tenantUser', 'tenantAdmin', 'providerAdmin'],
-      },
       {
         id: 'catalog-items',
         label: 'Catalog',
         path: '/catalog-items',
         icon: CubesIcon,
+        roles: ['tenantUser', 'tenantAdmin', 'providerAdmin'],
+      },
+      {
+        id: 'vms-list',
+        label: 'Virtual Machines',
+        path: '/vms',
+        icon: ServerIcon,
         roles: ['tenantUser', 'tenantAdmin', 'providerAdmin'],
       },
       {

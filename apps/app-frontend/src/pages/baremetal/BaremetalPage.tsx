@@ -245,7 +245,7 @@ export function BaremetalPage() {
   return (
     <PageSection isFilled>
       <PageHeader
-        title="My Bare Metal"
+        title="Bare Metal Instances"
         description="Request and manage bare metal instances provisioned from the catalog."
         actions={
           <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
@@ -253,15 +253,6 @@ export function BaremetalPage() {
           </Button>
         }
       />
-
-      <KpiHeader
-        items={[
-          { label: 'Total', value: String(instances.length) },
-          { label: 'Active', value: String(active), tone: 'success' },
-          { label: 'In progress', value: String(inProgress) },
-        ]}
-      />
-
       <div className={filterBarCss} style={{ marginTop: 16 }}>
         <SearchInput
           placeholder="Search by name…"

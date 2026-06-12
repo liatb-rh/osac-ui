@@ -296,7 +296,7 @@ export function VmsPage() {
       />
 
       <PageHeader
-        title="Virtual Machines"
+        title="Virtual Machine Instances"
         description="Operate workload lifecycle in your tenant workspace."
         actions={
           role === 'tenantUser' ? (

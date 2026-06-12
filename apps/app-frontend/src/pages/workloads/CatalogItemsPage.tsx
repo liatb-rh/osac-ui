@@ -139,7 +139,7 @@ export function CatalogItemsPage() {
     <PageSection isFilled padding={{ default: 'noPadding' }}>
       <div style={{ padding: '24px 24px 0' }}>
         <PageHeader
-          title="Catalog"
+          title="Services"
           description="Browse available offerings and provision workloads."
         />
       </div>
