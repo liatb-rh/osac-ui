@@ -36,6 +36,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circ
 import { BARE_METAL_INSTANCES, BM_FLAVORS, BM_IMAGES } from '@osac/api-contracts'
 import type { BareMetalInstance, BmFlavor } from '@osac/api-contracts'
 import {
+  CustomTableLink,
   FullCatalogItemCard,
   KpiHeader,
   ObjectsTable,
@@ -43,8 +44,8 @@ import {
   PublicIpField,
 } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
-import { usePublicIPPools, usePublicIPs } from '../../hooks/useNetworking'
-import { catalogItemsStore } from '../workloads/catalogItemsStore'
+import { usePublicIPPools, usePublicIPs } from '../../../hooks/useNetworking'
+import { catalogItemsStore } from '../catalogItemsStore'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -168,19 +169,9 @@ export function BaremetalPage() {
     {
       label: 'Name',
       render: (i) => (
-        <button
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600,
-            textDecoration: 'underline dashed',
-            textUnderlineOffset: '3px',
-          }}
-          onClick={() => navigate(`/baremetal/${i.id}`)}
-        >
+        <CustomTableLink onClick={() => navigate(`/baremetal/${i.id}`)}>
           {i.name}
-        </button>
+        </CustomTableLink>
       ),
     },
     {

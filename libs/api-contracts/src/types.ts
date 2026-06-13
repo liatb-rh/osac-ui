@@ -45,6 +45,12 @@ export type VmPowerState =
   /** Client-only: list still missing VM after long wait (My VMs placeholder). */
   | 'still_provisioning'
 
+/** One NIC attachment — subnet + security groups must be READY and same VNet. */
+export interface NetworkAttachment {
+  subnet: string
+  securityGroups: string[]
+}
+
 export interface ComputeInstanceSpec {
   template?: string
   /** Template param values (ProtoJSON Any map). The create-from-template wizard does not populate this; use top-level `spec` fields instead. */
@@ -58,7 +64,11 @@ export interface ComputeInstanceSpec {
   runStrategy?: string
   sshKey?: string
   userData?: string
+  /** Network interface attachments (backend-fulfillment: network_attachments). At least one required on create. */
+  networkAttachments?: NetworkAttachment[]
+  /** @deprecated Use networkAttachments[0].subnet. Kept for read normalisation of legacy wire responses. */
   subnet?: string
+  /** @deprecated Use networkAttachments[0].securityGroups. Kept for read normalisation of legacy wire responses. */
   securityGroups?: string[]
   restartRequestedAt?: string
 }
@@ -545,4 +555,46 @@ export interface StorageTier {
   available: boolean
   /** Tenant IDs for which this tier is enabled. Empty = available to all tenants. */
   availableTenantIds?: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Bare Metal Instances (fulfillment-service)
+// ---------------------------------------------------------------------------
+
+export type BareMetalInstanceState =
+  | 'BARE_METAL_INSTANCE_STATE_UNSPECIFIED'
+  | 'BARE_METAL_INSTANCE_STATE_PENDING'
+  | 'BARE_METAL_INSTANCE_STATE_PROVISIONING'
+  | 'BARE_METAL_INSTANCE_STATE_ACTIVE'
+  | 'BARE_METAL_INSTANCE_STATE_DEPROVISIONING'
+  | 'BARE_METAL_INSTANCE_STATE_FAILED'
+  | 'BARE_METAL_INSTANCE_STATE_DELETING'
+
+export interface FulfillmentBareMetalInstanceSpec {
+  /** ID of the BareMetalInstanceCatalogItem that defines the hardware offering. Required on create. */
+  catalogItem: string
+  sshKey?: string
+  userData?: string
+  runStrategy?: string
+}
+
+export interface FulfillmentBareMetalInstanceStatus {
+  state: BareMetalInstanceState
+  message?: string
+}
+
+/** A bare metal instance provisioned via the fulfillment-service REST API. */
+export interface FulfillmentBareMetalInstance {
+  id: string
+  metadata: ResourceMetadata
+  spec: FulfillmentBareMetalInstanceSpec
+  status: FulfillmentBareMetalInstanceStatus
+}
+
+export interface BareMetalInstanceCatalogItem {
+  id: string
+  metadata?: ResourceMetadata
+  title: string
+  description?: string
+  published: boolean
 }

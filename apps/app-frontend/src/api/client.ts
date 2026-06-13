@@ -4,8 +4,10 @@
  * In production the BFF serves both the SPA and the API.
  */
 import type {
+  BareMetalInstanceCatalogItem,
   ClusterTemplate,
   ComputeInstance,
+  FulfillmentBareMetalInstance,
   FulfillmentCapabilities,
   PageOfT,
 } from '@osac/api-contracts'
@@ -200,4 +202,94 @@ export async function getComputeInstanceTemplate(id: string): Promise<ClusterTem
     throw new Error(`API ${res.status}: ${body || res.statusText}`)
   }
   return normalizeComputeInstanceTemplate(await parseJson(res))
+}
+
+// ---------------------------------------------------------------------------
+// Bare metal instances (fulfillment-service BareMetalInstances endpoint)
+// ---------------------------------------------------------------------------
+
+function normalizeBareMetalInstance(raw: unknown): FulfillmentBareMetalInstance {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const md = (r.metadata ?? {}) as Record<string, unknown>
+  const spec = (r.spec ?? {}) as Record<string, unknown>
+  const status = (r.status ?? {}) as Record<string, unknown>
+  return {
+    id: (r.id as string) ?? '',
+    metadata: {
+      name: (md.name as string) ?? '',
+      labels: md.labels as Record<string, string> | undefined,
+      createdAt: (md.creation_timestamp ?? md.created_at) as string | undefined,
+    },
+    spec: {
+      catalogItem: (spec.catalog_item as string) ?? '',
+      sshKey: spec.ssh_key as string | undefined,
+      userData: spec.user_data as string | undefined,
+      runStrategy: spec.run_strategy as string | undefined,
+    },
+    status: {
+      state: ((status.state as string) ?? 'BARE_METAL_INSTANCE_STATE_UNSPECIFIED') as FulfillmentBareMetalInstance['status']['state'],
+      message: status.message as string | undefined,
+    },
+  }
+}
+
+function normalizeBareMetalCatalogItem(raw: unknown): BareMetalInstanceCatalogItem {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const md = r.metadata as Record<string, unknown> | undefined
+  return {
+    id: (r.id as string) ?? '',
+    metadata: md ? { name: (md.name as string) ?? '' } : undefined,
+    title: (r.title as string) ?? '',
+    description: r.description as string | undefined,
+    published: Boolean(r.published),
+  }
+}
+
+export async function listBareMetalInstances(params: { filter?: string; limit?: number } = {}): Promise<PageOfT<FulfillmentBareMetalInstance>> {
+  const q = new URLSearchParams()
+  if (params.filter) q.set('filter', params.filter)
+  if (params.limit) q.set('limit', String(params.limit))
+  const raw = await request<{ items?: unknown[]; size?: number; total?: number }>(
+    `/bare_metal_instances${q.size ? `?${q}` : ''}`,
+  )
+  return {
+    items: (raw.items ?? []).map(normalizeBareMetalInstance),
+    size: raw.size ?? 0,
+    total: raw.total ?? 0,
+  }
+}
+
+export async function createBareMetalInstance(
+  payload: Partial<FulfillmentBareMetalInstance>,
+): Promise<FulfillmentBareMetalInstance> {
+  const body: Record<string, unknown> = {}
+  if (payload.metadata?.name) {
+    body.metadata = { name: payload.metadata.name, labels: payload.metadata.labels }
+  }
+  if (payload.spec) {
+    body.spec = {
+      catalog_item: payload.spec.catalogItem,
+      ...(payload.spec.sshKey ? { ssh_key: payload.spec.sshKey } : {}),
+      ...(payload.spec.userData ? { user_data: payload.spec.userData } : {}),
+    }
+  }
+  const raw = await request<unknown>('/bare_metal_instances', {
+    method: 'POST',
+    body: JSON.stringify({ object: body }),
+  })
+  const unwrapped = unwrapFulfillmentObject(raw)
+  return normalizeBareMetalInstance(unwrapped)
+}
+
+export async function listBareMetalCatalogItems(params: { includeUnpublished?: boolean } = {}): Promise<PageOfT<BareMetalInstanceCatalogItem>> {
+  const q = new URLSearchParams()
+  if (params.includeUnpublished) q.set('include_unpublished', 'true')
+  const raw = await request<{ items?: unknown[]; size?: number; total?: number }>(
+    `/bare_metal_instance_catalog_items${q.size ? `?${q}` : ''}`,
+  )
+  return {
+    items: (raw.items ?? []).map(normalizeBareMetalCatalogItem),
+    size: raw.size ?? 0,
+    total: raw.total ?? 0,
+  }
 }

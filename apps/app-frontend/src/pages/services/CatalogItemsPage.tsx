@@ -10,55 +10,57 @@ import { css } from '@emotion/css'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  Button,
   EmptyState,
   EmptyStateBody,
   PageSection,
   SearchInput,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
 } from '@patternfly/react-core'
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { CatalogItemType, FullCatalogItem, WorkloadProfile } from '@osac/ui-components'
 import { FullCatalogItemCard, PageHeader } from '@osac/ui-components'
+import type { ComputeInstance } from '@osac/api-contracts'
 import { catalogItemsStore } from './catalogItemsStore'
+import { LaunchInstanceWizard } from '../../components/instances/LaunchInstanceWizard'
+import { refetchComputeInstancesQueries } from '../../hooks/hooks'
+import { useQueryClient } from '@tanstack/react-query'
 
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
 
-const filterPanelCss = css`
-  min-width: 200px;
-  max-width: 220px;
-  border-right: 1px solid var(--pf-t--global--border--color--default);
-  padding: 16px;
+const toolbarCss = css`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0 8px;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  margin-bottom: 16px;
 `
 
-const gridCss = css`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  padding: 16px;
-  flex: 1;
+const filterGroupCss = css`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 `
 
 const filterLabelCss = css`
   font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 8px;
-  margin-top: 16px;
+  font-size: 0.8125rem;
   color: var(--pf-t--global--text--color--subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  &:first-child {
-    margin-top: 0;
-  }
+  white-space: nowrap;
 `
 
 const filterOptionCss = css`
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  border: 1px solid transparent;
   &:hover {
     background: var(--pf-t--global--background--color--secondary--default);
   }
@@ -66,7 +68,14 @@ const filterOptionCss = css`
 
 const filterOptionActiveCss = css`
   background: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--border--color--default);
   font-weight: 600;
+`
+
+const gridCss = css`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 `
 
 // ---------------------------------------------------------------------------
@@ -94,6 +103,7 @@ const PROFILE_FILTERS: Array<{ label: string; value: WorkloadProfile | 'all' }> 
 
 export function CatalogItemsPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [items, setItems] = useState<FullCatalogItem[]>(() => catalogItemsStore.getPublished())
 
   useEffect(() => {
@@ -105,6 +115,14 @@ export function CatalogItemsPage() {
     }
   }, [])
 
+  const [launchWizardOpen, setLaunchWizardOpen] = useState(false)
+
+  function handleProvisioned(vm: ComputeInstance) {
+    void refetchComputeInstancesQueries(queryClient)
+    // Navigate to VM list so the user can track provisioning progress
+    navigate(`/vms`)
+    void vm
+  }
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<CatalogItemType | 'all'>('all')
   const [profileFilter, setProfileFilter] = useState<WorkloadProfile | 'all'>('all')
@@ -136,22 +154,38 @@ export function CatalogItemsPage() {
   }
 
   return (
-    <PageSection isFilled padding={{ default: 'noPadding' }}>
-      <div style={{ padding: '24px 24px 0' }}>
-        <PageHeader
-          title="Services"
-          description="Browse available offerings and provision workloads."
+    <PageSection isFilled>
+      <LaunchInstanceWizard
+        isOpen={launchWizardOpen}
+        onClose={() => setLaunchWizardOpen(false)}
+        onProvisioned={handleProvisioned}
+      />
+
+      <PageHeader
+        title="Services"
+        description="Browse available offerings and provision workloads."
+        actions={
+          <Button
+            variant="primary"
+            icon={<PlusCircleIcon />}
+            onClick={() => setLaunchWizardOpen(true)}
+          >
+            Launch an instance
+          </Button>
+        }
+      />
+
+      {/* Toolbar: search + type + profile filters */}
+      <div className={toolbarCss}>
+        <SearchInput
+          placeholder="Search catalog…"
+          value={search}
+          onChange={(_, v) => setSearch(v)}
+          onClear={() => setSearch('')}
+          style={{ maxWidth: 260 }}
         />
-      </div>
-      <Sidebar>
-        <SidebarPanel className={filterPanelCss}>
-          <SearchInput
-            placeholder="Search catalog…"
-            value={search}
-            onChange={(_, v) => setSearch(v)}
-            onClear={() => setSearch('')}
-          />
-          <div className={filterLabelCss}>Type</div>
+        <div className={filterGroupCss}>
+          <span className={filterLabelCss}>Type</span>
           {TYPE_FILTERS.map((f) => (
             <div
               key={f.value}
@@ -161,7 +195,9 @@ export function CatalogItemsPage() {
               {f.label}
             </div>
           ))}
-          <div className={filterLabelCss}>Workload profile</div>
+        </div>
+        <div className={filterGroupCss}>
+          <span className={filterLabelCss}>Profile</span>
           {PROFILE_FILTERS.map((f) => (
             <div
               key={f.value}
@@ -171,23 +207,23 @@ export function CatalogItemsPage() {
               {f.label}
             </div>
           ))}
-        </SidebarPanel>
-        <SidebarContent>
-          {filtered.length === 0 ? (
-            <EmptyState>
-              <EmptyStateBody>
-                No catalog items match your filters. Try adjusting the search or type filter.
-              </EmptyStateBody>
-            </EmptyState>
-          ) : (
-            <div className={gridCss}>
-              {filtered.map((item) => (
-                <FullCatalogItemCard key={item.id} item={item} onClick={handleSelect} />
-              ))}
-            </div>
-          )}
-        </SidebarContent>
-      </Sidebar>
+        </div>
+      </div>
+
+      {/* Catalog grid */}
+      {filtered.length === 0 ? (
+        <EmptyState>
+          <EmptyStateBody>
+            No catalog items match your filters. Try adjusting the search or type filter.
+          </EmptyStateBody>
+        </EmptyState>
+      ) : (
+        <div className={gridCss}>
+          {filtered.map((item) => (
+            <FullCatalogItemCard key={item.id} item={item} onClick={handleSelect} />
+          ))}
+        </div>
+      )}
     </PageSection>
   )
 }

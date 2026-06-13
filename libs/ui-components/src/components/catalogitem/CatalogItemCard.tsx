@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 import type { CSSProperties, ComponentType } from 'react'
 import { css } from '@emotion/css'
-import { Card, CardBody, CardFooter, Label } from '@patternfly/react-core'
+import { Button, Card, CardBody, CardFooter, Label } from '@patternfly/react-core'
 import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon'
 import { ServerIcon } from '@patternfly/react-icons/dist/esm/icons/server-icon'
@@ -124,6 +124,7 @@ const footerCss = css`
   gap: 4px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
 `
 
 // ---------------------------------------------------------------------------
@@ -224,26 +225,37 @@ export function FullCatalogItemCard({ item, onClick, isSelected }: FullCatalogIt
         )}
       </CardBody>
 
-      {/* Footer: workload profile + tags */}
-      {(profileLabel || tags.length > 0 || !item.published) && (
-        <CardFooter className={footerCss}>
-          {!item.published && (
-            <Label color="orange" isCompact>
-              Draft
-            </Label>
-          )}
-          {profileLabel && (
-            <Label color="grey" isCompact>
-              {profileLabel}
-            </Label>
-          )}
-          {tags.map((t) => (
-            <Label key={t} color={tagColor(t)} isCompact>
-              {t}
-            </Label>
-          ))}
-        </CardFooter>
-      )}
+      {/* Footer: workload profile + tags + create action */}
+      <CardFooter className={footerCss}>
+        {!item.published && (
+          <Label color="orange" isCompact>
+            Draft
+          </Label>
+        )}
+        {profileLabel && (
+          <Label color="grey" isCompact>
+            {profileLabel}
+          </Label>
+        )}
+        {tags.map((t) => (
+          <Label key={t} color={tagColor(t)} isCompact>
+            {t}
+          </Label>
+        ))}
+        {onClick && (
+          <Button
+            variant="primary"
+            size="sm"
+            style={{ marginLeft: 'auto' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onClick(item)
+            }}
+          >
+            Launch
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   )
 }

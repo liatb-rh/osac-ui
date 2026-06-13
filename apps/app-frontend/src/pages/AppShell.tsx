@@ -20,8 +20,8 @@ import { useSession } from '../contexts/SessionContext'
 // Pages
 import { RecentActivitiesPage } from './RecentActivitiesPage'
 import { SparsePlaceholderPage } from './SparsePlaceholderPage'
-import { CatalogItemsPage } from './workloads'
-import { ClusterDetailPage, ClustersPage, VmDetailPage, VmsPage } from './workloads'
+import { CatalogItemsPage } from './services'
+import { ClusterDetailPage, ClustersPage, VmDetailPage, VmsPage } from './services'
 import {
   AgentDetailPage,
   BaremetalHostDetailPage,
@@ -35,7 +35,7 @@ import {
   StorageTierDetailPage,
   StorageTiersPage,
 } from './platform'
-import { BaremetalDetailPage, BaremetalPage } from './baremetal'
+import { BaremetalDetailPage, BaremetalPage } from './services/baremetal'
 import { NetworkClassesPage } from './infrastructure'
 import {
   AdminCatalogItemsPage,
@@ -129,7 +129,7 @@ export function AppShell() {
     <Page masthead={masthead} sidebar={sidebar} breadcrumb={breadcrumb} isManagedSidebar>
       <Routes>
         {/* Tenant user routes */}
-        <Route path="/dashboard" element={<VmsPage />} />
+        <Route path="/dashboard" element={<Navigate to="/catalog-items" replace />} />
         <Route path="/vms" element={<VmsPage />} />
         <Route path="/vms/:id" element={<VmDetailPage />} />
         <Route path="/catalog-items" element={<CatalogItemsPage />} />

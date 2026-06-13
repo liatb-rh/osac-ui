@@ -13,7 +13,7 @@ function InnerApp() {
   const onNavigateAfterLogin = useCallback((role: OsacRole) => {
     if (role === 'providerAdmin') navigateRef.current('/provider/dashboard')
     else if (role === 'tenantAdmin') navigateRef.current('/admin/dashboard')
-    else navigateRef.current('/dashboard')
+    else navigateRef.current('/catalog-items')
   }, [])
 
   const onNavigateToWelcome = useCallback(() => {
@@ -40,7 +40,7 @@ function AppRoutes() {
         path="/sign-in"
         element={
           isLoggedIn || !selectedTenant ? (
-            <Navigate to={isLoggedIn ? '/dashboard' : '/'} replace />
+            <Navigate to={isLoggedIn ? '/catalog-items' : '/'} replace />
           ) : (
             <SignInPage />
           )

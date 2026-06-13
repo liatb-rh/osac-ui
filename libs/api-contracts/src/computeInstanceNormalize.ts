@@ -7,6 +7,7 @@ import type {
   ComputeInstanceSpec,
   ComputeInstanceStatus,
   Metadata,
+  NetworkAttachment,
   OsType,
   PageOfT,
   VmPowerState,
@@ -202,6 +203,20 @@ function normalizeDisk(raw: unknown): Record<string, unknown> | undefined {
   return raw as Record<string, unknown>
 }
 
+function normalizeNetworkAttachments(raw: unknown): NetworkAttachment[] | undefined {
+  const src = Array.isArray(raw) ? raw : null
+  if (!src?.length) return undefined
+  const out: NetworkAttachment[] = []
+  for (const item of src) {
+    const o = asRecord(item)
+    const subnet = readStr(o, 'subnet')
+    if (!subnet) continue
+    const sgs = readStrArr(o, 'security_groups', 'securityGroups') ?? []
+    out.push({ subnet, securityGroups: sgs })
+  }
+  return out.length ? out : undefined
+}
+
 function normalizeSpec(raw: Record<string, unknown>): ComputeInstanceSpec {
   const templateParameters =
     (raw.template_parameters as Record<string, unknown> | undefined) ??
@@ -219,6 +234,10 @@ function normalizeSpec(raw: Record<string, unknown>): ComputeInstanceSpec {
     ? addSrc.map(normalizeDisk).filter(Boolean)
     : undefined
 
+  const networkAttachments = normalizeNetworkAttachments(
+    raw.network_attachments ?? raw.networkAttachments,
+  )
+
   return {
     template: readStr(raw, 'template'),
     templateParameters: templateParameters,
@@ -230,6 +249,8 @@ function normalizeSpec(raw: Record<string, unknown>): ComputeInstanceSpec {
     runStrategy: normalizeRunStrategyWire(readStr(raw, 'run_strategy', 'runStrategy')),
     sshKey: readStr(raw, 'ssh_key', 'sshKey'),
     userData: readStr(raw, 'user_data', 'userData'),
+    networkAttachments,
+    // Legacy flat fields — populated only when wire sends them (pre-migration responses)
     subnet: readStr(raw, 'subnet'),
     securityGroups: readStrArr(raw, 'security_groups', 'securityGroups'),
     restartRequestedAt: readStr(raw, 'restart_requested_at', 'restartRequestedAt'),
@@ -490,8 +511,18 @@ function appendComputeInstanceSpecOptionalWire(
   if (spec.runStrategy) o.run_strategy = spec.runStrategy
   if (spec.userData) o.user_data = spec.userData
   if (spec.sshKey) o.ssh_key = spec.sshKey
-  if (spec.subnet) o.subnet = spec.subnet
-  if (spec.securityGroups?.length) o.security_groups = [...spec.securityGroups]
+  // Serialize network_attachments (new backend format). Falls back to legacy flat
+  // fields only when networkAttachments is absent (e.g. PATCH for power actions).
+  if (spec.networkAttachments?.length) {
+    o.network_attachments = spec.networkAttachments.map((a) => ({
+      subnet: a.subnet,
+      security_groups: a.securityGroups,
+    }))
+  } else if (spec.subnet) {
+    // Legacy path — kept for PATCH payloads that only touch power state
+    o.subnet = spec.subnet
+    if (spec.securityGroups?.length) o.security_groups = [...spec.securityGroups]
+  }
   if (spec.restartRequestedAt) o.restart_requested_at = spec.restartRequestedAt
 }
 

@@ -22,7 +22,7 @@ import type { FullCatalogItem } from '@osac/ui-components'
 import { KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import { PublishCatalogItemWizard } from '../../components/catalog'
-import { catalogItemsStore } from '../workloads/catalogItemsStore'
+import { catalogItemsStore } from '../services/catalogItemsStore'
 
 // Templates available to this tenant (in real life, derived from provider group assignments)
 const AVAILABLE_TEMPLATES = [

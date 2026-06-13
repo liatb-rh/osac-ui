@@ -11,7 +11,9 @@ import {
   normalizeComputeInstance,
 } from '@osac/api-contracts'
 import type {
+  BareMetalInstanceCatalogItem,
   ComputeInstance,
+  FulfillmentBareMetalInstance,
   NetworkClass,
   PublicIP,
   SecurityGroup,
@@ -28,6 +30,40 @@ import {
   scheduleClusterUpgrade,
   storageTierStore,
 } from '../cluster-store'
+
+// ---------------------------------------------------------------------------
+// Bare metal in-memory stores
+// ---------------------------------------------------------------------------
+
+const DEMO_BM_CATALOG_ITEMS: BareMetalInstanceCatalogItem[] = [
+  {
+    id: 'bm-cat-standard',
+    metadata: { name: 'bm-cat-standard' },
+    title: 'Standard 2× AMD EPYC',
+    description: '2× AMD EPYC 7452 — 32 cores, 256 GiB RAM, 2× 1.92 TB SSD',
+    published: true,
+  },
+  {
+    id: 'bm-cat-gpu',
+    metadata: { name: 'bm-cat-gpu' },
+    title: 'GPU Accelerated (A100)',
+    description: '2× NVIDIA A100 80 GB — 64 cores, 512 GiB RAM, 4× 3.84 TB NVMe',
+    published: true,
+  },
+  {
+    id: 'bm-cat-high-mem',
+    metadata: { name: 'bm-cat-high-mem' },
+    title: 'High Memory 6 TB',
+    description: '4× Intel Xeon Platinum — 128 cores, 6 TB RAM, 8× 960 GB SSD',
+    published: true,
+  },
+]
+
+const bmCatalogStore = new Map<string, BareMetalInstanceCatalogItem>(
+  DEMO_BM_CATALOG_ITEMS.map((i) => [i.id, i]),
+)
+
+const bmInstanceStore = new Map<string, FulfillmentBareMetalInstance>()
 
 // ---------------------------------------------------------------------------
 // In-memory networking stores (initialized from DEMO data)
@@ -554,5 +590,84 @@ export const fulfillmentHandlers = [
   http.get(`${PREFIX}/public_ip_pools`, () => {
     const items = DEMO_PUBLIC_IP_POOLS
     return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Bare metal instance catalog items (read-only)
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/bare_metal_instance_catalog_items`, ({ request }) => {
+    const url = new URL(request.url)
+    const includeUnpublished = url.searchParams.get('include_unpublished') === 'true'
+    const all = Array.from(bmCatalogStore.values()).filter(
+      (i) => includeUnpublished || i.published,
+    )
+    return HttpResponse.json({ size: all.length, total: all.length, items: all })
+  }),
+
+  http.get(`${PREFIX}/bare_metal_instance_catalog_items/:id`, ({ params }) => {
+    const item = bmCatalogStore.get(params.id as string)
+    if (!item) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Bare metal instances
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/bare_metal_instances`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = parseInt(url.searchParams.get('limit') ?? '100', 10)
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const all = Array.from(bmInstanceStore.values())
+    const page = all.slice(offset, offset + limit)
+    return HttpResponse.json({ size: page.length, total: all.length, items: page })
+  }),
+
+  http.get(`${PREFIX}/bare_metal_instances/:id`, ({ params }) => {
+    const item = bmInstanceStore.get(params.id as string)
+    if (!item) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.post(`${PREFIX}/bare_metal_instances`, async ({ request }) => {
+    const body = asNestedRecord(await request.json() as unknown)
+    const incoming = 'object' in body && body.object ? asNestedRecord(body.object) : body
+    const meta = asNestedRecord(incoming.metadata)
+    const spec = asNestedRecord(incoming.spec)
+    const id = nextId('bm')
+    const instance: FulfillmentBareMetalInstance = {
+      id,
+      metadata: {
+        name: String(meta.name ?? id),
+        createdAt: new Date().toISOString(),
+      },
+      spec: {
+        catalogItem: String(spec.catalog_item ?? ''),
+        sshKey: spec.ssh_key ? String(spec.ssh_key) : undefined,
+        userData: spec.user_data ? String(spec.user_data) : undefined,
+      },
+      status: { state: 'BARE_METAL_INSTANCE_STATE_PENDING' },
+    }
+    bmInstanceStore.set(id, instance)
+    // Simulate async state transition to PROVISIONING then ACTIVE
+    setTimeout(() => {
+      const existing = bmInstanceStore.get(id)
+      if (existing)
+        bmInstanceStore.set(id, { ...existing, status: { state: 'BARE_METAL_INSTANCE_STATE_PROVISIONING' } })
+    }, 3000)
+    setTimeout(() => {
+      const existing = bmInstanceStore.get(id)
+      if (existing)
+        bmInstanceStore.set(id, { ...existing, status: { state: 'BARE_METAL_INSTANCE_STATE_ACTIVE' } })
+    }, 12000)
+    return HttpResponse.json({ object: instance }, { status: 201 })
+  }),
+
+  http.delete(`${PREFIX}/bare_metal_instances/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!bmInstanceStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    bmInstanceStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
   }),
 ]
