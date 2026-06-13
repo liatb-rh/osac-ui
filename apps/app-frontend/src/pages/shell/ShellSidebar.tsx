@@ -1,6 +1,7 @@
 import { css } from '@emotion/css'
 import {
   Nav,
+  NavExpandable,
   NavGroup,
   NavItem,
   NavList,
@@ -44,10 +45,55 @@ export function ShellSidebar({
                 const list = (
                   <NavList>
                     {section.items.map((item) => {
+                      const Icon = item.icon
+
+                      if (item.children && item.children.length > 0) {
+                        const isExpanded = item.children.some(
+                          (c) =>
+                            pathname === c.path ||
+                            (c.path !== '/' && pathname.startsWith(c.path + '/')),
+                        )
+                        return (
+                          <NavExpandable
+                            key={item.id}
+                            title={
+                              <>
+                                <Icon aria-hidden className="osac-shell-nav__item-icon" />
+                                {item.label}
+                              </>
+                            }
+                            groupId={item.id}
+                            isActive={isExpanded}
+                            isExpanded={isExpanded}
+                          >
+                            {item.children.map((child) => {
+                              const ChildIcon = child.icon
+                              const isActive =
+                                pathname === child.path ||
+                                (child.path !== '/' && pathname.startsWith(child.path + '/'))
+                              return (
+                                <NavItem
+                                  key={child.id}
+                                  itemId={child.id}
+                                  isActive={isActive}
+                                  to={child.path}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    onNavigate(child.path)
+                                  }}
+                                >
+                                  <ChildIcon aria-hidden className="osac-shell-nav__item-icon" />
+                                  {child.label}
+                                </NavItem>
+                              )
+                            })}
+                          </NavExpandable>
+                        )
+                      }
+
                       const isActive =
                         pathname === item.path ||
                         (item.path !== '/' && pathname.startsWith(item.path + '/'))
-                      const Icon = item.icon
                       return (
                         <NavItem
                           key={item.id}

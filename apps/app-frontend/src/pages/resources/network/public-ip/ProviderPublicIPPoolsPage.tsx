@@ -21,9 +21,9 @@ import {
 import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { PublicIPPoolExtended } from '@osac/api-contracts'
-import { KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import { ObjectsTable, PageHeader } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
-import { usePublicIPPools, usePublicIPs } from '../../hooks/useNetworking'
+import { usePublicIPPools, usePublicIPs } from '../../../../hooks/useNetworking'
 
 function PoolStateLabel({ state }: { state?: string }) {
   if (state === 'READY')
@@ -58,14 +58,6 @@ export function ProviderPublicIPPoolsPage() {
   const [newPoolZone, setNewPoolZone] = useState('')
 
   const allPools = [...extPools, ...localPools]
-
-  const readyPools = allPools.filter((p) => p.status.state === 'READY').length
-  const totalCapacity = allPools.reduce(
-    (s, p) => s + (p.capacity ?? p.status.availableCount ?? 0),
-    0,
-  )
-  const totalAllocated = allPools.reduce((s, p) => s + (p.allocated ?? 0), 0)
-  const tenantsServed = new Set(allPools.flatMap((p) => p.tenants ?? [])).size
 
   function poolAllocations(pool: PublicIPPoolExtended) {
     return publicIPs.filter((ip) => ip.spec.pool === pool.id)
@@ -125,7 +117,7 @@ export function ProviderPublicIPPoolsPage() {
       render: (p) => (
         <ActionsColumn
           items={[
-            { title: 'View details', onClick: () => navigate(`/provider/public-ip-pools/${p.id}`) },
+            { title: 'View details', onClick: () => navigate(`/resources/network/public-ip/public-ip-pools/${p.id}`) },
             {
               title: 'Delete',
               isDisabled: poolAllocations(p).length > 0,
@@ -149,29 +141,13 @@ export function ProviderPublicIPPoolsPage() {
         }
       />
 
-      <KpiHeader
-        items={[
-          { label: 'Pools', value: String(allPools.length), hint: `${readyPools} ready` },
-          { label: 'Capacity', value: String(totalCapacity) },
-          {
-            label: 'Allocated',
-            value: String(totalAllocated),
-            hint:
-              totalCapacity > 0
-                ? `${Math.round((totalAllocated / totalCapacity) * 100)}% utilization`
-                : undefined,
-          },
-          { label: 'Tenants served', value: String(tenantsServed) },
-        ]}
-      />
-
       <div style={{ marginTop: 24 }}>
         <ObjectsTable
           ariaLabel="Provider public IP pools"
           rows={allPools}
           getRowKey={(p) => p.id}
           columns={columns}
-          onRowClick={(p) => navigate(`/provider/public-ip-pools/${p.id}`)}
+          onRowClick={(p) => navigate(`/resources/network/public-ip/public-ip-pools/${p.id}`)}
         />
       </div>
 

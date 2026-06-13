@@ -45,7 +45,7 @@ import {
 } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import { usePublicIPPools, usePublicIPs } from '../../../hooks/useNetworking'
-import { catalogItemsStore } from '../catalogItemsStore'
+import { catalogItemsStore } from '../catalog/catalogItemsStore'
 
 // ---------------------------------------------------------------------------
 // Helpers

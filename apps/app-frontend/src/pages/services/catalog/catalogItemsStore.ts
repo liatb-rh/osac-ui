@@ -68,6 +68,10 @@ export const catalogItemsStore = {
     _items = _items.map((i) => (i.id === id ? { ...i, published, tenantEnabled: published } : i))
     notify()
   },
+  update(item: FullCatalogItem) {
+    _items = _items.map((i) => (i.id === item.id ? item : i))
+    notify()
+  },
   remove(id: string) {
     _items = _items.filter((i) => i.id !== id)
     notify()

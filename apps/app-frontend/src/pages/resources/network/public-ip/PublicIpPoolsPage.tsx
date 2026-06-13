@@ -6,9 +6,9 @@
 import { useNavigate } from 'react-router-dom'
 import { Label, PageSection } from '@patternfly/react-core'
 import type { PublicIPPoolExtended } from '@osac/api-contracts'
-import { KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import { ObjectsTable, PageHeader } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
-import { usePublicIPPools, usePublicIPs } from '../../hooks/useNetworking'
+import { usePublicIPPools, usePublicIPs } from '../../../../hooks/useNetworking'
 
 function PoolStateLabel({ state }: { state?: string }) {
   if (state === 'READY')
@@ -30,18 +30,12 @@ function PoolStateLabel({ state }: { state?: string }) {
   )
 }
 
-export function TenantAdminPublicIPPoolsPage() {
+export function PublicIpPoolsPage() {
   const navigate = useNavigate()
   const { data: pools = [] } = usePublicIPPools()
   const { data: publicIPs = [] } = usePublicIPs()
 
   const extPools = pools as PublicIPPoolExtended[]
-
-  const totalAllocations = publicIPs.length
-  const attachedCount = publicIPs.filter(
-    (ip) => ip.status.state === 'PUBLIC_IP_STATE_ATTACHED',
-  ).length
-  const totalGroups = extPools.reduce((sum, p) => sum + (p.groupAssignments ?? []).length, 0)
 
   const columns: ObjectsTableColumn<PublicIPPoolExtended>[] = [
     { label: 'Name', render: (p) => <strong>{p.metadata.name}</strong> },
@@ -63,18 +57,6 @@ export function TenantAdminPublicIPPoolsPage() {
       <PageHeader
         title="Public IP Pools"
         description="Manage public IP pool assignments and user group quotas for your tenant."
-      />
-
-      <KpiHeader
-        items={[
-          { label: 'Assigned pools', value: String(extPools.length) },
-          {
-            label: 'Tenant allocations',
-            value: String(totalAllocations),
-            hint: `${attachedCount} attached`,
-          },
-          { label: 'Group assignments', value: String(totalGroups) },
-        ]}
       />
 
       <div style={{ marginTop: 24 }}>

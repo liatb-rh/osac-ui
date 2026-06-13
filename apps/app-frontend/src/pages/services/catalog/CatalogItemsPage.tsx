@@ -21,8 +21,8 @@ import type { CatalogItemType, FullCatalogItem, WorkloadProfile } from '@osac/ui
 import { FullCatalogItemCard, PageHeader } from '@osac/ui-components'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { catalogItemsStore } from './catalogItemsStore'
-import { LaunchInstanceWizard } from '../../components/instances/LaunchInstanceWizard'
-import { refetchComputeInstancesQueries } from '../../hooks/hooks'
+import { LaunchInstanceWizard } from '../../../components/instances/LaunchInstanceWizard'
+import { refetchComputeInstancesQueries } from '../../../hooks/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 
 // ---------------------------------------------------------------------------

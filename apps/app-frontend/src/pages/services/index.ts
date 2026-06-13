@@ -1,3 +1,3 @@
 export * from './clusters'
-export { CatalogItemsPage } from './CatalogItemsPage'
+export { CatalogItemsPage } from './catalog/CatalogItemsPage'
 export * from './vms'

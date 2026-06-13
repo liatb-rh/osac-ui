@@ -21,6 +21,8 @@ export interface NavItem {
   icon: ComponentType<any>
   /** Roles that can see this item. Undefined = visible to all roles. */
   roles?: OsacRole[]
+  /** When set, renders as a collapsible NavExpandable group instead of a link. */
+  children?: NavItem[]
 }
 
 export interface NavSection {
@@ -71,52 +73,44 @@ const ALL_NAV: NavSection[] = [
     ],
   },
   {
-    groupLabel: 'Administration',
+    groupLabel: 'Resources',
     items: [
       {
-        id: 'networks',
-        label: 'Networks',
-        path: '/networks',
+        id: 'resources-network',
+        label: 'Network',
+        path: '',
         icon: NetworkIcon,
         roles: ['tenantAdmin', 'providerAdmin'],
-      },
-    ],
-  },
-  {
-    groupLabel: 'Infrastructure',
-    items: [
-      {
-        id: 'admin-public-ips',
-        label: 'Public IP Pools',
-        path: '/admin/public-ips',
-        icon: NetworkIcon,
-        roles: ['tenantAdmin'],
-      },
-      {
-        id: 'admin-catalog-items',
-        label: 'Catalog Items',
-        path: '/admin/catalog-items',
-        icon: CubesIcon,
-        roles: ['tenantAdmin'],
-      },
-    ],
-  },
-  {
-    groupLabel: 'Platform',
-    items: [
-      {
-        id: 'platform-templates',
-        label: 'Global Templates',
-        path: '/global-templates',
-        icon: CubesIcon,
-        roles: ['providerAdmin'],
-      },
-      {
-        id: 'platform-public-ip-pools',
-        label: 'Public IP Pools',
-        path: '/provider/public-ip-pools',
-        icon: NetworkIcon,
-        roles: ['providerAdmin'],
+        children: [
+          {
+            id: 'admin-public-ips',
+            label: 'Public IP Pools',
+            path: '/resources/network/catalog/public-ips',
+            icon: NetworkIcon,
+            roles: ['tenantAdmin'],
+          },
+          {
+            id: 'admin-catalog-items',
+            label: 'Catalog Items',
+            path: '/resources/network/catalog/admin-catalog-items',
+            icon: CubesIcon,
+            roles: ['tenantAdmin'],
+          },
+          {
+            id: 'platform-public-ip-pools',
+            label: 'Public IP Pools',
+            path: '/resources/network/public-ip/public-ip-pools',
+            icon: NetworkIcon,
+            roles: ['providerAdmin'],
+          },
+          {
+            id: 'platform-templates',
+            label: 'Global Templates',
+            path: '/resources/network/global-templates',
+            icon: CubesIcon,
+            roles: ['providerAdmin'],
+          },
+        ],
       },
       {
         id: 'provider-baremetal',
@@ -130,6 +124,13 @@ const ALL_NAV: NavSection[] = [
   {
     groupLabel: 'Deprecated',
     items: [
+      {
+        id: 'networks',
+        label: 'Networks',
+        path: '/networks',
+        icon: NetworkIcon,
+        roles: ['tenantAdmin', 'providerAdmin'],
+      },
       {
         id: 'cluster-offerings',
         label: 'Cluster offerings',
@@ -185,9 +186,21 @@ const ALL_NAV: NavSection[] = [
 // Exports
 // ---------------------------------------------------------------------------
 
+function filterItem(item: NavItem, role: OsacRole): NavItem | null {
+  if (item.roles && !item.roles.includes(role)) return null
+  if (item.children) {
+    const children = item.children.filter((c) => !c.roles || c.roles.includes(role))
+    return children.length > 0 ? { ...item, children } : null
+  }
+  return item
+}
+
 export function navRowsForRole(role: OsacRole): NavSection[] {
   return ALL_NAV.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !item.roles || item.roles.includes(role)),
+    items: section.items.flatMap((item) => {
+      const filtered = filterItem(item, role)
+      return filtered ? [filtered] : []
+    }),
   })).filter((section) => section.items.length > 0)
 }

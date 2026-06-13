@@ -69,7 +69,7 @@ export function GlobalTemplateDetailPage() {
         <p>
           Template not found: <code>{id}</code>
         </p>
-        <Button variant="link" onClick={() => navigate('/global-templates')}>
+        <Button variant="link" onClick={() => navigate('/resources/network/global-templates')}>
           Back to Global Templates
         </Button>
       </PageSection>
@@ -87,7 +87,7 @@ export function GlobalTemplateDetailPage() {
     <>
       <PageBreadcrumb>
         <Breadcrumb>
-          <BreadcrumbItem component="button" onClick={() => navigate('/global-templates')}>
+          <BreadcrumbItem component="button" onClick={() => navigate('/resources/network/global-templates')}>
             Global Templates
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{template.name}</BreadcrumbItem>

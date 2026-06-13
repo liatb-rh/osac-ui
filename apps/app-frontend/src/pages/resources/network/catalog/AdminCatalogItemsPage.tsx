@@ -3,36 +3,24 @@
  * step: tad_catalog_items
  * route: /admin/catalog-items
  *
- * Tenant admin view — publish, enable/disable, and delete catalog items that
- * tenant users can browse at /catalog-items.
+ * Tenant admin view — list of catalog items.
+ * Create / edit navigate to /admin/catalog-items/new and /admin/catalog-items/:id.
  */
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Button,
   Label,
-  Modal,
-  ModalBody,
-  ModalHeader,
   PageSection,
   Switch,
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon'
 import type { FullCatalogItem } from '@osac/ui-components'
-import { KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import { ObjectsTable, PageHeader } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
-import { PublishCatalogItemWizard } from '../../components/catalog'
-import { catalogItemsStore } from '../services/catalogItemsStore'
-
-// Templates available to this tenant (in real life, derived from provider group assignments)
-const AVAILABLE_TEMPLATES = [
-  'vm-rhel9',
-  'vm-rhel9-gpu',
-  'vm-ubuntu22',
-  'ocp-4.17',
-  'ocp-4.17-edge',
-  'bm-standard',
-]
+import { catalogItemsStore } from '../../../services/catalog/catalogItemsStore'
 
 const TYPE_COLOR = {
   vm: 'blue',
@@ -41,17 +29,12 @@ const TYPE_COLOR = {
 } as const
 
 export function AdminCatalogItemsPage() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<FullCatalogItem[]>(() => catalogItemsStore.getAll())
-  const [wizardOpen, setWizardOpen] = useState(false)
 
   useEffect(() => {
-    return catalogItemsStore.subscribe(() => {
-      setItems(catalogItemsStore.getAll())
-    })
+    return catalogItemsStore.subscribe(() => setItems(catalogItemsStore.getAll()))
   }, [])
-
-  const published = items.filter((i) => i.published).length
-  const draft = items.length - published
 
   function handleToggle(id: string, checked: boolean) {
     catalogItemsStore.toggle(id, checked)
@@ -61,15 +44,17 @@ export function AdminCatalogItemsPage() {
     catalogItemsStore.remove(id)
   }
 
-  function handleWizardDone(item?: FullCatalogItem) {
-    if (item) catalogItemsStore.add(item)
-    setWizardOpen(false)
-  }
-
   const columns: ObjectsTableColumn<FullCatalogItem>[] = [
     {
       label: 'Title',
-      render: (i) => <strong>{i.title}</strong>,
+      render: (i) => (
+        <button
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+          onClick={() => navigate(`/resources/network/catalog/admin-catalog-items/${i.id}`)}
+        >
+          <strong>{i.title}</strong>
+        </button>
+      ),
     },
     {
       label: 'Type',
@@ -93,13 +78,9 @@ export function AdminCatalogItemsPage() {
       label: 'Status',
       render: (i) =>
         i.published ? (
-          <Label color="green" isCompact>
-            Published
-          </Label>
+          <Label color="green" isCompact>Published</Label>
         ) : (
-          <Label color="orange" isCompact>
-            Draft
-          </Label>
+          <Label color="orange" isCompact>Draft</Label>
         ),
     },
     {
@@ -119,6 +100,12 @@ export function AdminCatalogItemsPage() {
         <ActionsColumn
           items={[
             {
+              title: 'Edit',
+              onClick: () => navigate(`/resources/network/catalog/admin-catalog-items/${i.id}`),
+              // @ts-expect-error PF ActionsColumn doesn't type icon
+              icon: <PencilAltIcon />,
+            },
+            {
               title: i.published ? 'Unpublish' : 'Publish',
               onClick: () => handleToggle(i.id, !i.published),
             },
@@ -137,20 +124,16 @@ export function AdminCatalogItemsPage() {
     <PageSection isFilled>
       <PageHeader
         title="Catalog Items"
-        description="Publish catalog items from available templates. Tenant users browse the published catalog at /catalog-items."
+        description="Create and publish catalog items for tenant users to provision workloads."
         actions={
-          <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
-            Publish catalog item
+          <Button
+            variant="primary"
+            icon={<PlusCircleIcon />}
+            onClick={() => navigate('/resources/network/catalog/admin-catalog-items/new')}
+          >
+            New catalog item
           </Button>
         }
-      />
-
-      <KpiHeader
-        items={[
-          { label: 'Total items', value: String(items.length) },
-          { label: 'Published', value: String(published), tone: 'success' },
-          { label: 'Draft', value: String(draft) },
-        ]}
       />
 
       <div style={{ marginTop: 24 }}>
@@ -159,26 +142,9 @@ export function AdminCatalogItemsPage() {
           rows={items}
           getRowKey={(i) => i.id}
           columns={columns}
+          onRowClick={(i) => navigate(`/resources/network/catalog/admin-catalog-items/${i.id}`)}
         />
       </div>
-
-      <Modal
-        isOpen={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        variant="large"
-        aria-label="Publish catalog item"
-      >
-        <ModalHeader
-          title="Publish catalog item"
-          description="Create a tenant-facing offering layered on top of a backing template."
-        />
-        <ModalBody style={{ minHeight: 520 }}>
-          <PublishCatalogItemWizard
-            availableTemplates={AVAILABLE_TEMPLATES}
-            onDone={handleWizardDone}
-          />
-        </ModalBody>
-      </Modal>
     </PageSection>
   )
 }

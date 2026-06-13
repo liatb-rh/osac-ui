@@ -34,17 +34,18 @@ import {
   ProviderPublicIPPoolsPage,
   StorageTierDetailPage,
   StorageTiersPage,
-} from './platform'
+} from './resources'
 import { BaremetalDetailPage, BaremetalPage } from './services/baremetal'
 import { NetworkClassesPage } from './infrastructure'
 import {
+  AdminCatalogItemDetailPage,
   AdminCatalogItemsPage,
   ClusterOfferingDetailPage,
   ClusterOfferingsPage,
   NetworksPage,
-  TenantAdminPublicIPPoolDetailPage,
-  TenantAdminPublicIPPoolsPage,
-} from './management'
+  PublicIpPoolDetailsPage,
+  PublicIpPoolsPage,
+} from './administration'
 import { ShellBreadcrumb } from './shell/ShellBreadcrumb'
 import { ShellMasthead } from './shell/ShellMasthead'
 import { ShellSidebar } from './shell/ShellSidebar'
@@ -139,9 +140,11 @@ export function AppShell() {
         <Route path="/cluster-offerings" element={<ClusterOfferingsPage />} />
         <Route path="/cluster-offerings/:id" element={<ClusterOfferingDetailPage />} />
         <Route path="/networks" element={<NetworksPage />} />
-        <Route path="/admin/public-ips" element={<TenantAdminPublicIPPoolsPage />} />
-        <Route path="/admin/public-ips/:id" element={<TenantAdminPublicIPPoolDetailPage />} />
-        <Route path="/admin/catalog-items" element={<AdminCatalogItemsPage />} />
+        <Route path="/resources/network/catalog/public-ips" element={<PublicIpPoolsPage />} />
+        <Route path="/resources/network/catalog/public-ips/:id" element={<PublicIpPoolDetailsPage />} />
+        <Route path="/resources/network/catalog/admin-catalog-items" element={<AdminCatalogItemsPage />} />
+        <Route path="/resources/network/catalog/admin-catalog-items/new" element={<AdminCatalogItemDetailPage />} />
+        <Route path="/resources/network/catalog/admin-catalog-items/:id" element={<AdminCatalogItemDetailPage />} />
         {ADMIN_PLACEHOLDER_ROUTES.map((route) => (
           <Route
             key={route.path}
@@ -169,11 +172,11 @@ export function AppShell() {
             }
           />
         ))}
-        <Route path="/global-templates" element={<GlobalTemplatesPage />} />
-        <Route path="/global-templates/:id" element={<GlobalTemplateDetailPage />} />
+        <Route path="/resources/network/global-templates" element={<GlobalTemplatesPage />} />
+        <Route path="/resources/network/global-templates/:id" element={<GlobalTemplateDetailPage />} />
         <Route path="/provider/infrastructure" element={<ProviderInfraTopologyPage />} />
-        <Route path="/provider/public-ip-pools" element={<ProviderPublicIPPoolsPage />} />
-        <Route path="/provider/public-ip-pools/:id" element={<ProviderPublicIPPoolDetailPage />} />
+        <Route path="/resources/network/public-ip/public-ip-pools" element={<ProviderPublicIPPoolsPage />} />
+        <Route path="/resources/network/public-ip/public-ip-pools/:id" element={<ProviderPublicIPPoolDetailPage />} />
         <Route path="/baremetal" element={<BaremetalPage />} />
         <Route path="/baremetal/:name" element={<BaremetalDetailPage />} />
         <Route path="/provider/baremetal" element={<BaremetalInventoryPage />} />

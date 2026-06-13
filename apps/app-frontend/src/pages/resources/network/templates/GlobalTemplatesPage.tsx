@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import { Label, LabelGroup, PageSection } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import type { CatalogItemType } from '@osac/ui-components'
-import { KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import { ObjectsTable, PageHeader } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import type { BackingTemplate } from './templatesStore'
 import { templatesStore } from './templatesStore'
@@ -38,11 +38,6 @@ export function GlobalTemplatesPage() {
       unsub()
     }
   }, [])
-
-  const vmCount = templates.filter((t) => t.type === 'vm').length
-  const clusterCount = templates.filter((t) => t.type === 'cluster').length
-  const bmCount = templates.filter((t) => t.type === 'baremetal').length
-  const totalAssignments = templates.reduce((s, t) => s + t.assignedGroups.length, 0)
 
   const columns: ObjectsTableColumn<BackingTemplate>[] = [
     {
@@ -83,7 +78,7 @@ export function GlobalTemplatesPage() {
           items={[
             {
               title: 'View details',
-              onClick: () => navigate(`/global-templates/${t.id}`),
+              onClick: () => navigate(`/resources/network/global-templates/${t.id}`),
             },
           ]}
         />
@@ -98,23 +93,13 @@ export function GlobalTemplatesPage() {
         description="Platform template library. Assign templates to tenant groups so tenant admins can publish catalog items."
       />
 
-      <KpiHeader
-        items={[
-          { label: 'Templates', value: String(templates.length) },
-          { label: 'VM templates', value: String(vmCount) },
-          { label: 'Cluster templates', value: String(clusterCount) },
-          { label: 'Bare Metal templates', value: String(bmCount) },
-          { label: 'Group assignments', value: String(totalAssignments) },
-        ]}
-      />
-
       <div style={{ marginTop: 24 }}>
         <ObjectsTable
           ariaLabel="Global templates"
           rows={templates}
           getRowKey={(t) => t.id}
           columns={columns}
-          onRowClick={(t) => navigate(`/global-templates/${t.id}`)}
+          onRowClick={(t) => navigate(`/resources/network/global-templates/${t.id}`)}
         />
       </div>
     </PageSection>
