@@ -161,7 +161,7 @@ export function VmOverviewTab({ vm }: Props) {
               <DescriptionListGroup>
                 <DescriptionListTerm>Tenants</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {vm.metadata.tenants?.join(', ') || '—'}
+                  {vm.metadata.tenant ?? (vm.metadata.tenants?.join(', ') || '—')}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>

@@ -113,6 +113,36 @@ const ALL_NAV: NavSection[] = [
         ],
       },
       {
+        id: 'resources-storage',
+        label: 'Storage',
+        path: '',
+        icon: DatabaseIcon,
+        roles: ['providerAdmin'],
+        children: [
+          {
+            id: 'platform-storage-tiers',
+            label: 'Storage Tiers',
+            path: '/resources/storage/storage-tiers',
+            icon: DatabaseIcon,
+            roles: ['providerAdmin'],
+          },
+          {
+            id: 'platform-storage-backends',
+            label: 'Storage Backends',
+            path: '/resources/storage/storage-backends',
+            icon: DatabaseIcon,
+            roles: ['providerAdmin'],
+          },
+          {
+            id: 'platform-org-storage-status',
+            label: 'Org Storage Status',
+            path: '/resources/storage/org-storage-status',
+            icon: DatabaseIcon,
+            roles: ['providerAdmin'],
+          },
+        ],
+      },
+      {
         id: 'provider-baremetal',
         label: 'Bare Metal Inventory',
         path: '/provider/baremetal',
@@ -151,13 +181,6 @@ const ALL_NAV: NavSection[] = [
         path: '/admin/storage',
         icon: DatabaseIcon,
         roles: ['tenantAdmin', 'providerAdmin'],
-      },
-      {
-        id: 'platform-storage-tiers',
-        label: 'Storage Tiers',
-        path: '/storage-tiers',
-        icon: DatabaseIcon,
-        roles: ['providerAdmin'],
       },
       {
         id: 'platform-agents',

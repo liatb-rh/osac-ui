@@ -16,7 +16,13 @@ import type {
   ClusterStatus,
   ClusterStatusNetwork,
   ClusterStorageStatus,
+  OrgStorageCondition,
+  OrgStorageStatus,
+  OrgStorageTierStatus,
   PageOfT,
+  StorageBackend,
+  StorageBackendCondition,
+  StorageBackendStatus,
   StorageTier,
   VolumeSnapshotClass,
 } from '@osac/api-contracts'
@@ -73,6 +79,7 @@ function normalizeSpecNetwork(wire: unknown): ClusterSpecNetwork {
 
 function normalizeSpec(wire: unknown): ClusterSpec {
   const w = obj(wire)
+  const rawTierIds = w.storage_tier_ids ?? w.storageTierIds
   return {
     catalogItem: str(w.catalog_item ?? w.catalogItem),
     template: str(w.template),
@@ -84,6 +91,7 @@ function normalizeSpec(wire: unknown): ClusterSpec {
     releaseImage: str(w.release_image ?? w.releaseImage),
     sshPublicKey: str(w.ssh_public_key ?? w.sshPublicKey),
     network: w.network ? normalizeSpecNetwork(w.network) : undefined,
+    storageTierIds: Array.isArray(rawTierIds) ? (rawTierIds as string[]) : undefined,
   }
 }
 
@@ -163,6 +171,12 @@ export function normalizeCluster(wire: unknown): Cluster {
       createdAt: str(meta.creation_timestamp ?? meta.createdAt),
       version: typeof meta.version === 'number' ? meta.version : undefined,
       labels: meta.labels as Record<string, string> | undefined,
+      tenant: typeof meta.tenant === 'string' ? meta.tenant : undefined,
+      creator: typeof meta.creator === 'string' ? meta.creator : undefined,
+      annotations:
+        meta.annotations && typeof meta.annotations === 'object' && !Array.isArray(meta.annotations)
+          ? (meta.annotations as Record<string, string>)
+          : undefined,
       creators: Array.isArray(meta.creators) ? (meta.creators as string[]) : undefined,
       tenants: Array.isArray(meta.tenants) ? (meta.tenants as string[]) : undefined,
     },
@@ -255,10 +269,90 @@ export function normalizeStorageTier(wire: unknown): StorageTier {
   return {
     id: str(w.id) ?? '',
     name: str(w.name) ?? '',
+    protocol: str(w.protocol) as StorageTier['protocol'],
     qosClass: str(w.qos_class ?? w.qosClass),
     vipPool: str(w.vip_pool ?? w.vipPool),
     storageClassName: str(w.storage_class_name ?? w.storageClassName),
     available: bool(w.available) ?? false,
     availableTenantIds: Array.isArray(rawTenantIds) ? (rawTenantIds as string[]) : [],
+    storageBackendId: str(w.storage_backend_id ?? w.storageBackendId),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// OrgStorageStatus normalization (Phase 2)
+// ---------------------------------------------------------------------------
+
+function normalizeOrgStorageCondition(wire: unknown): OrgStorageCondition {
+  const w = obj(wire)
+  return {
+    type: str(w.type) ?? '',
+    status: (str(w.status) ?? 'Unknown') as OrgStorageCondition['status'],
+    reason: str(w.reason),
+    message: str(w.message),
+    lastTransitionTime: str(w.last_transition_time ?? w.lastTransitionTime),
+  }
+}
+
+function normalizeOrgStorageTierStatus(wire: unknown): OrgStorageTierStatus {
+  const w = obj(wire)
+  return {
+    tierId: str(w.tier_id ?? w.tierId) ?? '',
+    tierName: str(w.tier_name ?? w.tierName) ?? '',
+    protocol: str(w.protocol) as OrgStorageTierStatus['protocol'],
+    phase1Ready: bool(w.phase1_ready ?? w.phase1Ready) ?? false,
+    phase2Ready: bool(w.phase2_ready ?? w.phase2Ready) ?? false,
+  }
+}
+
+export function normalizeOrgStorageStatus(wire: unknown): OrgStorageStatus {
+  const w = obj(wire)
+  return {
+    orgId: str(w.org_id ?? w.orgId) ?? '',
+    tiers: arr(w.tiers, normalizeOrgStorageTierStatus),
+    conditions: arr(w.conditions, normalizeOrgStorageCondition),
+    backendReady: bool(w.backend_ready ?? w.backendReady) ?? false,
+    clusterReady: bool(w.cluster_ready ?? w.clusterReady) ?? false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// StorageBackend normalization (Phase 3)
+// ---------------------------------------------------------------------------
+
+function normalizeStorageBackendCondition(wire: unknown): StorageBackendCondition {
+  const w = obj(wire)
+  return {
+    type: str(w.type) ?? '',
+    status: (str(w.status) ?? 'Unknown') as StorageBackendCondition['status'],
+    reason: str(w.reason),
+    message: str(w.message),
+    lastTransitionTime: str(w.last_transition_time ?? w.lastTransitionTime),
+  }
+}
+
+function normalizeStorageBackendStatus(wire: unknown): StorageBackendStatus {
+  const w = obj(wire)
+  return {
+    ready: bool(w.ready) ?? false,
+    conditions: arr(w.conditions, normalizeStorageBackendCondition),
+  }
+}
+
+export function normalizeStorageBackend(wire: unknown): StorageBackend {
+  const w = obj(wire)
+  const meta = obj(w.metadata)
+  return {
+    id: str(w.id) ?? '',
+    metadata: {
+      name: str(meta.name) ?? '',
+      createdAt: str(meta.creation_timestamp ?? meta.createdAt),
+    },
+    provider: (str(w.provider) ?? 'vast') as StorageBackend['provider'],
+    deploymentModel: str(w.deployment_model ?? w.deploymentModel) as StorageBackend['deploymentModel'],
+    endpoint: str(w.endpoint) ?? '',
+    credentialsSecretRef: str(w.credentials_secret_ref ?? w.credentialsSecretRef) ?? '',
+    vipPool: str(w.vip_pool ?? w.vipPool) ?? '',
+    status: w.status ? normalizeStorageBackendStatus(w.status) : undefined,
   }
 }

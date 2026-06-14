@@ -54,6 +54,10 @@ export function scheduleClusterProgressing(clusterId: string): void {
     if (cluster.status.state !== 'CLUSTER_STATE_PROGRESSING') return
     const catalogItem = catalogItemStore.get(cluster.spec.catalogItem ?? '')
     const initialVersion = catalogItem?.allowedVersions?.[0] ?? '4.17.3'
+    const selectedIds = cluster.spec.storageTierIds ?? []
+    const tiers = Array.from(storageTierStore.values()).filter(
+      (t) => t.available && (selectedIds.length === 0 || selectedIds.includes(t.id)),
+    )
     clusterStore.set(clusterId, {
       ...cluster,
       status: {
@@ -65,8 +69,18 @@ export function scheduleClusterProgressing(clusterId: string): void {
         consoleUrl: `https://console-openshift-console.apps.${cluster.metadata.name}.example.com`,
         storage: {
           csiDriver: 'csi.vastdata.com',
-          storageClasses: [
-            { name: 'vast-standard', isDefault: true, parameters: { tier: 'standard' } },
+          storageClasses: tiers.map((t, i) => ({
+            name: t.storageClassName ?? t.id,
+            tier: t.id,
+            isDefault: i === 0,
+            parameters: {
+              tier: t.name.toLowerCase(),
+              ...(t.qosClass ? { qos: t.qosClass } : {}),
+              ...(t.protocol ? { protocol: t.protocol } : {}),
+            },
+          })),
+          volumeSnapshotClasses: [
+            { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
           ],
         },
         network: {

@@ -1,7 +1,7 @@
 /**
  * flow: tenant-administration
  * step: tad_public_ip_pool_detail
- * route: /admin/public-ips/:id
+ * route: /resources/network/catalog/public-ips/:id
  */
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -73,7 +73,7 @@ export function PublicIpPoolDetailsPage() {
         <p>
           Pool not found: <code>{id}</code>
         </p>
-        <Button variant="link" onClick={() => navigate('/admin/public-ips')}>
+        <Button variant="link" onClick={() => navigate('/resources/network/catalog/public-ips')}>
           Back to Public IP Pools
         </Button>
       </PageSection>
@@ -104,7 +104,7 @@ export function PublicIpPoolDetailsPage() {
     <>
       <PageBreadcrumb>
         <Breadcrumb>
-          <BreadcrumbItem component="button" onClick={() => navigate('/admin/public-ips')}>
+          <BreadcrumbItem component="button" onClick={() => navigate('/resources/network/catalog/public-ips')}>
             Public IP Pools
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{pool.metadata.name}</BreadcrumbItem>

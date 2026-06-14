@@ -2,9 +2,11 @@ import { http, HttpResponse } from 'msw'
 import {
   DEMO_NETWORK_CLASSES,
   DEMO_ORGANIZATIONS,
+  DEMO_ORG_STORAGE_STATUSES,
   DEMO_PUBLIC_IP_POOLS,
   DEMO_PUBLIC_IPS,
   DEMO_SECURITY_GROUPS,
+  DEMO_STORAGE_BACKENDS,
   DEMO_SUBNETS,
   DEMO_VIRTUAL_NETWORKS,
   VM_TEMPLATES,
@@ -15,8 +17,12 @@ import type {
   ComputeInstance,
   FulfillmentBareMetalInstance,
   NetworkClass,
+  OrgStorageStatus,
   PublicIP,
   SecurityGroup,
+  StorageBackend,
+  StorageDeploymentModel,
+  StorageProvider,
   Subnet,
   VirtualNetwork,
 } from '@osac/api-contracts'
@@ -76,6 +82,12 @@ const networkClassStore = new Map<string, NetworkClass>(
   DEMO_NETWORK_CLASSES.map((nc) => [nc.id, nc]),
 )
 const publicIPStore = new Map<string, PublicIP>(DEMO_PUBLIC_IPS.map((pip) => [pip.id, pip]))
+const storageBackendStore = new Map<string, StorageBackend>(
+  DEMO_STORAGE_BACKENDS.map((b) => [b.id, b]),
+)
+const orgStorageStatusStore = new Map<string, OrgStorageStatus>(
+  DEMO_ORG_STORAGE_STATUSES.map((s) => [s.orgId, s]),
+)
 
 let _idCounter = 1000
 function nextId(prefix: string): string {
@@ -363,6 +375,54 @@ export const fulfillmentHandlers = [
     const updated = { ...tier, ...body }
     storageTierStore.set(id, updated)
     return HttpResponse.json(updated)
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Storage backends
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/storage_backends`, () => {
+    const items = Array.from(storageBackendStore.values())
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  http.get(`${PREFIX}/storage_backends/:id`, ({ params }) => {
+    const item = storageBackendStore.get(params.id as string)
+    if (!item) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.post(`${PREFIX}/storage_backends`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const meta = asNestedRecord(body.metadata)
+    const id = nextId('backend')
+    const newBackend: StorageBackend = {
+      id,
+      metadata: { name: String(meta.name ?? id), createdAt: new Date().toISOString() },
+      provider: (body.provider as StorageProvider) ?? 'vast',
+      deploymentModel: body.deployment_model as StorageDeploymentModel | undefined,
+      endpoint: String(body.endpoint ?? ''),
+      credentialsSecretRef: String(body.credentials_secret_ref ?? body.credentialsSecretRef ?? ''),
+      vipPool: String(body.vip_pool ?? body.vipPool ?? ''),
+      status: { ready: false, conditions: [] },
+    }
+    storageBackendStore.set(id, newBackend)
+    return HttpResponse.json(newBackend, { status: 201 })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Org storage statuses
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/org_storage_statuses`, () => {
+    const items = Array.from(orgStorageStatusStore.values())
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  http.get(`${PREFIX}/org_storage_statuses/:orgId`, ({ params }) => {
+    const item = orgStorageStatusStore.get(params.orgId as string)
+    if (!item) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(item)
   }),
 
   // ---------------------------------------------------------------------------

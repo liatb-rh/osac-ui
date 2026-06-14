@@ -1,7 +1,7 @@
 /**
  * flow: tenant-administration
  * step: tad_public_ip_pools
- * route: /admin/public-ips
+ * route: /resources/network/catalog/public-ips
  */
 import { useNavigate } from 'react-router-dom'
 import { Label, PageSection } from '@patternfly/react-core'
@@ -65,7 +65,7 @@ export function PublicIpPoolsPage() {
           rows={extPools}
           getRowKey={(p) => p.id}
           columns={columns}
-          onRowClick={(p) => navigate(`/admin/public-ips/${p.id}`)}
+          onRowClick={(p) => navigate(`/resources/network/catalog/public-ips/${p.id}`)}
         />
       </div>
     </PageSection>

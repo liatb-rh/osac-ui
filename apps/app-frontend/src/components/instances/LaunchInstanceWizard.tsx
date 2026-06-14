@@ -64,10 +64,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useClusterCatalogItems } from '../../hooks/useClusterCatalogItems'
 import { useCreateCluster } from '../../hooks/useCreateCluster'
 import { useStorageTiers } from '../../hooks/useAgents'
-import {
-  useBareMetalCatalogItems,
-  useCreateBareMetalInstance,
-} from '../../hooks/useBareMetalInstances'
+import { useCreateBareMetalInstance } from '../../hooks/useBareMetalInstances'
+import { BM_IMAGES } from '@osac/api-contracts'
+import { RequestBareMetalWizard } from '@osac/ui-components'
+import type { BareMetalWizardCatalogItem, BareMetalWizardCreatePayload } from '@osac/ui-components'
+import { catalogItemsStore } from '../../pages/services/catalog/catalogItemsStore'
 
 // ---------------------------------------------------------------------------
 // Static reference data
@@ -299,8 +300,6 @@ interface WizardState {
   encryptVolumes: boolean
   additionalVolumes: VolumeEntry[]
   clusterStorageTierId: string
-  // Bare metal fields
-  bmCatalogItemId: string
 }
 
 const INITIAL: WizardState = {
@@ -336,7 +335,6 @@ const INITIAL: WizardState = {
   encryptVolumes: false,
   additionalVolumes: [],
   clusterStorageTierId: '',
-  bmCatalogItemId: '',
 }
 
 // ---------------------------------------------------------------------------
@@ -1614,76 +1612,6 @@ function ClusterStorageStep({
 }
 
 // ---------------------------------------------------------------------------
-// Bare metal step
-// ---------------------------------------------------------------------------
-
-function BareMetalStep({
-  state,
-  update,
-}: {
-  state: WizardState
-  update: <K extends keyof WizardState>(k: K, v: WizardState[K]) => void
-}) {
-  const { data: catalogItems = [] } = useBareMetalCatalogItems()
-  const selected = catalogItems.find((i) => i.id === state.bmCatalogItemId)
-
-  return (
-    <Stack hasGutter>
-      <StackItem>
-        <StepHeader
-          title="Bare metal offering"
-          description="Select the hardware catalog item to provision."
-        />
-      </StackItem>
-      <StackItem>
-        <Form>
-          <FormGroup label="Catalog item" fieldId="bm-catalog" isRequired>
-            <FormSelect
-              id="bm-catalog"
-              value={state.bmCatalogItemId}
-              onChange={(_, v) => update('bmCatalogItemId', v)}
-            >
-              <FormSelectOption value="" label="— Select a hardware offering —" />
-              {catalogItems.filter((i) => i.published).map((i) => (
-                <FormSelectOption key={i.id} value={i.id} label={i.title} />
-              ))}
-            </FormSelect>
-          </FormGroup>
-          {selected?.description && (
-            <HelperText>
-              <HelperTextItem>{selected.description}</HelperTextItem>
-            </HelperText>
-          )}
-        </Form>
-      </StackItem>
-    </Stack>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Bare metal mapper
-// ---------------------------------------------------------------------------
-
-function mapWizardStateToBareMetalInstance(state: WizardState) {
-  const labels: Record<string, string> = {}
-  for (const tag of state.tags) {
-    if (tag.key.trim()) labels[tag.key.trim()] = tag.value.trim()
-  }
-  return {
-    metadata: {
-      name: state.name.trim() || `bm-${Date.now()}`,
-      ...(Object.keys(labels).length ? { labels } : {}),
-    },
-    spec: {
-      catalogItem: state.bmCatalogItemId,
-      ...(state.authType === 'keypair' && state.keyPairName.trim()
-        ? { sshKey: state.keyPairName.trim() }
-        : {}),
-    },
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Cluster mapper
 // ---------------------------------------------------------------------------
 
@@ -1718,6 +1646,7 @@ function mapWizardStateToCluster(state: WizardState): Partial<Cluster> {
             ? state.selectedSecurityGroupIds
             : undefined,
       },
+      storageTierIds: state.clusterStorageTierId ? [state.clusterStorageTierId] : undefined,
     },
   }
 }
@@ -1798,10 +1727,6 @@ function ReviewStep({ state }: { state: WizardState }) {
               <Row label="Workers" value={state.clusterWorkerCount} />
             </ReviewSection>
           </>
-        ) : isBm ? (
-          <ReviewSection title="Bare Metal Offering">
-            <Row label="Catalog item" value={state.bmCatalogItemId || '—'} />
-          </ReviewSection>
         ) : (
           <>
             <ReviewSection title="OS Image">
@@ -2031,13 +1956,7 @@ function buildWizardSteps({
     </WizardStep>,
   ]
 
-  if (isBm) {
-    steps.push(
-      <WizardStep name="Hardware offering" id="li-step-bm-catalog" key="bm-catalog">
-        <BareMetalStep state={state} update={update} />
-      </WizardStep>,
-    )
-  } else if (isCluster) {
+  if (isCluster) {
     steps.push(
       <WizardStep name="OCP version" id="li-step-ocp-version" key="ocp-version">
         <ClusterImageStep state={state} update={update} />
@@ -2124,26 +2043,33 @@ export function LaunchInstanceWizard({
   const isCluster = state.resourceType === 'cluster'
   const isBm = state.resourceType === 'baremetal'
 
+  // Catalog items for RequestBareMetalWizard (baremetal only, published)
+  const bmCatalogItems: BareMetalWizardCatalogItem[] = catalogItemsStore
+    .getPublished()
+    .filter((i) => i.type === 'baremetal')
+    .map((i) => ({
+      id: i.id,
+      title: i.title,
+      description: i.description,
+      published: i.published,
+      fieldDefinitions: i.fieldDefinitions,
+    }))
+
   function update<K extends keyof WizardState>(key: K, value: WizardState[K]) {
     setState((prev) => ({ ...prev, [key]: value }))
   }
 
+  function handleBmSubmit(payload: BareMetalWizardCreatePayload) {
+    createBm.mutate(payload, {
+      onSuccess: () => {
+        onClose()
+        setState(INITIAL)
+      },
+    })
+  }
+
   function handleLaunch() {
     setLaunchError(null)
-
-    if (isBm) {
-      const payload = mapWizardStateToBareMetalInstance(state)
-      createBm.mutate(payload, {
-        onSuccess: () => {
-          onClose()
-          setState(INITIAL)
-        },
-        onError: (err) => {
-          setLaunchError(err instanceof Error ? err.message : 'Failed to provision bare metal server.')
-        },
-      })
-      return
-    }
 
     if (isCluster) {
       const payload = mapWizardStateToCluster(state)
@@ -2186,8 +2112,22 @@ export function LaunchInstanceWizard({
   }
 
   const isSubmitting = provisionVm.isPending || createCluster.isPending || createBm.isPending
-  const launchLabel = isCluster ? 'Deploy cluster' : isBm ? 'Provision server' : 'Launch instance'
-  const launchingLabel = isCluster ? 'Deploying…' : isBm ? 'Provisioning…' : 'Launching…'
+  const launchLabel = isCluster ? 'Deploy cluster' : 'Launch instance'
+  const launchingLabel = isCluster ? 'Deploying…' : 'Launching…'
+
+  // When bare metal is selected, delegate entirely to the shared RequestBareMetalWizard
+  if (isBm) {
+    return (
+      <RequestBareMetalWizard
+        isOpen={isOpen}
+        onClose={handleClose}
+        onSubmit={handleBmSubmit}
+        isSubmitting={createBm.isPending}
+        catalogItems={bmCatalogItems}
+        availableImages={BM_IMAGES.map((img) => ({ id: img.id, name: img.name }))}
+      />
+    )
+  }
 
   return (
     <Modal
@@ -2198,7 +2138,7 @@ export function LaunchInstanceWizard({
       style={{ '--pf-v6-c-modal-box--Width': '1100px', '--pf-v6-c-modal-box--Height': '90vh' } as React.CSSProperties}
     >
       <ModalHeader
-        title={isCluster ? 'Deploy an OpenShift cluster' : isBm ? 'Provision a bare metal server' : 'Launch an instance'}
+        title={isCluster ? 'Deploy an OpenShift cluster' : 'Launch an instance'}
         description="Configure and provision a new workload step by step."
       />
       <ModalBody style={{ height: 'calc(90vh - 120px)', padding: 0 }}>

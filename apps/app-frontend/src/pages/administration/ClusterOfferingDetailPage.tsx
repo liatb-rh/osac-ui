@@ -453,7 +453,7 @@ function ClusterTable({ clusters }: { clusters: Cluster[] }) {
                 <span className={linkNameCss}>{c.metadata.name}</span>
               </Td>
               <Td>
-                <code>{c.metadata.tenants?.[0] ?? '—'}</code>
+                <code>{c.metadata.tenant ?? c.metadata.tenants?.[0] ?? '—'}</code>
               </Td>
               <Td>{c.status.version ?? '—'}</Td>
               <Td>{clusterTotalWorkers(c)}</Td>

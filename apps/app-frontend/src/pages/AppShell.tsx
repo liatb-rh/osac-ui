@@ -34,6 +34,9 @@ import {
   ProviderPublicIPPoolsPage,
   StorageTierDetailPage,
   StorageTiersPage,
+  StorageBackendsPage,
+  StorageBackendDetailPage,
+  OrgStorageStatusPage,
 } from './resources'
 import { BaremetalDetailPage, BaremetalPage } from './services/baremetal'
 import { NetworkClassesPage } from './infrastructure'
@@ -158,8 +161,11 @@ export function AppShell() {
         ))}
         <Route path="/agents" element={<InfrastructureAgentsPage />} />
         <Route path="/agents/:id" element={<AgentDetailPage />} />
-        <Route path="/storage-tiers" element={<StorageTiersPage />} />
-        <Route path="/storage-tiers/:id" element={<StorageTierDetailPage />} />
+        <Route path="/resources/storage/storage-tiers" element={<StorageTiersPage />} />
+        <Route path="/resources/storage/storage-tiers/:id" element={<StorageTierDetailPage />} />
+        <Route path="/resources/storage/storage-backends" element={<StorageBackendsPage />} />
+        <Route path="/resources/storage/storage-backends/:id" element={<StorageBackendDetailPage />} />
+        <Route path="/resources/storage/org-storage-status" element={<OrgStorageStatusPage />} />
         <Route path="/provider/network-classes" element={<NetworkClassesPage />} />
         {PROVIDER_PLACEHOLDER_ROUTES.map((route) => (
           <Route

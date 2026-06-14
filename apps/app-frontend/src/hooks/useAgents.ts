@@ -1,12 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  createStorageBackend,
   deprovisionAgent,
+  getOrgStorageStatus,
   listAgents,
+  listOrgStorageStatuses,
+  listStorageBackends,
   listStorageTiers,
   patchStorageTier,
   provisionAgent,
 } from '../api/clusterClient'
-import type { StorageTier } from '@osac/api-contracts'
+import type { StorageBackend, StorageTier } from '@osac/api-contracts'
 import { clusterQueryKeys } from './useClustersList'
 
 export function useAgents() {
@@ -65,5 +69,53 @@ export function usePatchStorageTier() {
     onSuccess: async () => {
       await qc.refetchQueries({ queryKey: clusterQueryKeys.storageTiers })
     },
+  })
+}
+
+export const storageBackendQueryKeys = {
+  list: ['storage_backends'] as const,
+  detail: (id: string) => ['storage_backends', id] as const,
+}
+
+export function useStorageBackends() {
+  return useQuery({
+    queryKey: storageBackendQueryKeys.list,
+    queryFn: () => listStorageBackends(),
+    staleTime: 30_000,
+    select: (data) => data.items,
+  })
+}
+
+export function useCreateStorageBackend() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: Omit<StorageBackend, 'id' | 'metadata' | 'status'> & { name: string }) =>
+      createStorageBackend(payload),
+    onSuccess: async () => {
+      await qc.refetchQueries({ queryKey: storageBackendQueryKeys.list })
+    },
+  })
+}
+
+export const orgStorageQueryKeys = {
+  list: ['org_storage_statuses'] as const,
+  detail: (orgId: string) => ['org_storage_statuses', orgId] as const,
+}
+
+export function useOrgStorageStatuses() {
+  return useQuery({
+    queryKey: orgStorageQueryKeys.list,
+    queryFn: () => listOrgStorageStatuses(),
+    staleTime: 30_000,
+    select: (data) => data.items,
+  })
+}
+
+export function useOrgStorageStatus(orgId: string) {
+  return useQuery({
+    queryKey: orgStorageQueryKeys.detail(orgId),
+    queryFn: () => getOrgStorageStatus(orgId),
+    staleTime: 30_000,
+    enabled: !!orgId,
   })
 }

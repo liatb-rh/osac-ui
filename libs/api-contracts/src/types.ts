@@ -8,9 +8,15 @@ export interface Metadata {
   labels?: Record<string, string>
   /** RFC3339 — mapped from wire `creation_timestamp`. */
   createdAt?: string
-  /** Wire: creators[] */
+  /** Proto-aligned: single tenant identifier (upstream `metadata.tenant`). */
+  tenant?: string
+  /** Proto-aligned: name of the creator (upstream `metadata.creator`). */
+  creator?: string
+  /** Arbitrary metadata key-value pairs (upstream `metadata.annotations`). */
+  annotations?: Record<string, string>
+  /** @deprecated Wire may send an array; prefer `tenant` (singular). Kept for VM wire normalization. */
   creators?: string[]
-  /** Tenancy scope from upstream */
+  /** @deprecated Wire may send an array; prefer `tenant` (singular). Kept for VM wire normalization. */
   tenants?: string[]
 }
 
@@ -437,6 +443,8 @@ export interface ClusterSpec {
   releaseImage?: string
   sshPublicKey?: string
   network?: ClusterSpecNetwork
+  /** Storage tier IDs to provision on this cluster. Empty / absent = use all available tiers. */
+  storageTierIds?: string[]
 }
 
 export interface ClusterCondition {
@@ -546,36 +554,60 @@ export interface InventoryBackend {
 // Storage tiers (CaaS VAST storage)
 // ---------------------------------------------------------------------------
 
+export type StorageProtocol = 'nfs' | 'block'
+
 export interface StorageTier {
   id: string
   name: string
+  /** Storage protocol this tier uses on VAST. */
+  protocol?: StorageProtocol
   qosClass?: string
   vipPool?: string
   storageClassName?: string
   available: boolean
   /** Tenant IDs for which this tier is enabled. Empty = available to all tenants. */
   availableTenantIds?: string[]
+  /** Reference to the StorageBackend that backs this tier. */
+  storageBackendId?: string
 }
 
 // ---------------------------------------------------------------------------
 // Bare Metal Instances (fulfillment-service)
 // ---------------------------------------------------------------------------
 
+/** Aligned to fulfillment-service BareMetalInstanceState proto enum. */
 export type BareMetalInstanceState =
   | 'BARE_METAL_INSTANCE_STATE_UNSPECIFIED'
-  | 'BARE_METAL_INSTANCE_STATE_PENDING'
   | 'BARE_METAL_INSTANCE_STATE_PROVISIONING'
-  | 'BARE_METAL_INSTANCE_STATE_ACTIVE'
-  | 'BARE_METAL_INSTANCE_STATE_DEPROVISIONING'
+  | 'BARE_METAL_INSTANCE_STATE_RUNNING'
   | 'BARE_METAL_INSTANCE_STATE_FAILED'
   | 'BARE_METAL_INSTANCE_STATE_DELETING'
+
+export type BareMetalInstanceRunStrategy =
+  | 'BARE_METAL_INSTANCE_RUN_STRATEGY_UNSPECIFIED'
+  | 'BARE_METAL_INSTANCE_RUN_STRATEGY_ALWAYS'
+  | 'BARE_METAL_INSTANCE_RUN_STRATEGY_HALTED'
 
 export interface FulfillmentBareMetalInstanceSpec {
   /** ID of the BareMetalInstanceCatalogItem that defines the hardware offering. Required on create. */
   catalogItem: string
   sshKey?: string
   userData?: string
-  runStrategy?: string
+  runStrategy?: BareMetalInstanceRunStrategy
+  /** Failure domain / availability zone — maps EC2 Availability Zone */
+  zone?: string
+  /** Node image ID — maps EC2 AMI */
+  image?: string
+  /** Cluster network identifier — maps EC2 VPC */
+  vnet?: string
+  /** Node network segment — maps EC2 Subnet */
+  subnet?: string
+  /** Network policy group name — maps EC2 Security Group */
+  networkPolicyGroup?: string
+  /** Node topology placement hint — maps EC2 Placement Group */
+  topologyKey?: string
+  /** Dynamic field values from catalog item fieldDefinitions */
+  fieldValues?: Record<string, unknown>
 }
 
 export interface FulfillmentBareMetalInstanceStatus {
@@ -597,4 +629,68 @@ export interface BareMetalInstanceCatalogItem {
   title: string
   description?: string
   published: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Storage provisioning status per organization (Phase 2)
+// ---------------------------------------------------------------------------
+
+export interface OrgStorageCondition {
+  type: string
+  status: 'True' | 'False' | 'Unknown'
+  reason?: string
+  message?: string
+  lastTransitionTime?: string
+}
+
+export interface OrgStorageTierStatus {
+  tierId: string
+  tierName: string
+  protocol?: StorageProtocol
+  /** Phase 1: VAST backend provisioned (tenant, views, quotas, hub Secret). */
+  phase1Ready: boolean
+  /** Phase 2: CSI driver + StorageClasses installed on cluster. */
+  phase2Ready: boolean
+}
+
+export interface OrgStorageStatus {
+  orgId: string
+  tiers: OrgStorageTierStatus[]
+  conditions: OrgStorageCondition[]
+  /** Aggregate: all tiers phase1Ready. */
+  backendReady: boolean
+  /** Aggregate: all tiers phase2Ready. */
+  clusterReady: boolean
+}
+
+// ---------------------------------------------------------------------------
+// StorageBackend — registered storage provider (Phase 3)
+// ---------------------------------------------------------------------------
+
+export type StorageProvider = 'vast'
+export type StorageDeploymentModel = 'ova' | 'voc-aws' | 'moc'
+
+export interface StorageBackendCondition {
+  type: string
+  status: 'True' | 'False' | 'Unknown'
+  reason?: string
+  message?: string
+  lastTransitionTime?: string
+}
+
+export interface StorageBackendStatus {
+  ready: boolean
+  conditions: StorageBackendCondition[]
+}
+
+export interface StorageBackend {
+  id: string
+  metadata: Metadata
+  provider: StorageProvider
+  deploymentModel?: StorageDeploymentModel
+  endpoint: string
+  /** Name of the Secret in osac-system that holds admin credentials. */
+  credentialsSecretRef: string
+  vipPool: string
+  status?: StorageBackendStatus
 }

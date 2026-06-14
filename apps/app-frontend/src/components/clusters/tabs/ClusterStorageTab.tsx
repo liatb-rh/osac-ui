@@ -207,6 +207,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
               const tier = sc.tier ?? ''
               const color = TIER_COLOR[tier] ?? 'teal'
               const displayTier = tier.replace(/^tier-/, '')
+              const protocol = sc.parameters?.['protocol']
               return (
                 <Card key={sc.name}>
                   <CardTitle>
@@ -230,6 +231,13 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                           <FlexItem>
                             <Label color={color} isCompact>
                               {displayTier}
+                            </Label>
+                          </FlexItem>
+                        )}
+                        {protocol && (
+                          <FlexItem>
+                            <Label color="cyan" isCompact>
+                              {protocol}
                             </Label>
                           </FlexItem>
                         )}

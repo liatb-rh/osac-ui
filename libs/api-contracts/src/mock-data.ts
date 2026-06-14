@@ -8,12 +8,14 @@ import type {
   InventoryBackend,
   NetworkClass,
   Organization,
+  OrgStorageStatus,
   OsType,
   OsacEvent,
   PublicIP,
   PublicIPPool,
   RoleAssignment,
   SecurityGroup,
+  StorageBackend,
   StorageTier,
   Subnet,
   VirtualNetwork,
@@ -942,7 +944,7 @@ export const DEMO_CLUSTER_CATALOG_ITEMS: ClusterCatalogItem[] = [
         path: 'spec.node_sets.workers.size',
         displayName: 'Worker node count',
         editable: true,
-        default: { '@type': 'type.googleapis.com/google.protobuf.Int32Value', value: 3 },
+        default: 3,
         validationSchema: '{"type":"integer","minimum":1,"maximum":10}',
       },
     ],
@@ -960,7 +962,7 @@ export const DEMO_CLUSTER_CATALOG_ITEMS: ClusterCatalogItem[] = [
         path: 'spec.node_sets.gpu-workers.size',
         displayName: 'GPU worker node count',
         editable: true,
-        default: { '@type': 'type.googleapis.com/google.protobuf.Int32Value', value: 2 },
+        default: 2,
         validationSchema: '{"type":"integer","minimum":1,"maximum":4}',
       },
     ],
@@ -977,7 +979,7 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'northstar-prod-1',
       createdAt: '2026-05-01T08:00:00Z',
-      tenants: ['northstar'],
+      tenant: 'northstar',
     },
     spec: {
       catalogItem: 'ocp-standard',
@@ -1063,7 +1065,7 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'northstar-dev-1',
       createdAt: '2026-05-20T14:00:00Z',
-      tenants: ['northstar'],
+      tenant: 'northstar',
     },
     spec: {
       catalogItem: 'ocp-standard',
@@ -1094,7 +1096,7 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'evergreen-prod-1',
       createdAt: '2026-04-15T10:00:00Z',
-      tenants: ['evergreen'],
+      tenant: 'evergreen',
     },
     spec: {
       catalogItem: 'ocp-gpu',
@@ -1164,8 +1166,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'vertexa-prod-1',
       createdAt: '2026-05-28T09:00:00Z',
-      tenants: ['vertexa'],
-      creators: ['admin@vertexa.io'],
+      tenant: 'vertexa',
+      creator: 'admin@vertexa.io',
       labels: { env: 'production', team: 'platform' },
     },
     spec: {
@@ -1215,8 +1217,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'northstar-staging-1',
       createdAt: '2026-04-10T11:00:00Z',
-      tenants: ['northstar'],
-      creators: ['ops@northstar.io'],
+      tenant: 'northstar',
+      creator: 'ops@northstar.io',
       labels: { env: 'staging' },
     },
     spec: {
@@ -1269,8 +1271,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'evergreen-dev-1',
       createdAt: '2026-03-20T08:00:00Z',
-      tenants: ['evergreen'],
-      creators: ['dev@evergreen.io'],
+      tenant: 'evergreen',
+      creator: 'dev@evergreen.io',
       labels: { env: 'dev', team: 'ml-platform' },
     },
     spec: {
@@ -1333,8 +1335,8 @@ export const DEMO_CLUSTERS: Cluster[] = [
     metadata: {
       name: 'vertexa-ml-1',
       createdAt: '2026-05-05T16:00:00Z',
-      tenants: ['vertexa'],
-      creators: ['ml-team@vertexa.io'],
+      tenant: 'vertexa',
+      creator: 'ml-team@vertexa.io',
       labels: { env: 'production', team: 'ml', workload: 'training' },
     },
     spec: {
@@ -1524,29 +1526,35 @@ export const DEMO_STORAGE_TIERS: StorageTier[] = [
   {
     id: 'tier-standard',
     name: 'Standard',
+    protocol: 'nfs',
     qosClass: 'standard-qos',
     vipPool: 'vip-pool-main',
     storageClassName: 'vast-standard',
     available: true,
     availableTenantIds: [],
+    storageBackendId: 'backend-vast-prod-alpha',
   },
   {
     id: 'tier-fast',
     name: 'Fast',
+    protocol: 'block',
     qosClass: 'high-performance-qos',
     vipPool: 'vip-pool-fast',
     storageClassName: 'vast-fast',
     available: true,
     availableTenantIds: ['northstar'],
+    storageBackendId: 'backend-vast-prod-beta',
   },
   {
     id: 'tier-archive',
     name: 'Archive',
+    protocol: 'nfs',
     qosClass: 'low-qos',
     vipPool: 'vip-pool-archive',
     storageClassName: 'vast-archive',
     available: true,
     availableTenantIds: ['northstar'],
+    storageBackendId: 'backend-vast-archive',
   },
 ]
 
@@ -1750,5 +1758,122 @@ export const DEMO_PUBLIC_IPS: PublicIP[] = [
     metadata: { name: 'pending-ip', createdAt: '2025-05-20T09:00:00Z' },
     spec: { pool: 'pool-public-edge' },
     status: { state: 'PUBLIC_IP_STATE_PENDING', pool: 'pool-public-edge' },
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Demo storage backends (Phase 3)
+// ---------------------------------------------------------------------------
+
+export const DEMO_STORAGE_BACKENDS: StorageBackend[] = [
+  {
+    id: 'backend-vast-prod-alpha',
+    metadata: { name: 'vast-prod-alpha', createdAt: '2025-02-01T10:00:00Z' },
+    provider: 'vast',
+    deploymentModel: 'ova',
+    endpoint: 'https://vast-vms-alpha.infra.example.com',
+    credentialsSecretRef: 'vast-admin-alpha',
+    vipPool: 'vip-pool-main',
+    status: {
+      ready: true,
+      conditions: [
+        { type: 'Connected', status: 'True', reason: 'PingOK', lastTransitionTime: '2025-02-01T10:05:00Z' },
+        { type: 'CredentialsValid', status: 'True', reason: 'AuthOK', lastTransitionTime: '2025-02-01T10:05:00Z' },
+      ],
+    },
+  },
+  {
+    id: 'backend-vast-prod-beta',
+    metadata: { name: 'vast-prod-beta', createdAt: '2025-03-15T08:00:00Z' },
+    provider: 'vast',
+    deploymentModel: 'voc-aws',
+    endpoint: 'https://vast-vms-beta.infra.example.com',
+    credentialsSecretRef: 'vast-admin-beta',
+    vipPool: 'vip-pool-fast',
+    status: {
+      ready: true,
+      conditions: [
+        { type: 'Connected', status: 'True', reason: 'PingOK', lastTransitionTime: '2025-03-15T08:10:00Z' },
+        { type: 'CredentialsValid', status: 'True', reason: 'AuthOK', lastTransitionTime: '2025-03-15T08:10:00Z' },
+      ],
+    },
+  },
+  {
+    id: 'backend-vast-archive',
+    metadata: { name: 'vast-archive', createdAt: '2025-04-20T12:00:00Z' },
+    provider: 'vast',
+    deploymentModel: 'moc',
+    endpoint: 'https://vast-vms-archive.infra.example.com',
+    credentialsSecretRef: 'vast-admin-archive',
+    vipPool: 'vip-pool-archive',
+    status: {
+      ready: false,
+      conditions: [
+        { type: 'Connected', status: 'True', reason: 'PingOK', lastTransitionTime: '2025-04-20T12:05:00Z' },
+        {
+          type: 'CredentialsValid',
+          status: 'False',
+          reason: 'AuthFailed',
+          message: 'Secret vast-admin-archive has expired — rotate credentials and re-reconcile.',
+          lastTransitionTime: '2025-06-01T09:00:00Z',
+        },
+      ],
+    },
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Demo org storage statuses (Phase 2)
+// ---------------------------------------------------------------------------
+
+export const DEMO_ORG_STORAGE_STATUSES: OrgStorageStatus[] = [
+  {
+    orgId: 'org-vertexa',
+    backendReady: true,
+    clusterReady: true,
+    tiers: [
+      { tierId: 'tier-standard', tierName: 'Standard', protocol: 'nfs', phase1Ready: true, phase2Ready: true },
+      { tierId: 'tier-fast', tierName: 'Fast', protocol: 'block', phase1Ready: true, phase2Ready: true },
+    ],
+    conditions: [
+      { type: 'Phase1Ready', status: 'True', reason: 'AllTiersProvisioned', lastTransitionTime: '2025-03-01T08:00:00Z' },
+      { type: 'Phase2Ready', status: 'True', reason: 'AllStorageClassesInstalled', lastTransitionTime: '2025-03-01T08:30:00Z' },
+    ],
+  },
+  {
+    orgId: 'org-northstar',
+    backendReady: true,
+    clusterReady: false,
+    tiers: [
+      { tierId: 'tier-standard', tierName: 'Standard', protocol: 'nfs', phase1Ready: true, phase2Ready: false },
+      { tierId: 'tier-fast', tierName: 'Fast', protocol: 'block', phase1Ready: true, phase2Ready: false },
+    ],
+    conditions: [
+      { type: 'Phase1Ready', status: 'True', reason: 'AllTiersProvisioned', lastTransitionTime: '2025-04-10T10:00:00Z' },
+      {
+        type: 'Phase2Ready',
+        status: 'False',
+        reason: 'CSIInstallPending',
+        message: 'VAST CSI operator installation via OLM is still in progress on cluster caas-northstar-1.',
+        lastTransitionTime: '2025-04-10T10:05:00Z',
+      },
+    ],
+  },
+  {
+    orgId: 'org-evergreen',
+    backendReady: false,
+    clusterReady: false,
+    tiers: [
+      { tierId: 'tier-standard', tierName: 'Standard', protocol: 'nfs', phase1Ready: false, phase2Ready: false },
+    ],
+    conditions: [
+      {
+        type: 'Phase1Ready',
+        status: 'False',
+        reason: 'VASTProvisioningFailed',
+        message: 'VAST tenant creation failed: VMS API returned 503 — backend vast-archive is degraded (credentials expired).',
+        lastTransitionTime: '2025-05-20T14:00:00Z',
+      },
+    ],
   },
 ]

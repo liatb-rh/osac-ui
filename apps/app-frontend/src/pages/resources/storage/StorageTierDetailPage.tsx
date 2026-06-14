@@ -1,7 +1,7 @@
 /**
  * flow: provider-administration
  * step: pad_storage_tier_detail
- * route: /storage-tiers/:id
+ * route: /resources/storage/storage-tiers/:id
  */
 import { css, cx } from '@emotion/css'
 import { useState } from 'react'
@@ -33,9 +33,9 @@ import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import { StatCard } from '@osac/ui-components'
-import { useStorageTiers } from '../../hooks/useAgents'
+import { useStorageTiers } from '../../../hooks/useAgents'
 import { PageHeader } from '@osac/ui-components'
-import { MOCK_CONSUMERS, tierMeta } from './StorageTiersPage'
+import { MOCK_CONSUMERS, tierMeta } from './storageTierUtils'
 
 const tabContentCss = css`
   padding-top: 16px;
@@ -168,7 +168,7 @@ export function StorageTierDetailPage() {
       <Breadcrumb className={breadcrumbCss}>
         <BreadcrumbItem
           render={() => (
-            <Button variant="link" isInline onClick={() => navigate('/storage-tiers')}>
+            <Button variant="link" isInline onClick={() => navigate('/resources/storage/storage-tiers')}>
               Storage Tiers
             </Button>
           )}

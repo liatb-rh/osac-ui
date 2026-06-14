@@ -10,79 +10,52 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
-  Form,
-  FormGroup,
-  FormSelect,
-  FormSelectOption,
   Label,
-  MenuToggle,
-  Modal,
-  ModalBody,
-  ModalHeader,
   PageSection,
   SearchInput,
-  Select,
-  SelectList,
-  SelectOption,
-  Switch,
-  TextInput,
   ToggleGroup,
   ToggleGroupItem,
-  Wizard,
-  WizardStep,
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
-import { BARE_METAL_INSTANCES, BM_FLAVORS, BM_IMAGES } from '@osac/api-contracts'
-import type { BareMetalInstance, BmFlavor } from '@osac/api-contracts'
+import { BARE_METAL_INSTANCES, BM_IMAGES } from '@osac/api-contracts'
+import type { BareMetalInstance } from '@osac/api-contracts'
 import {
   CustomTableLink,
-  FullCatalogItemCard,
-  KpiHeader,
   ObjectsTable,
   PageHeader,
-  PublicIpField,
+  RequestBareMetalWizard,
 } from '@osac/ui-components'
-import type { ObjectsTableColumn } from '@osac/ui-components'
-import { usePublicIPPools, usePublicIPs } from '../../../hooks/useNetworking'
+import type { BareMetalWizardCatalogItem, BareMetalWizardCreatePayload, ObjectsTableColumn } from '@osac/ui-components'
 import { catalogItemsStore } from '../catalog/catalogItemsStore'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-type InstanceFilter = 'all' | 'active' | 'inprogress'
+type InstanceFilter = 'all' | 'running' | 'inprogress'
 
+/** Aligned to fulfillment proto BareMetalInstanceState enum */
 function BmStateLabel({ state }: { state: string }) {
-  if (state === 'active')
-    return (
-      <Label color="green" isCompact>
-        Active
-      </Label>
-    )
-  if (state === 'installing' || state === 'configuring' || state === 'queued')
-    return (
-      <Label color="blue" isCompact>
-        {state}
-      </Label>
-    )
-  if (state === 'failed')
-    return (
-      <Label color="red" isCompact>
-        Failed
-      </Label>
-    )
-  if (state === 'releasing')
-    return (
-      <Label color="orange" isCompact>
-        Releasing
-      </Label>
-    )
-  return (
-    <Label color="grey" isCompact>
-      {state}
-    </Label>
-  )
+  const s = state.replace('BARE_METAL_INSTANCE_STATE_', '')
+  if (s === 'RUNNING' || s === 'active')
+    return <Label color="green" isCompact>Running</Label>
+  if (s === 'PROVISIONING' || s === 'installing' || s === 'configuring' || s === 'queued')
+    return <Label color="blue" isCompact>Provisioning</Label>
+  if (s === 'FAILED' || s === 'failed')
+    return <Label color="red" isCompact>Failed</Label>
+  if (s === 'DELETING' || s === 'releasing')
+    return <Label color="orange" isCompact>Deleting</Label>
+  return <Label color="grey" isCompact>{s}</Label>
+}
+
+function formatAge(createdAt: string): string {
+  const ms = Date.now() - new Date(createdAt).getTime()
+  const minutes = Math.floor(ms / 60000)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
 }
 
 const filterBarCss = css`
@@ -91,6 +64,9 @@ const filterBarCss = css`
   gap: 12px;
   margin-bottom: 16px;
 `
+
+// Map BM_IMAGES to the wizard format
+const BM_IMAGES_FOR_WIZARD = BM_IMAGES.map((img) => ({ id: img.id, name: img.name }))
 
 // ---------------------------------------------------------------------------
 // Page
@@ -104,15 +80,22 @@ export function BaremetalPage() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<InstanceFilter>('all')
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { data: pools = [] } = usePublicIPPools()
-  const { data: publicIPs = [] } = usePublicIPs()
-  const allocatedIPs = publicIPs.filter((ip) => ip.status.state === 'PUBLIC_IP_STATE_ALLOCATED')
-
-  // Pre-select catalog item from URL search param and auto-open wizard
   const catalogItemIdFromUrl = searchParams.get('catalogItem')
-  const catalogItems = catalogItemsStore.getPublished().filter((i) => i.type === 'baremetal')
-  const [wizardCatalogItem, setWizardCatalogItem] = useState<string | null>(catalogItemIdFromUrl)
+  const [wizardCatalogItem, setWizardCatalogItem] = useState<string>(catalogItemIdFromUrl ?? '')
+
+  // Catalog items for the wizard (baremetal only, published)
+  const catalogItems: BareMetalWizardCatalogItem[] = catalogItemsStore
+    .getPublished()
+    .filter((i) => i.type === 'baremetal')
+    .map((i) => ({
+      id: i.id,
+      title: i.title,
+      description: i.description,
+      published: i.published,
+      fieldDefinitions: i.fieldDefinitions,
+    }))
 
   useEffect(() => {
     if (catalogItemIdFromUrl) {
@@ -121,49 +104,44 @@ export function BaremetalPage() {
     }
   }, [catalogItemIdFromUrl])
 
-  // Wizard state
-  const [wName, setWName] = useState('')
-  const [wFlavor, setWFlavor] = useState<BmFlavor | null>(null)
-  const [wFlavorOpen, setWFlavorOpen] = useState(false)
-  const [wImage, setWImage] = useState('')
-  const [wSecureBoot, setWSecureBoot] = useState(false)
-  const [wVnet, setWVnet] = useState('')
-  const [wSubnet, setWSubnet] = useState('')
-  const [wVlan, setWVlan] = useState('')
-
   const filtered = instances.filter((i) => {
-    if (filter === 'active' && i.provisioningState !== 'active') return false
-    if (
-      filter === 'inprogress' &&
-      !['installing', 'configuring', 'queued'].includes(i.provisioningState)
-    )
-      return false
+    const s = i.provisioningState
+    if (filter === 'running' && s !== 'active' && s !== 'BARE_METAL_INSTANCE_STATE_RUNNING') return false
+    if (filter === 'inprogress' && !['installing', 'configuring', 'queued', 'BARE_METAL_INSTANCE_STATE_PROVISIONING'].includes(s)) return false
     if (search.trim() && !i.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  function handleWizardSubmit() {
-    const newInstance: BareMetalInstance = {
-      id: `bmi-${Date.now()}`,
-      name: wName || `bm-instance-${Date.now()}`,
-      tenant: 'northstar',
-      hostRef: 'bh-004',
-      flavor: wFlavor?.id ?? BM_FLAVORS[0].id,
-      image: wImage || BM_IMAGES[0].id,
-      vnet: wVnet || 'prod-network',
-      subnet: wSubnet || 'prod-subnet-a',
-      vlan: Number(wVlan) || 100,
-      bootMode: 'uefi',
-      secureBoot: wSecureBoot,
-      ipmiUrl: 'https://10.0.200.22/redfish/v1',
-      ip: '10.10.1.99',
-      provisioningState: 'queued',
-      createdAt: new Date().toISOString(),
-      createdBy: 'cmorgan@northstarbank.com',
-    }
-    setInstances((prev) => [newInstance, ...prev])
-    setWizardOpen(false)
+  function handleWizardSubmit(payload: BareMetalWizardCreatePayload) {
+    setIsSubmitting(true)
+    // Mock: simulate async provisioning, then add to list
+    setTimeout(() => {
+      const newInstance: BareMetalInstance = {
+        id: `bmi-${Date.now()}`,
+        name: payload.metadata.name,
+        tenant: 'northstar',
+        hostRef: 'bh-004',
+        flavor: payload.spec.catalogItem,
+        image: payload.spec.image ?? BM_IMAGES[0].id,
+        vnet: payload.spec.vnet ?? 'prod-network',
+        subnet: payload.spec.subnet ?? 'prod-subnet-a',
+        vlan: 100,
+        bootMode: 'uefi',
+        secureBoot: false,
+        ipmiUrl: 'https://10.0.200.22/redfish/v1',
+        ip: '10.10.1.99',
+        provisioningState: 'BARE_METAL_INSTANCE_STATE_PROVISIONING' as BareMetalInstance['provisioningState'],
+        createdAt: new Date().toISOString(),
+        createdBy: 'current-user@example.com',
+      }
+      setInstances((prev) => [newInstance, ...prev])
+      setIsSubmitting(false)
+      setWizardOpen(false)
+    }, 800)
   }
+
+  // Catalog item lookup for display in the table
+  const catalogItemMap = new Map(catalogItems.map((c) => [c.id, c.title]))
 
   const columns: ObjectsTableColumn<BareMetalInstance>[] = [
     {
@@ -179,11 +157,10 @@ export function BaremetalPage() {
       render: (i) => <BmStateLabel state={i.provisioningState} />,
     },
     {
-      label: 'Flavor',
-      render: (i) => {
-        const flavor = BM_FLAVORS.find((f) => f.id === i.flavor)
-        return <code>{flavor?.name ?? i.flavor}</code>
-      },
+      label: 'Catalog Item',
+      render: (i) => (
+        <span>{catalogItemMap.get(i.flavor) ?? <code>{i.flavor}</code>}</span>
+      ),
     },
     {
       label: 'Image',
@@ -193,16 +170,16 @@ export function BaremetalPage() {
       },
     },
     {
-      label: 'Host',
-      render: (i) => <code>{i.hostRef}</code>,
-    },
-    {
       label: 'Network',
-      render: (i) => `${i.vnet} / ${i.subnet} · VLAN ${i.vlan}`,
+      render: (i) => `${i.vnet} / ${i.subnet}`,
     },
     {
       label: 'IP',
       render: (i) => <code>{i.ip}</code>,
+    },
+    {
+      label: 'Age',
+      render: (i) => <span title={i.createdAt}>{formatAge(i.createdAt)}</span>,
     },
     {
       isActionCell: true,
@@ -210,7 +187,9 @@ export function BaremetalPage() {
         <ActionsColumn
           items={[
             {
-              title: i.provisioningState === 'active' ? 'Power off' : 'Power on',
+              title: i.provisioningState === 'active' || i.provisioningState === 'BARE_METAL_INSTANCE_STATE_RUNNING'
+                ? 'Power off'
+                : 'Power on',
               onClick: () => {},
             },
             { title: 'Reboot', onClick: () => {} },
@@ -218,20 +197,13 @@ export function BaremetalPage() {
             { isSeparator: true },
             {
               title: 'Release host',
-              onClick: () => {
-                setInstances((prev) => prev.filter((item) => item.id !== i.id))
-              },
+              onClick: () => setInstances((prev) => prev.filter((item) => item.id !== i.id)),
             },
           ]}
         />
       ),
     },
   ]
-
-  const active = instances.filter((i) => i.provisioningState === 'active').length
-  const inProgress = instances.filter((i) =>
-    ['installing', 'configuring', 'queued'].includes(i.provisioningState),
-  ).length
 
   return (
     <PageSection isFilled>
@@ -244,6 +216,7 @@ export function BaremetalPage() {
           </Button>
         }
       />
+
       <div className={filterBarCss} style={{ marginTop: 16 }}>
         <SearchInput
           placeholder="Search by name…"
@@ -253,10 +226,10 @@ export function BaremetalPage() {
           style={{ maxWidth: 300 }}
         />
         <ToggleGroup aria-label="Filter instances">
-          {(['all', 'active', 'inprogress'] as InstanceFilter[]).map((f) => (
+          {(['all', 'running', 'inprogress'] as InstanceFilter[]).map((f) => (
             <ToggleGroupItem
               key={f}
-              text={f === 'all' ? 'All' : f === 'active' ? 'Active' : 'In progress'}
+              text={f === 'all' ? 'All' : f === 'running' ? 'Running' : 'Provisioning'}
               isSelected={filter === f}
               onChange={() => setFilter(f)}
             />
@@ -273,196 +246,15 @@ export function BaremetalPage() {
         defaultPageSize={10}
       />
 
-      {/* Request wizard */}
-      <Modal
+      <RequestBareMetalWizard
         isOpen={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        variant="large"
-        aria-label="Request bare metal"
-      >
-        <ModalHeader
-          title="Request Bare Metal"
-          description="Provision a bare metal instance from the catalog."
-        />
-        <ModalBody style={{ minHeight: 520 }}>
-          <Wizard onClose={() => setWizardOpen(false)} onSave={handleWizardSubmit} height={500}>
-            {/* Step 1 — Catalog item */}
-            <WizardStep name="Catalog item" id="bm-catalog">
-              {catalogItems.length === 0 ? (
-                <p style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  No bare metal catalog items available. Ask your tenant admin to publish one.
-                </p>
-              ) : (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                    gap: 12,
-                  }}
-                >
-                  {catalogItems.map((item) => (
-                    <FullCatalogItemCard
-                      key={item.id}
-                      item={item}
-                      onClick={(i) => setWizardCatalogItem(i.id)}
-                    />
-                  ))}
-                </div>
-              )}
-              {wizardCatalogItem && (
-                <p
-                  style={{
-                    marginTop: 8,
-                    fontSize: '0.875rem',
-                    color: 'var(--pf-t--global--text--color--subtle)',
-                  }}
-                >
-                  Selected:{' '}
-                  <strong>
-                    {catalogItems.find((i) => i.id === wizardCatalogItem)?.title ??
-                      wizardCatalogItem}
-                  </strong>
-                </p>
-              )}
-            </WizardStep>
-
-            {/* Step 2 — Basic parameters */}
-            <WizardStep name="Basic parameters" id="bm-basic">
-              <Form>
-                <FormGroup label="Instance name" fieldId="bm-name" isRequired>
-                  <TextInput
-                    id="bm-name"
-                    value={wName}
-                    onChange={(_, v) => setWName(v)}
-                    placeholder="e.g. my-bm-node-01"
-                  />
-                </FormGroup>
-                <FormGroup label="Node profile (flavor)" fieldId="bm-flavor">
-                  <Select
-                    isOpen={wFlavorOpen}
-                    onOpenChange={setWFlavorOpen}
-                    toggle={(ref) => (
-                      <MenuToggle ref={ref} onClick={() => setWFlavorOpen((v) => !v)}>
-                        {wFlavor?.name ?? 'Select a flavor'}
-                      </MenuToggle>
-                    )}
-                    selected={wFlavor?.id}
-                    onSelect={(_, v) => {
-                      setWFlavor(BM_FLAVORS.find((f) => f.id === v) ?? null)
-                      setWFlavorOpen(false)
-                    }}
-                  >
-                    <SelectList>
-                      {BM_FLAVORS.map((f) => (
-                        <SelectOption
-                          key={f.id}
-                          value={f.id}
-                          description={`${f.cores} cores · ${f.memoryGiB} GiB · ${f.diskSummary}`}
-                        >
-                          {f.name}
-                        </SelectOption>
-                      ))}
-                    </SelectList>
-                  </Select>
-                </FormGroup>
-              </Form>
-            </WizardStep>
-
-            {/* Step 3 — Image */}
-            <WizardStep name="Image" id="bm-image">
-              <Form>
-                <FormGroup label="Boot image" fieldId="bm-img" isRequired>
-                  <FormSelect id="bm-img" value={wImage} onChange={(_, v) => setWImage(v)}>
-                    <FormSelectOption value="" label="Select an image" />
-                    {BM_IMAGES.map((img) => (
-                      <FormSelectOption key={img.id} value={img.id} label={img.name} />
-                    ))}
-                  </FormSelect>
-                </FormGroup>
-                <FormGroup fieldId="bm-secboot">
-                  <Switch
-                    id="bm-secboot"
-                    label="Enable Secure Boot"
-                    isChecked={wSecureBoot}
-                    onChange={(_, v) => setWSecureBoot(v)}
-                  />
-                </FormGroup>
-              </Form>
-            </WizardStep>
-
-            {/* Step 4 — Dynamic parameters (placeholder) */}
-            <WizardStep name="Dynamic parameters" id="bm-dyn">
-              <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.9rem' }}>
-                {wizardCatalogItem
-                  ? 'No additional parameters required for this catalog item.'
-                  : 'No catalog item selected — no dynamic parameters to configure.'}
-              </p>
-            </WizardStep>
-
-            {/* Step 5 — Networking */}
-            <WizardStep name="Networking" id="bm-net">
-              <Form>
-                <FormGroup label="Virtual network" fieldId="bm-vnet">
-                  <TextInput
-                    id="bm-vnet"
-                    value={wVnet}
-                    onChange={(_, v) => setWVnet(v)}
-                    placeholder="e.g. prod-network"
-                  />
-                </FormGroup>
-                <FormGroup label="Subnet" fieldId="bm-subnet">
-                  <TextInput
-                    id="bm-subnet"
-                    value={wSubnet}
-                    onChange={(_, v) => setWSubnet(v)}
-                    placeholder="e.g. prod-subnet-a"
-                  />
-                </FormGroup>
-                <FormGroup label="VLAN" fieldId="bm-vlan">
-                  <TextInput
-                    id="bm-vlan"
-                    value={wVlan}
-                    onChange={(_, v) => setWVlan(v)}
-                    placeholder="e.g. 100"
-                    type="number"
-                  />
-                </FormGroup>
-                <PublicIpField pools={pools} allocatedIPs={allocatedIPs} />
-              </Form>
-            </WizardStep>
-
-            {/* Step 6 — Review */}
-            <WizardStep name="Review" id="bm-review" footer={{ nextButtonText: 'Submit request' }}>
-              <dl
-                style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '6px 16px' }}
-              >
-                <dt>
-                  <strong>Name:</strong>
-                </dt>
-                <dd>{wName || '—'}</dd>
-                <dt>
-                  <strong>Flavor:</strong>
-                </dt>
-                <dd>{wFlavor?.name ?? '—'}</dd>
-                <dt>
-                  <strong>Image:</strong>
-                </dt>
-                <dd>{BM_IMAGES.find((i) => i.id === wImage)?.name ?? '—'}</dd>
-                <dt>
-                  <strong>Secure Boot:</strong>
-                </dt>
-                <dd>{wSecureBoot ? 'Enabled' : 'Disabled'}</dd>
-                <dt>
-                  <strong>Network:</strong>
-                </dt>
-                <dd>
-                  {wVnet || '—'} / {wSubnet || '—'} · VLAN {wVlan || '—'}
-                </dd>
-              </dl>
-            </WizardStep>
-          </Wizard>
-        </ModalBody>
-      </Modal>
+        onSubmit={handleWizardSubmit}
+        isSubmitting={isSubmitting}
+        catalogItems={catalogItems}
+        availableImages={BM_IMAGES_FOR_WIZARD}
+        initialCatalogItemId={wizardCatalogItem}
+      />
     </PageSection>
   )
 }

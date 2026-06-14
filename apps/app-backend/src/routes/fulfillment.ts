@@ -27,6 +27,11 @@
  *   POST /api/fulfillment/v1/agents/:id/deprovision             → mock agent deprovision
  *   GET  /api/fulfillment/v1/storage_tiers                      → mock storage tiers list
  *   PATCH /api/fulfillment/v1/storage_tiers/:id                 → mock storage tier update
+ *   GET  /api/fulfillment/v1/storage_backends                   → mock storage backends list
+ *   GET  /api/fulfillment/v1/storage_backends/:id               → mock storage backend detail
+ *   POST /api/fulfillment/v1/storage_backends                   → mock storage backend register
+ *   GET  /api/fulfillment/v1/org_storage_statuses               → mock org storage statuses list
+ *   GET  /api/fulfillment/v1/org_storage_statuses/:orgId        → mock org storage status detail
  *   GET/POST/DELETE /api/fulfillment/v1/virtual_networks        → mock VN CRUD
  *   GET/POST/DELETE /api/fulfillment/v1/subnets                 → mock subnet CRUD
  *   GET/POST/DELETE /api/fulfillment/v1/security_groups         → mock SG CRUD
@@ -38,9 +43,11 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import {
   DEMO_NETWORK_CLASSES,
   DEMO_ORGANIZATIONS,
+  DEMO_ORG_STORAGE_STATUSES,
   DEMO_PUBLIC_IPS,
   DEMO_PUBLIC_IP_POOLS,
   DEMO_SECURITY_GROUPS,
+  DEMO_STORAGE_BACKENDS,
   DEMO_SUBNETS,
   DEMO_VIRTUAL_NETWORKS,
   VM_TEMPLATES,
@@ -52,6 +59,7 @@ import type {
   NetworkClass,
   PublicIP,
   SecurityGroup,
+  StorageBackend,
   Subnet,
   VirtualNetwork,
 } from '@osac/api-contracts'
@@ -409,6 +417,60 @@ export async function registerFulfillmentRoutes(
     const updated = { ...existing, ...body }
     storageTierStore.set(id, updated)
     return updated
+  })
+
+  // ---------------------------------------------------------------------------
+  // Storage backends
+  // ---------------------------------------------------------------------------
+
+  const storageBackendStore = new Map(DEMO_STORAGE_BACKENDS.map((b) => [b.id, b]))
+
+  app.get(`${prefix}/storage_backends`, async () => {
+    const items = Array.from(storageBackendStore.values())
+    return { size: items.length, total: items.length, items }
+  })
+
+  app.get(`${prefix}/storage_backends/:id`, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const item = storageBackendStore.get(id)
+    if (!item) return reply.status(404).send({ error: 'Not found' })
+    return item
+  })
+
+  app.post(`${prefix}/storage_backends`, async (req, reply) => {
+    const body = req.body as Partial<StorageBackend> | undefined
+    if (!body || typeof body !== 'object') return reply.status(400).send({ error: 'Missing body' })
+    const id = `backend-${Date.now()}`
+    const newBackend: StorageBackend = {
+      id,
+      metadata: { name: (body.metadata?.name as string) ?? id, createdAt: new Date().toISOString() },
+      provider: body.provider ?? 'vast',
+      deploymentModel: body.deploymentModel,
+      endpoint: body.endpoint ?? '',
+      credentialsSecretRef: body.credentialsSecretRef ?? '',
+      vipPool: body.vipPool ?? '',
+      status: { ready: false, conditions: [] },
+    }
+    storageBackendStore.set(id, newBackend)
+    return reply.status(201).send(newBackend)
+  })
+
+  // ---------------------------------------------------------------------------
+  // Org storage statuses
+  // ---------------------------------------------------------------------------
+
+  const orgStorageStatusStore = new Map(DEMO_ORG_STORAGE_STATUSES.map((s) => [s.orgId, s]))
+
+  app.get(`${prefix}/org_storage_statuses`, async () => {
+    const items = Array.from(orgStorageStatusStore.values())
+    return { size: items.length, total: items.length, items }
+  })
+
+  app.get(`${prefix}/org_storage_statuses/:orgId`, async (req, reply) => {
+    const { orgId } = req.params as { orgId: string }
+    const item = orgStorageStatusStore.get(orgId)
+    if (!item) return reply.status(404).send({ error: 'Not found' })
+    return item
   })
 
   // ---------------------------------------------------------------------------

@@ -61,6 +61,10 @@ export function scheduleStorageProvisioning(clusterId: string): void {
   setTimeout(() => {
     const cluster = clusterStore.get(clusterId)
     if (!cluster || cluster.status.state !== 'CLUSTER_STATE_READY') return
+    const selectedIds = cluster.spec.storageTierIds ?? []
+    const tiers = Array.from(storageTierStore.values()).filter(
+      (t) => t.available && (selectedIds.length === 0 || selectedIds.includes(t.id)),
+    )
     clusterStore.set(clusterId, {
       ...cluster,
       status: {
@@ -68,21 +72,18 @@ export function scheduleStorageProvisioning(clusterId: string): void {
         storageReady: true,
         storage: {
           csiDriver: 'csi.vastdata.com',
-          storageClasses: [
-            {
-              name: 'vast-standard',
-              tier: 'tier-standard',
-              isDefault: true,
-              parameters: { backend: 'vast-prod', qos: 'standard-qos' },
+          storageClasses: tiers.map((t, i) => ({
+            name: t.storageClassName ?? t.id,
+            tier: t.id,
+            isDefault: i === 0,
+            parameters: {
+              tier: t.name.toLowerCase(),
+              ...(t.qosClass ? { qos: t.qosClass } : {}),
+              ...(t.protocol ? { protocol: t.protocol } : {}),
             },
-          ],
+          })),
           volumeSnapshotClasses: [
-            {
-              name: 'vast-snapshot',
-              driver: 'csi.vastdata.com',
-              deletionPolicy: 'Delete',
-              isDefault: true,
-            },
+            { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
           ],
         },
       },

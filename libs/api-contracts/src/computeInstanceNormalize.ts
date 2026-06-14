@@ -279,11 +279,19 @@ function normalizeConditions(raw: unknown): ComputeInstanceStatus['conditions'] 
 function normalizeMetadata(raw: Record<string, unknown>): Metadata {
   const createdAt =
     readStr(raw, 'creation_timestamp', 'createdAt') ?? readStr(raw, 'created_at', 'createdAt')
+  const annotationsRaw = raw.annotations
+  const annotations =
+    annotationsRaw && typeof annotationsRaw === 'object' && !Array.isArray(annotationsRaw)
+      ? (annotationsRaw as Record<string, string>)
+      : undefined
   return {
     name: readStr(raw, 'name') ?? '',
     version: readNum(raw, 'version'),
     labels: readLabels(raw),
     createdAt,
+    tenant: readStr(raw, 'tenant'),
+    creator: readStr(raw, 'creator'),
+    annotations,
     creators: readStrArr(raw, 'creators'),
     tenants: readStrArr(raw, 'tenants'),
   }
@@ -399,6 +407,9 @@ function serializeMetadataForCreate(md: Metadata | undefined): Record<string, un
   if (md.name) o.name = md.name
   if (md.version != null) o.version = md.version
   if (md.createdAt) o.creation_timestamp = md.createdAt
+  if (md.tenant) o.tenant = md.tenant
+  if (md.creator) o.creator = md.creator
+  if (md.annotations && Object.keys(md.annotations).length) o.annotations = md.annotations
   if (md.creators?.length) o.creators = md.creators
   if (md.tenants?.length) o.tenants = md.tenants
   if (md.labels && Object.keys(md.labels).length) o.labels = md.labels

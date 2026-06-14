@@ -2,7 +2,15 @@
  * BFF API client for Cluster resources.
  * All functions route through /api on the same origin.
  */
-import type { Agent, Cluster, ClusterCatalogItem, PageOfT, StorageTier } from '@osac/api-contracts'
+import type {
+  Agent,
+  Cluster,
+  ClusterCatalogItem,
+  OrgStorageStatus,
+  PageOfT,
+  StorageBackend,
+  StorageTier,
+} from '@osac/api-contracts'
 import { buildAuthHeaders } from './authToken'
 import {
   normalizeAgent,
@@ -10,6 +18,8 @@ import {
   normalizeCatalogItemPage,
   normalizeCluster,
   normalizeClusterPage,
+  normalizeOrgStorageStatus,
+  normalizeStorageBackend,
   normalizeStorageTier,
 } from './clusterNormalize'
 
@@ -175,6 +185,61 @@ export async function patchStorageTier(
     body: JSON.stringify(patch),
   })
   return normalizeStorageTier(raw)
+}
+
+// ---------------------------------------------------------------------------
+// Storage backends (Phase 3)
+// ---------------------------------------------------------------------------
+
+export async function listStorageBackends(): Promise<PageOfT<StorageBackend>> {
+  const raw = await request<{ size: number; total: number; items: unknown[] }>('/storage_backends')
+  return {
+    size: raw.size,
+    total: raw.total,
+    items: raw.items.map(normalizeStorageBackend),
+  }
+}
+
+export async function getStorageBackend(id: string): Promise<StorageBackend> {
+  const raw = await request<unknown>(`/storage_backends/${encodeURIComponent(id)}`)
+  return normalizeStorageBackend(raw)
+}
+
+export async function createStorageBackend(
+  payload: Omit<StorageBackend, 'id' | 'metadata' | 'status'> & { name: string },
+): Promise<StorageBackend> {
+  const raw = await request<unknown>('/storage_backends', {
+    method: 'POST',
+    body: JSON.stringify({
+      metadata: { name: payload.name },
+      provider: payload.provider,
+      deployment_model: payload.deploymentModel,
+      endpoint: payload.endpoint,
+      credentials_secret_ref: payload.credentialsSecretRef,
+      vip_pool: payload.vipPool,
+    }),
+  })
+  return normalizeStorageBackend(raw)
+}
+
+// ---------------------------------------------------------------------------
+// Org storage statuses (Phase 2)
+// ---------------------------------------------------------------------------
+
+export async function listOrgStorageStatuses(): Promise<PageOfT<OrgStorageStatus>> {
+  const raw = await request<{ size: number; total: number; items: unknown[] }>(
+    '/org_storage_statuses',
+  )
+  return {
+    size: raw.size,
+    total: raw.total,
+    items: raw.items.map(normalizeOrgStorageStatus),
+  }
+}
+
+export async function getOrgStorageStatus(orgId: string): Promise<OrgStorageStatus> {
+  const raw = await request<unknown>(`/org_storage_statuses/${encodeURIComponent(orgId)}`)
+  return normalizeOrgStorageStatus(raw)
 }
 
 // Virtual network / subnet / security group CRUD moved to networkClient.ts
