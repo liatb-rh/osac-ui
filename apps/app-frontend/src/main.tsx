@@ -18,7 +18,10 @@ const queryClient = new QueryClient({
 async function prepare() {
   if (import.meta.env.VITE_MSW === 'true') {
     const { worker } = await import('./mocks/browser')
-    await worker.start({ onUnhandledRequest: 'bypass' })
+    await worker.start({
+      onUnhandledRequest: 'bypass',
+      serviceWorker: { url: `${import.meta.env.BASE_URL}mockServiceWorker.js` },
+    })
   }
 }
 
