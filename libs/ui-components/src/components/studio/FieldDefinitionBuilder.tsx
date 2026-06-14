@@ -316,7 +316,7 @@ function FieldRow({
           {/* Select options */}
           {field.componentType === 'select' && (
             <div>
-              <Title headingLevel="h6" size="sm" style={{ marginBottom: 8 }}>Options</Title>
+              <Title headingLevel="h6" size="md" style={{ marginBottom: 8 }}>Options</Title>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                 {(field.options ?? []).map((opt) => (
                   <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pf-t--global--background--color--secondary--default)', borderRadius: 4, padding: '2px 8px' }}>

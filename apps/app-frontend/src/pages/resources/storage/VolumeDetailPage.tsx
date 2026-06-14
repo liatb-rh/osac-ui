@@ -55,19 +55,19 @@ const tabContentCss = css`
   padding-top: 16px;
 `
 
-const STATE_COLOR: Record<string, 'green' | 'blue' | 'grey' | 'red' | 'gold'> = {
+const STATE_COLOR: Record<string, 'green' | 'blue' | 'grey' | 'red' | 'orange'> = {
   available: 'green',
   'in-use': 'blue',
-  creating: 'gold',
+  creating: 'orange',
   deleting: 'grey',
   error: 'red',
   ready: 'green',
-  restoring: 'gold',
+  restoring: 'orange',
 }
 
-const PHASE_COLOR: Record<string, 'green' | 'gold' | 'red' | 'grey'> = {
+const PHASE_COLOR: Record<string, 'green' | 'orange' | 'red' | 'grey'> = {
   Bound: 'green',
-  Pending: 'gold',
+  Pending: 'orange',
   Released: 'grey',
   Failed: 'red',
 }
@@ -343,7 +343,7 @@ function SnapshotsTab({ volumeId }: { volumeId: string }) {
         s.readyToUse ? (
           <Label color="green" isCompact><CheckCircleIcon /> Ready</Label>
         ) : (
-          <Label color="gold" isCompact>Not ready</Label>
+          <Label color="orange" isCompact>Not ready</Label>
         ),
     },
     {

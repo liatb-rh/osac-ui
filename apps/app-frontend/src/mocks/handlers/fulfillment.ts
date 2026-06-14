@@ -910,7 +910,7 @@ export const fulfillmentHandlers = [
         sshKey: spec.ssh_key ? String(spec.ssh_key) : undefined,
         userData: spec.user_data ? String(spec.user_data) : undefined,
       },
-      status: { state: 'BARE_METAL_INSTANCE_STATE_PENDING' },
+      status: { state: 'BARE_METAL_INSTANCE_STATE_PROVISIONING' },
     }
     bmInstanceStore.set(id, instance)
     // Simulate async state transition to PROVISIONING then ACTIVE
@@ -922,7 +922,7 @@ export const fulfillmentHandlers = [
     setTimeout(() => {
       const existing = bmInstanceStore.get(id)
       if (existing)
-        bmInstanceStore.set(id, { ...existing, status: { state: 'BARE_METAL_INSTANCE_STATE_ACTIVE' } })
+        bmInstanceStore.set(id, { ...existing, status: { state: 'BARE_METAL_INSTANCE_STATE_RUNNING' } })
     }, 12000)
     return HttpResponse.json({ object: instance }, { status: 201 })
   }),

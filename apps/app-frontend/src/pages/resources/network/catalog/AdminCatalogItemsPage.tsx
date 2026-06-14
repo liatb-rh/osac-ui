@@ -102,7 +102,6 @@ export function AdminCatalogItemsPage() {
             {
               title: 'Edit',
               onClick: () => navigate(`/resources/network/catalog/admin-catalog-items/${i.id}`),
-              // @ts-expect-error PF ActionsColumn doesn't type icon
               icon: <PencilAltIcon />,
             },
             {

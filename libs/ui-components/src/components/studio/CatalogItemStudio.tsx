@@ -155,7 +155,7 @@ export function CatalogItemStudio({
         </Title>
 
         {/* Section 1 — Identity */}
-        <Card isOutlined style={{ marginBottom: 16 }}>
+        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
           <CardTitle>
             <Title headingLevel="h3" size="md">1. Identity</Title>
           </CardTitle>
@@ -214,7 +214,7 @@ export function CatalogItemStudio({
         </Card>
 
         {/* Section 2 — Base Template */}
-        <Card isOutlined style={{ marginBottom: 16 }}>
+        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
           <CardTitle>
             <Title headingLevel="h3" size="md">2. Base Template</Title>
           </CardTitle>
@@ -228,7 +228,7 @@ export function CatalogItemStudio({
         </Card>
 
         {/* Section 3 — Field Definitions */}
-        <Card isOutlined style={{ marginBottom: 16 }}>
+        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
           <CardTitle>
             <Title headingLevel="h3" size="md">3. Field Definitions</Title>
           </CardTitle>
@@ -242,7 +242,7 @@ export function CatalogItemStudio({
         </Card>
 
         {/* Section 4 — Live Preview */}
-        <Card isOutlined style={{ marginBottom: 16 }}>
+        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
           <CardTitle>
             <Title headingLevel="h3" size="md">4. Live Preview</Title>
           </CardTitle>

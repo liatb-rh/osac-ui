@@ -22,6 +22,7 @@ import {
 } from '@patternfly/react-core'
 import { BARE_METAL_HOSTS, BARE_METAL_INSTANCES, BM_FLAVORS, BM_IMAGES } from '@osac/api-contracts'
 import { ActionRow, KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import { useState } from 'react'
 
 export function BaremetalDetailPage() {
@@ -280,10 +281,12 @@ export function BaremetalDetailPage() {
           <Tab eventKey="danger" title={<TabTitleText>Danger zone</TabTitleText>}>
             <div style={{ marginTop: 16 }}>
               <ActionRow
+                icon={<TrashIcon />}
                 title="Release host"
-                description="Wipe the disks and return this host to the available pool. This action is irreversible."
-                actionLabel="Release host"
-                onAction={() => setReleaseOpen(true)}
+                body="Wipe the disks and return this host to the available pool. This action is irreversible."
+                cta="Release host"
+                tone="danger"
+                onClick={() => setReleaseOpen(true)}
               />
             </div>
           </Tab>

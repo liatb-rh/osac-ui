@@ -15,7 +15,6 @@ import type {
   PublicIPPool,
   RoleAssignment,
   SecurityGroup,
-  SnapshotState,
   StorageBackend,
   StorageTier,
   StorageVolume,

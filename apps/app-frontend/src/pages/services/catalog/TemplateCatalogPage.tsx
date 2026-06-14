@@ -38,14 +38,14 @@ import {
 import type { ClusterTemplate, ComputeInstance } from '@osac/api-contracts'
 import { useLocation } from 'react-router-dom'
 import linuxMascotUrl from '../../assets/guest-os-tux-linux.png'
-import { useSession } from '../../contexts/SessionContext'
-import { useComputeInstanceTemplates, useComputeInstances, useProvisionVm } from '../../hooks/hooks'
+import { useSession } from '../../../contexts/SessionContext'
+import { useComputeInstanceTemplates, useComputeInstances, useProvisionVm } from '../../../hooks/hooks'
 import { PageHeader } from '@osac/ui-components'
 import type {
   CreateVmWizardHandle,
   DeploymentMode,
-} from '../../components/vm/createVmWizard/CreateVmWizard'
-import { CreateVmWizard } from '../../components/vm/createVmWizard/CreateVmWizard'
+} from '../../../components/vm/createVmWizard/CreateVmWizard'
+import { CreateVmWizard } from '../../../components/vm/createVmWizard/CreateVmWizard'
 import { TemplatesGallery } from '@osac/ui-components'
 
 interface Props {

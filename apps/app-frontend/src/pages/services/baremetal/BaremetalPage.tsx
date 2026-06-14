@@ -105,7 +105,7 @@ export function BaremetalPage() {
 
   const filtered = instances.filter((i) => {
     const s = i.provisioningState
-    if (filter === 'running' && s !== 'active' && s !== 'BARE_METAL_INSTANCE_STATE_RUNNING') return false
+    if (filter === 'running' && s !== 'active') return false
     if (filter === 'inprogress' && !['installing', 'configuring', 'queued', 'BARE_METAL_INSTANCE_STATE_PROVISIONING'].includes(s)) return false
     if (search.trim() && !i.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
@@ -186,7 +186,7 @@ export function BaremetalPage() {
         <ActionsColumn
           items={[
             {
-              title: i.provisioningState === 'active' || i.provisioningState === 'BARE_METAL_INSTANCE_STATE_RUNNING'
+              title: i.provisioningState === 'active'
                 ? 'Power off'
                 : 'Power on',
               onClick: () => {},

@@ -101,7 +101,7 @@ const TIER_COLUMNS: ObjectsTableColumn<OrgStorageTierStatus>[] = [
     dataLabel: 'Protocol',
     render: (t) =>
       t.protocol ? (
-        <Label color="cyan" isCompact>
+        <Label color="teal" isCompact>
           {t.protocol}
         </Label>
       ) : (

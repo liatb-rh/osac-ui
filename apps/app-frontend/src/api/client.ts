@@ -5,6 +5,7 @@
  */
 import type {
   BareMetalInstanceCatalogItem,
+  BareMetalInstanceRunStrategy,
   ClusterTemplate,
   ComputeInstance,
   FulfillmentBareMetalInstance,
@@ -224,7 +225,7 @@ function normalizeBareMetalInstance(raw: unknown): FulfillmentBareMetalInstance 
       catalogItem: (spec.catalog_item as string) ?? '',
       sshKey: spec.ssh_key as string | undefined,
       userData: spec.user_data as string | undefined,
-      runStrategy: spec.run_strategy as string | undefined,
+      runStrategy: spec.run_strategy as BareMetalInstanceRunStrategy | undefined,
     },
     status: {
       state: ((status.state as string) ?? 'BARE_METAL_INSTANCE_STATE_UNSPECIFIED') as FulfillmentBareMetalInstance['status']['state'],

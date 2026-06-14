@@ -47,7 +47,7 @@ function DiscoveryStateLabel({ state }: { state: string }) {
     )
   if (state === 'inspecting')
     return (
-      <Label color="cyan" isCompact>
+      <Label color="teal" isCompact>
         Inspecting
       </Label>
     )

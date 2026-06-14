@@ -11,6 +11,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@emotion/css": "^11.13.5",
     "@osac/api-contracts": "workspace:*",
     "@patternfly/patternfly": "^6.4.0",
     "@patternfly/react-charts": "^8.0.0",

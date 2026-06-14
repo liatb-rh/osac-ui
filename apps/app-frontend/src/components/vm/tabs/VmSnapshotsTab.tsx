@@ -45,19 +45,18 @@ const sectionTitleCss = css`
   font-weight: 600;
 `
 
-const STATE_COLOR: Record<string, 'green' | 'gold' | 'red' | 'grey'> = {
+const STATE_COLOR: Record<string, 'green' | 'orange' | 'red' | 'grey'> = {
   ready: 'green',
-  creating: 'gold',
+  creating: 'orange',
   error: 'red',
-  restoring: 'gold',
+  restoring: 'orange',
 }
 
 function SnapshotsForVolume({
   volumeId,
-  vmId,
 }: {
   volumeId: string
-  vmId: string
+  vmId?: string
 }) {
   const { data: snapshots, isLoading } = useVolumeSnapshots(volumeId)
   const { mutate: createSnap, isPending: isCreating } = useCreateVolumeSnapshot()

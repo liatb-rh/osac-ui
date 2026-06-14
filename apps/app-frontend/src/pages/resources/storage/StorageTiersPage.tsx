@@ -30,7 +30,7 @@ import { CustomTableLink, PageLayout } from '@osac/ui-components'
 import { useCreateStorageTier, usePatchStorageTier, useStorageBackends, useStorageTiers } from '../../../hooks/useAgents'
 
 // ── Mock enrichment ────────────────────────────────────────────────────────────
-import { type TierMeta, tierMeta } from './storageTierUtils'
+import { tierMeta } from './storageTierUtils'
 
 const tierMetaSubtextCss = css`
   font-size: 12px;

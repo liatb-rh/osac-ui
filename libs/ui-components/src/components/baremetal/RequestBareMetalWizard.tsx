@@ -189,7 +189,7 @@ function DynamicFieldInput({
       <FormGroup
         label={displayName || path}
         fieldId={fieldId}
-        labelIcon={<LockIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />}
+        labelHelp={<LockIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />}
       >
         {componentType === 'boolean' ? (
           <Switch id={fieldId} isChecked={!!defaultValue} isDisabled aria-label={displayName} />
@@ -424,8 +424,6 @@ function Step2Configuration(p: Step2Props) {
             <FormGroup
               label="SSH public key"
               fieldId="rbw-ssh"
-              helperTextInvalid={p.sshKeyError}
-              validated={p.sshKeyError ? 'error' : 'default'}
             >
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
                 OpenSSH format (ssh-rsa, ssh-ed25519, ecdsa-sha2-*)
@@ -452,8 +450,6 @@ function Step2Configuration(p: Step2Props) {
             <FormGroup
               label="User data (cloud-init)"
               fieldId="rbw-userdata"
-              helperTextInvalid={p.userDataError}
-              validated={p.userDataError ? 'error' : 'default'}
             >
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
                 cloud-init YAML or shell script, max 64 KB
@@ -742,7 +738,7 @@ function Step3Review({
       {/* Dynamic field values */}
       {fieldDefinitions.filter((f) => f.editable).length > 0 && (
         <StackItem>
-          <Title headingLevel="h4" size="sm" style={{ marginBottom: 8 }}>Catalog parameters</Title>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 8 }}>Catalog parameters</Title>
           <DescriptionList isCompact>
             {fieldDefinitions.filter((f) => f.editable).map((field) => {
               const val = fieldValues[field.id] ?? field.defaultValue

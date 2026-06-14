@@ -111,7 +111,7 @@ function FieldPreview({ field }: { field: FieldDefinition }) {
     <FormGroup
       label={displayName || field.path || '(unnamed field)'}
       fieldId={`preview-${field.id}`}
-      labelIcon={!editable ? <LockIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} /> : undefined}
+      labelHelp={!editable ? <LockIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} /> : undefined}
     >
       {control}
       {helperText}

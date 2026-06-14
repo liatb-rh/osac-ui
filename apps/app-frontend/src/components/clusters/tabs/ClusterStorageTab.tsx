@@ -236,7 +236,7 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                         )}
                         {protocol && (
                           <FlexItem>
-                            <Label color="cyan" isCompact>
+                            <Label color="teal" isCompact>
                               {protocol}
                             </Label>
                           </FlexItem>
@@ -255,11 +255,11 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                     >
                       {sc.name}
                     </ClipboardCopy>
-                    {sc.csiDriver && (
+                    {sc.parameters?.['csiDriver'] && (
                       <>
                         <div className={fieldLabelCss} style={{ marginTop: 8 }}>CSI Driver</div>
                         <code style={{ fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
-                          {sc.csiDriver}
+                          {sc.parameters['csiDriver']}
                         </code>
                       </>
                     )}
