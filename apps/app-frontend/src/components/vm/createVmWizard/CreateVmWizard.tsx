@@ -87,6 +87,8 @@ interface Props {
   tenant: DemoTenantId
   onProvision: (vm: ComputeInstance, meta: { mode: DeploymentMode }) => void
   defaultMode?: DeploymentMode
+  /** Called after the wizard closes (cancel, escape, or X). */
+  onClose?: () => void
 }
 
 function canProceedLocal(stepId: string, state: WizardState): boolean {
@@ -108,7 +110,7 @@ function canProceedLocal(stepId: string, state: WizardState): boolean {
 
 export const CreateVmWizard = forwardRef<CreateVmWizardHandle, Props>(function CreateVmWizard(
   /** WIZARD_TEMPLATE_ONLY: default was `'new'` — RESTORE when deployment picker returns. */
-  { existingVms, tenant: _tenant, onProvision, defaultMode = 'template' },
+  { existingVms, tenant: _tenant, onProvision, defaultMode = 'template', onClose: onCloseProp },
   ref,
 ) {
   const [isOpen, setIsOpen] = useState(false)
@@ -181,7 +183,8 @@ export const CreateVmWizard = forwardRef<CreateVmWizardHandle, Props>(function C
     }
     setIsOpen(false)
     resetLocal()
-  }, [session?.sessionId, resetLocal])
+    onCloseProp?.()
+  }, [session?.sessionId, resetLocal, onCloseProp])
 
   const orderedSteps = useMemo(() => {
     if (!session) return [] as string[]

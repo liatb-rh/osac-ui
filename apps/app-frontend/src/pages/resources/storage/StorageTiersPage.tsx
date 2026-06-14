@@ -18,8 +18,6 @@ import {
   ModalBody,
   ModalHeader,
   ModalVariant,
-  PageSection,
-  Spinner,
   Switch,
   TextArea,
   TextInput,
@@ -28,9 +26,8 @@ import {
 } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { StorageTier } from '@osac/api-contracts'
-import { CustomTableLink } from '@osac/ui-components'
-import { usePatchStorageTier, useStorageBackends, useStorageTiers } from '../../../hooks/useAgents'
-import { PageHeader } from '@osac/ui-components'
+import { CustomTableLink, PageLayout } from '@osac/ui-components'
+import { useCreateStorageTier, usePatchStorageTier, useStorageBackends, useStorageTiers } from '../../../hooks/useAgents'
 
 // ── Mock enrichment ────────────────────────────────────────────────────────────
 import { type TierMeta, tierMeta } from './storageTierUtils'
@@ -189,6 +186,7 @@ const reviewFootnoteCss = css`
 
 function NewTierWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { data: storageBackends } = useStorageBackends()
+  const { mutate: createTier, isPending: isSaving } = useCreateStorageTier()
   const [id, setId] = useState('titanium')
   const [name, setName] = useState('Titanium')
   const [qosClass, setQosClass] = useState('fast')
@@ -353,7 +351,27 @@ function NewTierWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
             </Form>
           </WizardStep>
 
-          <WizardStep name="Review" id="st-review" footer={{ nextButtonText: 'Create tier' }}>
+          <WizardStep
+            name="Review"
+            id="st-review"
+            footer={{
+              nextButtonText: isSaving ? 'Creating…' : 'Create tier',
+              isNextDisabled: isSaving,
+              onNext: () => {
+                createTier(
+                  {
+                    name,
+                    qosClass: id,
+                    protocol: protocol.startsWith('NFS') ? 'nfs' : undefined,
+                    storageClassName: scDefault,
+                    vipPool,
+                    storageBackendId: vastCluster || undefined,
+                  },
+                  { onSuccess: onClose },
+                )
+              },
+            }}
+          >
             <div className={reviewSummaryCss}>
               <div>
                 <strong>
@@ -402,28 +420,24 @@ export function StorageTiersPage() {
   }
 
   return (
-    <PageSection isFilled>
-      <PageHeader
-        title="Storage Tiers"
-        description="Define and govern sovereign-cloud storage classes."
-        actions={
-          <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
-            New tier
-          </Button>
-        }
-      />
-
-      {isLoading ? (
-        <Spinner aria-label="Loading storage tiers" />
-      ) : (
-        <div className={tiersPanelCss}>
-          {(tiers ?? []).map((t) => (
-            <TierRow key={t.id} tier={t} onToggle={handleToggle} />
-          ))}
-        </div>
-      )}
+    <PageLayout
+      title="Storage Tiers"
+      description="Define and govern sovereign-cloud storage classes."
+      isLoading={isLoading}
+      loadingLabel="Loading storage tiers"
+      actions={
+        <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
+          New tier
+        </Button>
+      }
+    >
+      <div className={tiersPanelCss}>
+        {(tiers ?? []).map((t) => (
+          <TierRow key={t.id} tier={t} onToggle={handleToggle} />
+        ))}
+      </div>
 
       <NewTierWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
-    </PageSection>
+    </PageLayout>
   )
 }

@@ -255,6 +255,14 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                     >
                       {sc.name}
                     </ClipboardCopy>
+                    {sc.csiDriver && (
+                      <>
+                        <div className={fieldLabelCss} style={{ marginTop: 8 }}>CSI Driver</div>
+                        <code style={{ fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
+                          {sc.csiDriver}
+                        </code>
+                      </>
+                    )}
                     <div className={pvcExampleLabelCss}>PVC example</div>
                     <ClipboardCopy
                       isReadOnly

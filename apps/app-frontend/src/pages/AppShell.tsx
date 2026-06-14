@@ -36,7 +36,9 @@ import {
   StorageTiersPage,
   StorageBackendsPage,
   StorageBackendDetailPage,
-  OrgStorageStatusPage,
+  StoragePage,
+  VolumesPage,
+  VolumeDetailPage,
 } from './resources'
 import { BaremetalDetailPage, BaremetalPage } from './services/baremetal'
 import { NetworkClassesPage } from './infrastructure'
@@ -165,7 +167,9 @@ export function AppShell() {
         <Route path="/resources/storage/storage-tiers/:id" element={<StorageTierDetailPage />} />
         <Route path="/resources/storage/storage-backends" element={<StorageBackendsPage />} />
         <Route path="/resources/storage/storage-backends/:id" element={<StorageBackendDetailPage />} />
-        <Route path="/resources/storage/org-storage-status" element={<OrgStorageStatusPage />} />
+        <Route path="/resources/storage" element={<StoragePage />} />
+        <Route path="/resources/storage/storage-volumes" element={<VolumesPage />} />
+        <Route path="/resources/storage/storage-volumes/:id" element={<VolumeDetailPage />} />
         <Route path="/provider/network-classes" element={<NetworkClassesPage />} />
         {PROVIDER_PLACEHOLDER_ROUTES.map((route) => (
           <Route

@@ -5,7 +5,6 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { css } from '@emotion/css'
 import {
   Button,
   Form,
@@ -17,39 +16,15 @@ import {
   ModalBody,
   ModalHeader,
   ModalVariant,
-  PageSection,
-  Spinner,
   TextInput,
   Wizard,
   WizardStep,
 } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
-import { CustomTableLink } from '@osac/ui-components'
-import { PageHeader } from '@osac/ui-components'
+import { CustomTableLink, ObjectsTable, PageLayout } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 import type { StorageBackend, StorageDeploymentModel } from '@osac/api-contracts'
 import { useCreateStorageBackend, useStorageBackends } from '../../../hooks/useAgents'
-
-// ── Styles ───────────────────────────────────────────────────────────────────
-
-const tableCss = css`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--pf-v5-global--FontSize--sm);
-
-  th {
-    text-align: left;
-    padding: 8px 12px;
-    font-weight: var(--pf-v5-global--FontWeight--semi-bold);
-    border-bottom: 2px solid var(--pf-v5-global--BorderColor--100);
-    color: var(--pf-v5-global--Color--200);
-  }
-
-  td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100);
-    vertical-align: middle;
-  }
-`
 
 const DEPLOYMENT_LABELS: Record<string, string> = {
   ova: 'OVA',
@@ -150,7 +125,6 @@ function RegisterBackendWizard({ isOpen, onClose }: { isOpen: boolean; onClose: 
                 label="Credentials secret name"
                 fieldId="sb-secret"
                 isRequired
-                helperText="Name of the Secret in osac-system that holds admin credentials."
               >
                 <TextInput
                   id="sb-secret"
@@ -199,87 +173,90 @@ function RegisterBackendWizard({ isOpen, onClose }: { isOpen: boolean; onClose: 
   )
 }
 
-// ── Row ──────────────────────────────────────────────────────────────────────
-
-function BackendRow({ backend }: { backend: StorageBackend }) {
-  const navigate = useNavigate()
-  const ready = backend.status?.ready ?? false
-  const model = backend.deploymentModel ? DEPLOYMENT_LABELS[backend.deploymentModel] ?? backend.deploymentModel : '—'
-  return (
-    <tr>
-      <td>
-        <CustomTableLink onClick={() => navigate(`/resources/storage/storage-backends/${backend.id}`)}>
-          {backend.metadata.name}
-        </CustomTableLink>
-      </td>
-      <td><Label color="blue" isCompact>{backend.provider}</Label></td>
-      <td>{model}</td>
-      <td style={{ fontFamily: 'monospace', fontSize: '0.8em' }}>{backend.endpoint}</td>
-      <td>{backend.vipPool}</td>
-      <td>
-        <Label color={ready ? 'green' : 'red'} isCompact>
-          {ready ? 'Ready' : 'Degraded'}
-        </Label>
-      </td>
-    </tr>
-  )
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function StorageBackendsPage() {
+  const navigate = useNavigate()
   const [wizardOpen, setWizardOpen] = useState(false)
   const { data: backends, isLoading, isError } = useStorageBackends()
 
+  const columns: ObjectsTableColumn<StorageBackend>[] = [
+    {
+      label: 'Name',
+      dataLabel: 'Name',
+      render: (b) => (
+        <CustomTableLink onClick={() => navigate(`/resources/storage/storage-backends/${b.id}`)}>
+          {b.metadata.name}
+        </CustomTableLink>
+      ),
+    },
+    {
+      label: 'Provider',
+      dataLabel: 'Provider',
+      render: (b) => (
+        <Label color="blue" isCompact>
+          {b.provider}
+        </Label>
+      ),
+    },
+    {
+      label: 'Deployment model',
+      dataLabel: 'Deployment model',
+      render: (b) =>
+        b.deploymentModel ? (DEPLOYMENT_LABELS[b.deploymentModel] ?? b.deploymentModel) : '—',
+    },
+    {
+      label: 'Endpoint',
+      dataLabel: 'Endpoint',
+      render: (b) => <code style={{ fontSize: '0.8em' }}>{b.endpoint}</code>,
+    },
+    {
+      label: 'VIP pool',
+      dataLabel: 'VIP pool',
+      render: (b) => b.vipPool,
+    },
+    {
+      label: 'Status',
+      dataLabel: 'Status',
+      render: (b) => {
+        const ready = b.status?.ready ?? false
+        return (
+          <Label color={ready ? 'green' : 'red'} isCompact>
+            {ready ? 'Ready' : 'Degraded'}
+          </Label>
+        )
+      },
+    },
+  ]
+
   return (
-    <>
-      <PageHeader
-        title="Storage Backends"
-        subtitle="Registered VAST clusters. Storage tiers reference a backend by ID."
-        actions={
-          <Button
-            variant="primary"
-            icon={<PlusCircleIcon />}
-            onClick={() => setWizardOpen(true)}
-          >
-            Register backend
-          </Button>
-        }
-      />
-      <PageSection>
-        {isLoading && <Spinner aria-label="Loading storage backends" />}
-        {isError && (
-          <p style={{ color: 'var(--pf-v5-global--danger-color--100)' }}>
-            Failed to load storage backends.
-          </p>
-        )}
-        {backends && (
-          <table className={tableCss}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Provider</th>
-                <th>Deployment model</th>
-                <th>Endpoint</th>
-                <th>VIP pool</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {backends.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ color: 'var(--pf-v5-global--Color--200)', textAlign: 'center', padding: 32 }}>
-                    No storage backends registered yet.
-                  </td>
-                </tr>
-              ) : (
-                backends.map((b) => <BackendRow key={b.id} backend={b} />)
-              )}
-            </tbody>
-          </table>
-        )}
-      </PageSection>
+    <PageLayout
+      title="Storage Backends"
+      description="Registered VAST clusters. Storage tiers reference a backend by ID."
+      isLoading={isLoading}
+      loadingLabel="Loading storage backends"
+      error={isError ? 'Failed to load storage backends.' : null}
+      actions={
+        <Button
+          variant="primary"
+          icon={<PlusCircleIcon />}
+          onClick={() => setWizardOpen(true)}
+        >
+          Register backend
+        </Button>
+      }
+    >
+      {backends && (
+        <ObjectsTable
+          ariaLabel="Storage backends"
+          columns={columns}
+          rows={backends}
+          getRowKey={(b) => b.id}
+          onRowClick={(b) => navigate(`/resources/storage/storage-backends/${b.id}`)}
+          defaultPageSize={10}
+        />
+      )}
       <RegisterBackendWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
-    </>
+    </PageLayout>
   )
 }

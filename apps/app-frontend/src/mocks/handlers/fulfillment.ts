@@ -7,8 +7,10 @@ import {
   DEMO_PUBLIC_IPS,
   DEMO_SECURITY_GROUPS,
   DEMO_STORAGE_BACKENDS,
+  DEMO_STORAGE_VOLUMES,
   DEMO_SUBNETS,
   DEMO_VIRTUAL_NETWORKS,
+  DEMO_VOLUME_SNAPSHOTS,
   VM_TEMPLATES,
   normalizeComputeInstance,
 } from '@osac/api-contracts'
@@ -22,9 +24,13 @@ import type {
   SecurityGroup,
   StorageBackend,
   StorageDeploymentModel,
+  StorageProtocol,
   StorageProvider,
+  StorageTier,
+  StorageVolume,
   Subnet,
   VirtualNetwork,
+  VolumeSnapshot,
 } from '@osac/api-contracts'
 import { vmStore } from '../vm-store'
 import {
@@ -74,6 +80,9 @@ const bmInstanceStore = new Map<string, FulfillmentBareMetalInstance>()
 // ---------------------------------------------------------------------------
 // In-memory networking stores (initialized from DEMO data)
 // ---------------------------------------------------------------------------
+
+const volumeStore = new Map<string, StorageVolume>(DEMO_STORAGE_VOLUMES.map((v) => [v.id, v]))
+const snapshotStore = new Map<string, VolumeSnapshot>(DEMO_VOLUME_SNAPSHOTS.map((s) => [s.id, s]))
 
 const vnStore = new Map<string, VirtualNetwork>(DEMO_VIRTUAL_NETWORKS.map((vn) => [vn.id, vn]))
 const subnetStore = new Map<string, Subnet>(DEMO_SUBNETS.map((s) => [s.id, s]))
@@ -377,6 +386,30 @@ export const fulfillmentHandlers = [
     return HttpResponse.json(updated)
   }),
 
+  http.post(`${PREFIX}/storage_tiers`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const id = nextId('tier')
+    const newTier: StorageTier = {
+      id,
+      name: String(body.name ?? id),
+      qosClass: body.qos_class ? String(body.qos_class) : undefined,
+      protocol: body.protocol as StorageProtocol | undefined,
+      storageClassName: body.storage_class_name ? String(body.storage_class_name) : undefined,
+      vipPool: body.vip_pool ? String(body.vip_pool) : undefined,
+      storageBackendId: body.storage_backend_id ? String(body.storage_backend_id) : undefined,
+      available: true,
+    }
+    storageTierStore.set(id, newTier)
+    return HttpResponse.json(newTier, { status: 201 })
+  }),
+
+  http.delete(`${PREFIX}/storage_tiers/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!storageTierStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    storageTierStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   // ---------------------------------------------------------------------------
   // Storage backends
   // ---------------------------------------------------------------------------
@@ -410,6 +443,34 @@ export const fulfillmentHandlers = [
     return HttpResponse.json(newBackend, { status: 201 })
   }),
 
+  http.patch(`${PREFIX}/storage_backends/:id`, async ({ params, request }) => {
+    const id = params.id as string
+    const backend = storageBackendStore.get(id)
+    if (!backend) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = asNestedRecord(await request.json())
+    const updated: StorageBackend = {
+      ...backend,
+      endpoint: body.endpoint ? String(body.endpoint) : backend.endpoint,
+      credentialsSecretRef: body.credentials_secret_ref
+        ? String(body.credentials_secret_ref)
+        : backend.credentialsSecretRef,
+      vipPool: body.vip_pool ? String(body.vip_pool) : backend.vipPool,
+      deploymentModel: body.deployment_model
+        ? (body.deployment_model as StorageDeploymentModel)
+        : backend.deploymentModel,
+    }
+    storageBackendStore.set(id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  http.delete(`${PREFIX}/storage_backends/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!storageBackendStore.has(id))
+      return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    storageBackendStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   // ---------------------------------------------------------------------------
   // Org storage statuses
   // ---------------------------------------------------------------------------
@@ -423,6 +484,148 @@ export const fulfillmentHandlers = [
     const item = orgStorageStatusStore.get(params.orgId as string)
     if (!item) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
     return HttpResponse.json(item)
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Storage Volumes
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/storage_volumes`, ({ request }) => {
+    const url = new URL(request.url)
+    const orgId = url.searchParams.get('orgId')
+    let items = Array.from(volumeStore.values())
+    if (orgId) items = items.filter((v) => v.orgId === orgId)
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  http.post(`${PREFIX}/storage_volumes`, async ({ request }) => {
+    const body = asNestedRecord(await request.json())
+    const meta = asNestedRecord(body.metadata)
+    const id = nextId('vol')
+    const tierId = String(body.tier_id ?? body.tierId ?? '')
+    const tier = storageTierStore.get(tierId)
+    const accessMode = String(body.access_mode ?? body.accessMode ?? 'ReadWriteOnce') as 'ReadWriteOnce' | 'ReadWriteMany'
+    const newVol: StorageVolume = {
+      id,
+      metadata: { name: String(meta.name ?? id), createdAt: new Date().toISOString() },
+      orgId: String(body.org_id ?? body.orgId ?? ''),
+      sizeGiB: Number(body.size_gi_b ?? body.sizeGiB ?? 10),
+      tierId,
+      storageClassName: tier?.storageClassName,
+      accessMode,
+      clusterRef: String(body.cluster_ref ?? body.clusterRef ?? ''),
+      phase: 'Pending',
+      attachments: [],
+      status: { state: 'creating' },
+    }
+    volumeStore.set(id, newVol)
+    setTimeout(() => {
+      const v = volumeStore.get(id)
+      if (v) volumeStore.set(id, { ...v, phase: 'Bound', status: { state: 'available' } })
+    }, 2000)
+    return HttpResponse.json(newVol, { status: 201 })
+  }),
+
+  http.get(`${PREFIX}/storage_volumes/:id`, ({ params }) => {
+    const vol = volumeStore.get(params.id as string)
+    if (!vol) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    return HttpResponse.json(vol)
+  }),
+
+  http.patch(`${PREFIX}/storage_volumes/:id`, async ({ params, request }) => {
+    const id = params.id as string
+    const vol = volumeStore.get(id)
+    if (!vol) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = asNestedRecord(await request.json())
+    const updated: StorageVolume = {
+      ...vol,
+      sizeGiB: Number(body.size_gi_b ?? body.sizeGiB ?? vol.sizeGiB),
+    }
+    volumeStore.set(id, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  http.delete(`${PREFIX}/storage_volumes/:id`, ({ params }) => {
+    const id = params.id as string
+    const vol = volumeStore.get(id)
+    if (!vol) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    if (vol.status.state === 'in-use')
+      return HttpResponse.json({ error: 'Volume is in use' }, { status: 409 })
+    volumeStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Volume Snapshots — all nested under /storage_volumes/:volumeId/snapshots
+  // ---------------------------------------------------------------------------
+
+  http.get(`${PREFIX}/storage_volumes/:volumeId/snapshots`, ({ params }) => {
+    const volId = params.volumeId as string
+    const items = Array.from(snapshotStore.values()).filter((s) => s.volumeId === volId)
+    return HttpResponse.json({ size: items.length, total: items.length, items })
+  }),
+
+  http.post(`${PREFIX}/storage_volumes/:volumeId/snapshots`, async ({ params, request }) => {
+    const volId = params.volumeId as string
+    const vol = volumeStore.get(volId)
+    if (!vol) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = asNestedRecord(await request.json())
+    const sid = nextId('snap')
+    const newSnap: VolumeSnapshot = {
+      id: sid,
+      metadata: { name: String(body.name ?? sid), createdAt: new Date().toISOString() },
+      volumeId: volId,
+      volumeName: vol.metadata.name,
+      sizeGiB: vol.sizeGiB,
+      snapshotClassName: String(body.snapshot_class_name ?? body.snapshotClassName ?? 'vast-snapshot'),
+      readyToUse: false,
+      restoreSize: vol.sizeGiB,
+      status: { state: 'creating' },
+    }
+    snapshotStore.set(sid, newSnap)
+    setTimeout(() => {
+      const s = snapshotStore.get(sid)
+      if (s) snapshotStore.set(sid, { ...s, readyToUse: true, status: { state: 'ready' } })
+    }, 2000)
+    return HttpResponse.json(newSnap, { status: 201 })
+  }),
+
+  http.delete(`${PREFIX}/storage_volumes/:volumeId/snapshots/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!snapshotStore.has(id)) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    snapshotStore.delete(id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post(`${PREFIX}/storage_volumes/:volumeId/snapshots/:id/restore`, async ({ params, request }) => {
+    const id = params.id as string
+    const snap = snapshotStore.get(id)
+    if (!snap) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = asNestedRecord(await request.json())
+    const newId = nextId('vol')
+    const srcVol = volumeStore.get(snap.volumeId)
+    const restored: StorageVolume = {
+      id: newId,
+      metadata: {
+        name: String(body.name ?? `${snap.metadata.name}-restored`),
+        createdAt: new Date().toISOString(),
+      },
+      orgId: srcVol?.orgId ?? '',
+      sizeGiB: snap.restoreSize,
+      tierId: srcVol?.tierId ?? '',
+      storageClassName: srcVol?.storageClassName,
+      accessMode: srcVol?.accessMode ?? 'ReadWriteOnce',
+      clusterRef: srcVol?.clusterRef,
+      phase: 'Pending',
+      attachments: [],
+      status: { state: 'creating' },
+    }
+    volumeStore.set(newId, restored)
+    setTimeout(() => {
+      const v = volumeStore.get(newId)
+      if (v) volumeStore.set(newId, { ...v, phase: 'Bound', status: { state: 'available' } })
+    }, 2000)
+    return HttpResponse.json(restored, { status: 201 })
   }),
 
   // ---------------------------------------------------------------------------

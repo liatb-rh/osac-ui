@@ -11,7 +11,6 @@ import {
   Content,
   Flex,
   FlexItem,
-  PageSection,
   SearchInput,
   Spinner,
   ToggleGroup,
@@ -21,12 +20,11 @@ import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { ComputeInstance, VmPowerState } from '@osac/api-contracts'
 import { resolveVmOsForUi } from '@osac/api-contracts'
-import { CustomTableLink, ObjectsTable, VmStatusLabel } from '@osac/ui-components'
+import { CustomTableLink, ObjectsTable, PageLayout, VmStatusLabel } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import { useComputeInstances, useDeleteVm, usePatchVm, useProvisionVm } from '../../../hooks/hooks'
 import { useVmPowerActionDisplay } from '../../../hooks/useVmPowerActionDisplay'
 import { useSession } from '../../../contexts/SessionContext'
-import { PageHeader } from '@osac/ui-components'
 import { VmDeleteConfirmModal } from '../../../components/vm/VmDeleteConfirmModal'
 import type {
   CreateVmWizardHandle,
@@ -265,7 +263,17 @@ export function VmsPage() {
   ]
 
   return (
-    <PageSection isFilled>
+    <PageLayout
+      title="Virtual Machine Instances"
+      description="Operate workload lifecycle in your tenant workspace."
+      actions={
+        role === 'tenantUser' ? (
+          <Button variant="primary" icon={<PlusCircleIcon />} onClick={handleOpenCreateVm}>
+            Create VM
+          </Button>
+        ) : undefined
+      }
+    >
       <VmDeleteConfirmModal
         vm={vmToDelete}
         isOpen={vmToDelete != null}
@@ -293,18 +301,6 @@ export function VmsPage() {
         existingVms={vms}
         tenant={tenant}
         onProvision={handleWizardProvision}
-      />
-
-      <PageHeader
-        title="Virtual Machine Instances"
-        description="Operate workload lifecycle in your tenant workspace."
-        actions={
-          role === 'tenantUser' ? (
-            <Button variant="primary" icon={<PlusCircleIcon />} onClick={handleOpenCreateVm}>
-              Create VM
-            </Button>
-          ) : undefined
-        }
       />
 
       {/* Toolbar */}
@@ -358,6 +354,6 @@ export function VmsPage() {
           defaultPageSize={10}
         />
       )}
-    </PageSection>
+    </PageLayout>
   )
 }

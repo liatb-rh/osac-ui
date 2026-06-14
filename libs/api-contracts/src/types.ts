@@ -57,6 +57,13 @@ export interface NetworkAttachment {
   securityGroups: string[]
 }
 
+/** A PVC-backed disk attached to a VM. pvcRef is the StorageVolume id. */
+export interface VmDisk {
+  name?: string
+  pvcRef?: string
+  device?: string
+}
+
 export interface ComputeInstanceSpec {
   template?: string
   /** Template param values (ProtoJSON Any map). The create-from-template wizard does not populate this; use top-level `spec` fields instead. */
@@ -66,6 +73,8 @@ export interface ComputeInstanceSpec {
   image?: Record<string, unknown>
   bootDisk?: Record<string, unknown>
   additionalDisks?: Record<string, unknown>[]
+  /** PVC-backed data disks — mounting a StorageVolume adds an entry here. */
+  disks?: VmDisk[]
   /** Fulfillment `run_strategy`: `Always` | `Halted` on REST wire; legacy `RUN_STRATEGY_*` strings are normalized on read. */
   runStrategy?: string
   sshKey?: string
@@ -651,6 +660,10 @@ export interface OrgStorageTierStatus {
   phase1Ready: boolean
   /** Phase 2: CSI driver + StorageClasses installed on cluster. */
   phase2Ready: boolean
+  /** Hub Secret name in osac-system (e.g. vast-tenant-config-<org>). */
+  hubSecretName?: string
+  /** True when the hub Secret exists and all required keys are present. */
+  hubSecretReady?: boolean
 }
 
 export interface OrgStorageStatus {
@@ -693,4 +706,59 @@ export interface StorageBackend {
   credentialsSecretRef: string
   vipPool: string
   status?: StorageBackendStatus
+}
+
+// ---------------------------------------------------------------------------
+// StorageVolume — PVC analogue (standalone persistent block/NFS volume)
+// ---------------------------------------------------------------------------
+
+export type VolumeState = 'available' | 'in-use' | 'creating' | 'deleting' | 'error'
+export type VolumePhase = 'Pending' | 'Bound' | 'Released' | 'Failed'
+export type VolumeAccessMode = 'ReadWriteOnce' | 'ReadWriteMany'
+
+export interface VolumeAttachment {
+  vmId: string
+  vmName: string
+  /** Device path inside the VM (e.g. /dev/vdb). Read-only — derived from VM spec.disks. */
+  device?: string
+}
+
+export interface StorageVolume {
+  id: string
+  metadata: Metadata
+  orgId: string
+  sizeGiB: number
+  tierId: string
+  /** Resolved Kubernetes StorageClass name (e.g. "vast-fast"). Derived from tier on create. */
+  storageClassName?: string
+  /** ReadWriteOnce = block; ReadWriteMany = NFS. */
+  accessMode: VolumeAccessMode
+  /** Target cluster id where the PVC lives. */
+  clusterRef?: string
+  /** PVC lifecycle phase. */
+  phase: VolumePhase
+  /** Read-only — computed from all VMs whose spec.disks reference this volume. */
+  attachments: VolumeAttachment[]
+  status: { state: VolumeState; message?: string }
+}
+
+// ---------------------------------------------------------------------------
+// VolumeSnapshot — k8s VolumeSnapshot analogue
+// ---------------------------------------------------------------------------
+
+export type SnapshotState = 'ready' | 'creating' | 'error' | 'restoring'
+
+export interface VolumeSnapshot {
+  id: string
+  metadata: Metadata
+  volumeId: string
+  volumeName: string
+  sizeGiB: number
+  /** VolumeSnapshotClass name used to create this snapshot. */
+  snapshotClassName?: string
+  /** True when the snapshot is ready to use as a restore source. */
+  readyToUse: boolean
+  /** Minimum PVC size (GiB) required to restore from this snapshot. */
+  restoreSize: number
+  status: { state: SnapshotState; message?: string }
 }

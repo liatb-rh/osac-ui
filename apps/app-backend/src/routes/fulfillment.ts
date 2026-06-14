@@ -38,6 +38,11 @@
  *   GET  /api/fulfillment/v1/network_classes                    → mock NetworkClass list
  *   GET/POST/PATCH/DELETE /api/fulfillment/v1/public_ips        → mock PublicIP CRUD
  *   GET  /api/fulfillment/v1/public_ip_pools                    → mock PublicIPPool list
+ *   GET/POST /api/fulfillment/v1/storage_volumes                → mock StorageVolume list/create
+ *   GET/PATCH/DELETE /api/fulfillment/v1/storage_volumes/:id    → mock StorageVolume detail
+ *   GET/POST /api/fulfillment/v1/storage_volumes/:id/snapshots  → mock VolumeSnapshot list/create
+ *   DELETE /api/fulfillment/v1/storage_volumes/:volumeId/snapshots/:id          → mock snapshot delete
+ *   POST /api/fulfillment/v1/storage_volumes/:volumeId/snapshots/:id/restore    → mock snapshot restore
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import {
@@ -48,8 +53,10 @@ import {
   DEMO_PUBLIC_IP_POOLS,
   DEMO_SECURITY_GROUPS,
   DEMO_STORAGE_BACKENDS,
+  DEMO_STORAGE_VOLUMES,
   DEMO_SUBNETS,
   DEMO_VIRTUAL_NETWORKS,
+  DEMO_VOLUME_SNAPSHOTS,
   VM_TEMPLATES,
   normalizeComputeInstance,
 } from '@osac/api-contracts'
@@ -60,8 +67,10 @@ import type {
   PublicIP,
   SecurityGroup,
   StorageBackend,
+  StorageVolume,
   Subnet,
   VirtualNetwork,
+  VolumeSnapshot,
 } from '@osac/api-contracts'
 import { vmStore } from '../mock-vm-store.js'
 import {
@@ -460,6 +469,149 @@ export async function registerFulfillmentRoutes(
   // ---------------------------------------------------------------------------
 
   const orgStorageStatusStore = new Map(DEMO_ORG_STORAGE_STATUSES.map((s) => [s.orgId, s]))
+
+  // ---------------------------------------------------------------------------
+  // Storage Volumes
+  // ---------------------------------------------------------------------------
+
+  const bffVolumeStore = new Map<string, StorageVolume>(DEMO_STORAGE_VOLUMES.map((v) => [v.id, v]))
+  const bffSnapshotStore = new Map<string, VolumeSnapshot>(DEMO_VOLUME_SNAPSHOTS.map((s) => [s.id, s]))
+  let bffVolIdCounter = 100
+  function nextVolId(pfx: string): string {
+    return `${pfx}-${++bffVolIdCounter}`
+  }
+
+  app.get(`${prefix}/storage_volumes`, async (req) => {
+    const { orgId } = req.query as { orgId?: string }
+    let items = Array.from(bffVolumeStore.values())
+    if (orgId) items = items.filter((v) => v.orgId === orgId)
+    return { size: items.length, total: items.length, items }
+  })
+
+  app.post(`${prefix}/storage_volumes`, async (req, reply) => {
+    const body = req.body as Record<string, unknown>
+    const meta = (body.metadata as Record<string, unknown>) ?? {}
+    const id = nextVolId('vol')
+    const tierId = String(body.tier_id ?? body.tierId ?? '')
+    const tier = storageTierStore.get(tierId)
+    const accessMode = (String(body.access_mode ?? body.accessMode ?? 'ReadWriteOnce')) as 'ReadWriteOnce' | 'ReadWriteMany'
+    const newVol: StorageVolume = {
+      id,
+      metadata: { name: String(meta.name ?? id), createdAt: new Date().toISOString() },
+      orgId: String(body.org_id ?? body.orgId ?? ''),
+      sizeGiB: Number(body.size_gi_b ?? body.sizeGiB ?? 10),
+      tierId,
+      storageClassName: tier?.storageClassName,
+      accessMode,
+      clusterRef: String(body.cluster_ref ?? body.clusterRef ?? ''),
+      phase: 'Pending',
+      attachments: [],
+      status: { state: 'creating' },
+    }
+    bffVolumeStore.set(id, newVol)
+    setTimeout(() => {
+      const v = bffVolumeStore.get(id)
+      if (v) bffVolumeStore.set(id, { ...v, phase: 'Bound', status: { state: 'available' } })
+    }, 2000)
+    return reply.status(201).send(newVol)
+  })
+
+  app.get(`${prefix}/storage_volumes/:id`, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const vol = bffVolumeStore.get(id)
+    if (!vol) return reply.status(404).send({ error: 'Not found' })
+    return vol
+  })
+
+  app.patch(`${prefix}/storage_volumes/:id`, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const vol = bffVolumeStore.get(id)
+    if (!vol) return reply.status(404).send({ error: 'Not found' })
+    const body = req.body as Record<string, unknown>
+    const updated: StorageVolume = { ...vol, sizeGiB: Number(body.size_gi_b ?? body.sizeGiB ?? vol.sizeGiB) }
+    bffVolumeStore.set(id, updated)
+    return updated
+  })
+
+  app.delete(`${prefix}/storage_volumes/:id`, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const vol = bffVolumeStore.get(id)
+    if (!vol) return reply.status(404).send({ error: 'Not found' })
+    if (vol.status.state === 'in-use') return reply.status(409).send({ error: 'Volume is in use' })
+    bffVolumeStore.delete(id)
+    return reply.status(204).send()
+  })
+
+  // Volume Snapshots — all nested under /storage_volumes/:volumeId/snapshots
+
+  app.get(`${prefix}/storage_volumes/:volumeId/snapshots`, async (req) => {
+    const { volumeId } = req.params as { volumeId: string }
+    const items = Array.from(bffSnapshotStore.values()).filter((s) => s.volumeId === volumeId)
+    return { size: items.length, total: items.length, items }
+  })
+
+  app.post(`${prefix}/storage_volumes/:volumeId/snapshots`, async (req, reply) => {
+    const { volumeId } = req.params as { volumeId: string }
+    const vol = bffVolumeStore.get(volumeId)
+    if (!vol) return reply.status(404).send({ error: 'Not found' })
+    const body = req.body as Record<string, unknown>
+    const sid = nextVolId('snap')
+    const newSnap: VolumeSnapshot = {
+      id: sid,
+      metadata: { name: String(body.name ?? sid), createdAt: new Date().toISOString() },
+      volumeId,
+      volumeName: vol.metadata.name,
+      sizeGiB: vol.sizeGiB,
+      snapshotClassName: String(body.snapshot_class_name ?? body.snapshotClassName ?? 'vast-snapshot'),
+      readyToUse: false,
+      restoreSize: vol.sizeGiB,
+      status: { state: 'creating' },
+    }
+    bffSnapshotStore.set(sid, newSnap)
+    setTimeout(() => {
+      const s = bffSnapshotStore.get(sid)
+      if (s) bffSnapshotStore.set(sid, { ...s, readyToUse: true, status: { state: 'ready' } })
+    }, 2000)
+    return reply.status(201).send(newSnap)
+  })
+
+  app.delete(`${prefix}/storage_volumes/:volumeId/snapshots/:id`, async (req, reply) => {
+    const { id } = req.params as { volumeId: string; id: string }
+    if (!bffSnapshotStore.has(id)) return reply.status(404).send({ error: 'Not found' })
+    bffSnapshotStore.delete(id)
+    return reply.status(204).send()
+  })
+
+  app.post(`${prefix}/storage_volumes/:volumeId/snapshots/:id/restore`, async (req, reply) => {
+    const { id } = req.params as { volumeId: string; id: string }
+    const snap = bffSnapshotStore.get(id)
+    if (!snap) return reply.status(404).send({ error: 'Not found' })
+    const body = req.body as Record<string, unknown>
+    const newId = nextVolId('vol')
+    const srcVol = bffVolumeStore.get(snap.volumeId)
+    const restored: StorageVolume = {
+      id: newId,
+      metadata: {
+        name: String(body.name ?? `${snap.metadata.name}-restored`),
+        createdAt: new Date().toISOString(),
+      },
+      orgId: srcVol?.orgId ?? '',
+      sizeGiB: snap.restoreSize,
+      tierId: srcVol?.tierId ?? '',
+      storageClassName: srcVol?.storageClassName,
+      accessMode: srcVol?.accessMode ?? 'ReadWriteOnce',
+      clusterRef: srcVol?.clusterRef,
+      phase: 'Pending',
+      attachments: [],
+      status: { state: 'creating' },
+    }
+    bffVolumeStore.set(newId, restored)
+    setTimeout(() => {
+      const v = bffVolumeStore.get(newId)
+      if (v) bffVolumeStore.set(newId, { ...v, phase: 'Bound', status: { state: 'available' } })
+    }, 2000)
+    return reply.status(201).send(restored)
+  })
 
   app.get(`${prefix}/org_storage_statuses`, async () => {
     const items = Array.from(orgStorageStatusStore.values())

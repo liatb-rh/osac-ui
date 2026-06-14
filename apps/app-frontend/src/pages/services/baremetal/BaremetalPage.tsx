@@ -11,7 +11,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
   Label,
-  PageSection,
   SearchInput,
   ToggleGroup,
   ToggleGroupItem,
@@ -23,7 +22,7 @@ import type { BareMetalInstance } from '@osac/api-contracts'
 import {
   CustomTableLink,
   ObjectsTable,
-  PageHeader,
+  PageLayout,
   RequestBareMetalWizard,
 } from '@osac/ui-components'
 import type { BareMetalWizardCatalogItem, BareMetalWizardCreatePayload, ObjectsTableColumn } from '@osac/ui-components'
@@ -206,17 +205,15 @@ export function BaremetalPage() {
   ]
 
   return (
-    <PageSection isFilled>
-      <PageHeader
-        title="Bare Metal Instances"
-        description="Request and manage bare metal instances provisioned from the catalog."
-        actions={
-          <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
-            Request bare metal
-          </Button>
-        }
-      />
-
+    <PageLayout
+      title="Bare Metal Instances"
+      description="Request and manage bare metal instances provisioned from the catalog."
+      actions={
+        <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
+          Request bare metal
+        </Button>
+      }
+    >
       <div className={filterBarCss} style={{ marginTop: 16 }}>
         <SearchInput
           placeholder="Search by name…"
@@ -255,6 +252,6 @@ export function BaremetalPage() {
         availableImages={BM_IMAGES_FOR_WIZARD}
         initialCatalogItemId={wizardCatalogItem}
       />
-    </PageSection>
+    </PageLayout>
   )
 }

@@ -20,11 +20,16 @@ import type {
   OrgStorageStatus,
   OrgStorageTierStatus,
   PageOfT,
+  SnapshotState,
   StorageBackend,
   StorageBackendCondition,
   StorageBackendStatus,
   StorageTier,
+  StorageVolume,
+  VolumeAttachment,
+  VolumeSnapshot,
   VolumeSnapshotClass,
+  VolumeState,
 } from '@osac/api-contracts'
 
 type WireRecord = Record<string, unknown>
@@ -302,6 +307,8 @@ function normalizeOrgStorageTierStatus(wire: unknown): OrgStorageTierStatus {
     protocol: str(w.protocol) as OrgStorageTierStatus['protocol'],
     phase1Ready: bool(w.phase1_ready ?? w.phase1Ready) ?? false,
     phase2Ready: bool(w.phase2_ready ?? w.phase2Ready) ?? false,
+    hubSecretName: str(w.hub_secret_name ?? w.hubSecretName),
+    hubSecretReady: bool(w.hub_secret_ready ?? w.hubSecretReady),
   }
 }
 
@@ -354,5 +361,70 @@ export function normalizeStorageBackend(wire: unknown): StorageBackend {
     credentialsSecretRef: str(w.credentials_secret_ref ?? w.credentialsSecretRef) ?? '',
     vipPool: str(w.vip_pool ?? w.vipPool) ?? '',
     status: w.status ? normalizeStorageBackendStatus(w.status) : undefined,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// StorageVolume normalization (Phase 3)
+// ---------------------------------------------------------------------------
+
+function normalizeVolumeAttachment(wire: unknown): VolumeAttachment {
+  const w = obj(wire)
+  return {
+    vmId: str(w.vm_id ?? w.vmId) ?? '',
+    vmName: str(w.vm_name ?? w.vmName) ?? '',
+    device: str(w.device),
+  }
+}
+
+export function normalizeStorageVolume(wire: unknown): StorageVolume {
+  const w = obj(wire)
+  const meta = obj(w.metadata)
+  const status = obj(w.status)
+  return {
+    id: str(w.id) ?? '',
+    metadata: {
+      name: str(meta.name) ?? '',
+      createdAt: str(meta.creation_timestamp ?? meta.createdAt),
+    },
+    orgId: str(w.org_id ?? w.orgId) ?? '',
+    sizeGiB: typeof w.size_gi_b === 'number' ? w.size_gi_b : typeof w.sizeGiB === 'number' ? w.sizeGiB : 0,
+    tierId: str(w.tier_id ?? w.tierId) ?? '',
+    storageClassName: str(w.storage_class_name ?? w.storageClassName),
+    accessMode: (str(w.access_mode ?? w.accessMode) ?? 'ReadWriteOnce') as 'ReadWriteOnce' | 'ReadWriteMany',
+    clusterRef: str(w.cluster_ref ?? w.clusterRef),
+    phase: (str(w.phase) ?? 'Pending') as 'Pending' | 'Bound' | 'Released' | 'Failed',
+    attachments: arr(w.attachments, normalizeVolumeAttachment),
+    status: {
+      state: (str(status.state) ?? 'available') as VolumeState,
+      message: str(status.message),
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// VolumeSnapshot normalization (Phase 4)
+// ---------------------------------------------------------------------------
+
+export function normalizeVolumeSnapshot(wire: unknown): VolumeSnapshot {
+  const w = obj(wire)
+  const meta = obj(w.metadata)
+  const status = obj(w.status)
+  return {
+    id: str(w.id) ?? '',
+    metadata: {
+      name: str(meta.name) ?? '',
+      createdAt: str(meta.creation_timestamp ?? meta.createdAt),
+    },
+    volumeId: str(w.volume_id ?? w.volumeId) ?? '',
+    volumeName: str(w.volume_name ?? w.volumeName) ?? '',
+    sizeGiB: typeof w.size_gi_b === 'number' ? w.size_gi_b : typeof w.sizeGiB === 'number' ? w.sizeGiB : 0,
+    snapshotClassName: str(w.snapshot_class_name ?? w.snapshotClassName),
+    readyToUse: typeof w.ready_to_use === 'boolean' ? w.ready_to_use : typeof w.readyToUse === 'boolean' ? w.readyToUse : false,
+    restoreSize: typeof w.restore_size === 'number' ? w.restore_size : typeof w.restoreSize === 'number' ? w.restoreSize : 0,
+    status: {
+      state: (str(status.state) ?? 'ready') as SnapshotState,
+      message: str(status.message),
+    },
   }
 }

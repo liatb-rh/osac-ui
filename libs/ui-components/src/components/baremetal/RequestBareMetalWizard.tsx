@@ -134,7 +134,10 @@ function Step1CatalogSelector({
               isClickable
               isSelected={selected === item.id}
               onClick={() => onSelect(item.id)}
-              style={{ cursor: 'pointer' }}
+              style={{
+                cursor: 'pointer',
+                border: '1px solid var(--pf-t--global--border--color--default)',
+              }}
             >
               <CardTitle>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -313,6 +316,7 @@ function Step2Configuration(p: Step2Props) {
   const [infraExpanded, setInfraExpanded] = useState(true)
   const [accessExpanded, setAccessExpanded] = useState(false)
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
+  const [catalogParamsExpanded, setCatalogParamsExpanded] = useState(true)
 
   const editableFields = p.fieldDefinitions.filter((f) => f.editable)
   const lockedFields = p.fieldDefinitions.filter((f) => !f.editable)
@@ -320,7 +324,7 @@ function Step2Configuration(p: Step2Props) {
   return (
     <Form>
       {/* Basic */}
-      <Title headingLevel="h4" size="sm" style={{ marginBottom: 8, color: 'var(--pf-t--global--text--color--subtle)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <Title headingLevel="h3" size="md" style={{ marginBottom: 12 }}>
         Basic
       </Title>
 
@@ -340,7 +344,7 @@ function Step2Configuration(p: Step2Props) {
             id="rbw-rs-always"
             name="runStrategy"
             label="Always on"
-            description="Maps EC2 'start' — instance runs continuously"
+            description="Instance runs continuously"
             isChecked={p.runStrategy === 'ALWAYS'}
             onChange={() => p.setRunStrategy('ALWAYS')}
           />
@@ -348,7 +352,7 @@ function Step2Configuration(p: Step2Props) {
             id="rbw-rs-halted"
             name="runStrategy"
             label="Halted"
-            description="Maps EC2 'stop' — instance is provisioned but powered off"
+            description="Instance is provisioned but powered off"
             isChecked={p.runStrategy === 'HALTED'}
             onChange={() => p.setRunStrategy('HALTED')}
           />
@@ -357,7 +361,7 @@ function Step2Configuration(p: Step2Props) {
 
       <FormGroup label="Labels / Tags" fieldId="rbw-labels">
         <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 8 }}>
-          Maps EC2 Tags → Kubernetes <code>metadata.labels</code>
+          Kubernetes <code>metadata.labels</code>
         </p>
         <Stack hasGutter>
           {p.labels.map((lbl, idx) => (
@@ -424,7 +428,7 @@ function Step2Configuration(p: Step2Props) {
               validated={p.sshKeyError ? 'error' : 'default'}
             >
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 Key Pair — OpenSSH format (ssh-rsa, ssh-ed25519, ecdsa-sha2-*)
+                OpenSSH format (ssh-rsa, ssh-ed25519, ecdsa-sha2-*)
               </p>
               <TextArea
                 id="rbw-ssh"
@@ -452,7 +456,7 @@ function Step2Configuration(p: Step2Props) {
               validated={p.userDataError ? 'error' : 'default'}
             >
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 User Data — cloud-init YAML or shell script, max 64 KB
+                cloud-init YAML or shell script, max 64 KB
               </p>
               <TextArea
                 id="rbw-userdata"
@@ -484,7 +488,7 @@ function Step2Configuration(p: Step2Props) {
           <StackItem>
             <FormGroup label="Failure Domain (Zone)" fieldId="rbw-zone">
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 Availability Zone
+                Availability zone
               </p>
               <FormSelect id="rbw-zone" value={p.zone} onChange={(_, v) => p.setZone(v)}>
                 <FormSelectOption value="" label="— Any zone —" />
@@ -497,7 +501,7 @@ function Step2Configuration(p: Step2Props) {
           <StackItem>
             <FormGroup label="Node Image" fieldId="rbw-image">
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 AMI — OS image applied to the bare metal host
+                OS image applied to the bare metal host
               </p>
               <FormSelect id="rbw-image" value={p.image} onChange={(_, v) => p.setImage(v)}>
                 <FormSelectOption value="" label="— Use catalog default —" />
@@ -510,7 +514,7 @@ function Step2Configuration(p: Step2Props) {
           <StackItem>
             <FormGroup label="Cluster Network" fieldId="rbw-vnet">
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 VPC
+                Virtual network
               </p>
               <TextInput
                 id="rbw-vnet"
@@ -523,7 +527,7 @@ function Step2Configuration(p: Step2Props) {
           <StackItem>
             <FormGroup label="Network Segment (Subnet)" fieldId="rbw-subnet">
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 Subnet
+                Network subnet
               </p>
               <TextInput
                 id="rbw-subnet"
@@ -536,7 +540,7 @@ function Step2Configuration(p: Step2Props) {
           <StackItem>
             <FormGroup label="Network Policy Group" fieldId="rbw-netpolicy">
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 Security Group
+                Network policy / security group
               </p>
               <TextInput
                 id="rbw-netpolicy"
@@ -560,7 +564,7 @@ function Step2Configuration(p: Step2Props) {
           <StackItem>
             <FormGroup label="Topology Placement Key" fieldId="rbw-topology">
               <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
-                Maps EC2 Placement Group — node topology affinity rule
+                Node topology affinity rule
               </p>
               <TextInput
                 id="rbw-topology"
@@ -575,31 +579,38 @@ function Step2Configuration(p: Step2Props) {
 
       {/* Catalog parameters — dynamic fields */}
       {p.fieldDefinitions.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <Title headingLevel="h4" size="sm" style={{ marginBottom: 8, color: 'var(--pf-t--global--text--color--subtle)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Catalog parameters
-          </Title>
-          {editableFields.map((field) => (
-            <DynamicFieldInput
-              key={field.id}
-              field={field}
-              value={p.fieldValues[field.id] ?? field.defaultValue}
-              onChange={(val) => p.setFieldValues({ ...p.fieldValues, [field.id]: val })}
-            />
-          ))}
-          {lockedFields.length > 0 && (
-            <ExpandableSection toggleText={`${lockedFields.length} fixed parameter${lockedFields.length > 1 ? 's' : ''}`} style={{ marginTop: 8 }}>
-              {lockedFields.map((field) => (
+        <ExpandableSection
+          toggleText="Catalog parameters"
+          isExpanded={catalogParamsExpanded}
+          onToggle={(_, v) => setCatalogParamsExpanded(v)}
+          style={{ marginTop: 8 }}
+        >
+          <Stack hasGutter style={{ paddingTop: 8 }}>
+            {editableFields.map((field) => (
+              <StackItem key={field.id}>
                 <DynamicFieldInput
-                  key={field.id}
                   field={field}
-                  value={field.defaultValue}
-                  onChange={() => {}}
+                  value={p.fieldValues[field.id] ?? field.defaultValue}
+                  onChange={(val) => p.setFieldValues({ ...p.fieldValues, [field.id]: val })}
                 />
-              ))}
-            </ExpandableSection>
-          )}
-        </div>
+              </StackItem>
+            ))}
+            {lockedFields.length > 0 && (
+              <StackItem>
+                <ExpandableSection toggleText={`${lockedFields.length} fixed parameter${lockedFields.length > 1 ? 's' : ''}`}>
+                  {lockedFields.map((field) => (
+                    <DynamicFieldInput
+                      key={field.id}
+                      field={field}
+                      value={field.defaultValue}
+                      onChange={() => {}}
+                    />
+                  ))}
+                </ExpandableSection>
+              </StackItem>
+            )}
+          </Stack>
+        </ExpandableSection>
       )}
     </Form>
   )

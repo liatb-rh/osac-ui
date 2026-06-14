@@ -3,11 +3,13 @@
  * step: pad_storage_backend_detail
  * route: /resources/storage/storage-backends/:id
  */
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { css } from '@emotion/css'
 import {
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Card,
   CardBody,
   CardTitle,
@@ -17,16 +19,30 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
+  Form,
+  FormGroup,
   Label,
-  PageSection,
-  Spinner,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
+  TextInput,
   Title,
 } from '@patternfly/react-core'
 import { CheckCircleIcon } from '@patternfly/react-icons/dist/esm/icons/check-circle-icon'
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon'
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
-import { PageHeader } from '@osac/ui-components'
-import { useStorageBackends, useStorageTiers } from '../../../hooks/useAgents'
+import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
+import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
+import { ActionRow, ObjectsTable, PageLayout } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
+import type { StorageTier } from '@osac/api-contracts'
+import {
+  useDeleteStorageBackend,
+  useStorageBackends,
+  useStorageTiers,
+  useUpdateStorageBackend,
+} from '../../../hooks/useAgents'
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
@@ -80,39 +96,73 @@ export function StorageBackendDetailPage() {
   const navigate = useNavigate()
   const { data: backends, isLoading } = useStorageBackends()
   const { data: tiers } = useStorageTiers()
+  const { mutate: updateBackend, isPending: isUpdating } = useUpdateStorageBackend()
+  const { mutate: deleteBackend, isPending: isDeleting } = useDeleteStorageBackend()
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const backend = backends?.find((b) => b.id === id)
   const linkedTiers = tiers?.filter((t) => t.storageBackendId === id) ?? []
 
+  const [editEndpoint, setEditEndpoint] = useState('')
+  const [editVipPool, setEditVipPool] = useState('')
+  const [editCredsSecret, setEditCredsSecret] = useState('')
+
   if (isLoading) {
-    return (
-      <PageSection>
-        <Spinner aria-label="Loading backend" />
-      </PageSection>
-    )
+    return <PageLayout title="Storage Backend" isLoading loadingLabel="Loading backend" />
   }
 
   if (!backend) {
     return (
-      <PageSection>
+      <PageLayout title="Backend not found">
         <EmptyState>
           <Title headingLevel="h4" size="lg">Backend not found</Title>
           <EmptyStateBody>No storage backend with ID &ldquo;{id}&rdquo; exists.</EmptyStateBody>
         </EmptyState>
-      </PageSection>
+      </PageLayout>
     )
   }
 
   const ready = backend.status?.ready ?? false
   const conditions = backend.status?.conditions ?? []
 
+  const tierColumns: ObjectsTableColumn<StorageTier>[] = [
+    { label: 'Name',      dataLabel: 'Name',      render: (t) => t.name },
+    {
+      label: 'Protocol', dataLabel: 'Protocol',
+      render: (t) => t.protocol ? <Label color="teal" isCompact>{t.protocol}</Label> : '—',
+    },
+    { label: 'QoS class', dataLabel: 'QoS class', render: (t) => t.qosClass ?? '—' },
+    { label: 'VIP pool',  dataLabel: 'VIP pool',  render: (t) => t.vipPool ?? '—' },
+    {
+      label: 'Available', dataLabel: 'Available',
+      render: (t) => (
+        <Label color={t.available ? 'green' : 'grey'} isCompact>
+          {t.available ? 'yes' : 'no'}
+        </Label>
+      ),
+    },
+  ]
+
+  function openEdit() {
+    if (!backend) return
+    setEditEndpoint(backend.endpoint)
+    setEditVipPool(backend.vipPool ?? '')
+    setEditCredsSecret(backend.credentialsSecretRef)
+    setEditOpen(true)
+  }
+
   return (
-    <>
-      <PageHeader
-        title={backend.metadata.name}
-        subtitle={`Provider: ${backend.provider} · Endpoint: ${backend.endpoint}`}
-      />
-      <PageSection>
+    <PageLayout
+      title={backend.metadata.name}
+      description={`Provider: ${backend.provider} · Endpoint: ${backend.endpoint}`}
+      actions={
+        <Button variant="secondary" icon={<EditIcon />} onClick={openEdit}>
+          Edit
+        </Button>
+      }
+    >
         <div className={breadcrumbCss}>
           <Breadcrumb>
             <BreadcrumbItem onClick={() => navigate('/resources/storage/storage-backends')} to="#">
@@ -222,40 +272,117 @@ export function StorageBackendDetailPage() {
                 No tiers reference this backend.
               </p>
             ) : (
-              <Table aria-label="Linked tiers" variant="compact">
-                <Thead>
-                  <Tr>
-                    <Th>Name</Th>
-                    <Th>Protocol</Th>
-                    <Th>QoS class</Th>
-                    <Th>VIP pool</Th>
-                    <Th>Available</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {linkedTiers.map((t) => (
-                    <Tr key={t.id}>
-                      <Td>{t.name}</Td>
-                      <Td>
-                        {t.protocol ? (
-                          <Label color="cyan" isCompact>{t.protocol}</Label>
-                        ) : '—'}
-                      </Td>
-                      <Td>{t.qosClass ?? '—'}</Td>
-                      <Td>{t.vipPool ?? '—'}</Td>
-                      <Td>
-                        <Label color={t.available ? 'green' : 'grey'} isCompact>
-                          {t.available ? 'yes' : 'no'}
-                        </Label>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+              <ObjectsTable
+                ariaLabel="Linked tiers"
+                columns={tierColumns}
+                rows={linkedTiers}
+                getRowKey={(t) => t.id}
+              />
             )}
           </CardBody>
         </Card>
-      </PageSection>
-    </>
+        <ActionRow
+          tone="danger"
+          title="Deregister backend"
+          body={
+            linkedTiers.length > 0
+              ? `${linkedTiers.length} tier(s) reference this backend. Remove them first.`
+              : 'Permanently remove this storage backend from OSAC.'
+          }
+          cta="Deregister backend"
+          icon={<TrashIcon />}
+          disabled={linkedTiers.length > 0}
+          onClick={() => setDeleteOpen(true)}
+        />
+
+      {/* Edit modal */}
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        aria-label="Edit storage backend"
+      >
+        <ModalHeader title="Edit storage backend" />
+        <ModalBody>
+          <Form>
+            <FormGroup label="Endpoint" fieldId="be-endpoint">
+              <TextInput
+                id="be-endpoint"
+                value={editEndpoint}
+                onChange={(_, v) => setEditEndpoint(v)}
+              />
+            </FormGroup>
+            <FormGroup label="VIP Pool" fieldId="be-vip">
+              <TextInput
+                id="be-vip"
+                value={editVipPool}
+                onChange={(_, v) => setEditVipPool(v)}
+              />
+            </FormGroup>
+            <FormGroup label="Credentials secret ref" fieldId="be-creds">
+              <TextInput
+                id="be-creds"
+                value={editCredsSecret}
+                onChange={(_, v) => setEditCredsSecret(v)}
+              />
+            </FormGroup>
+          </Form>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="primary"
+            isLoading={isUpdating}
+            isDisabled={isUpdating}
+            onClick={() =>
+              updateBackend(
+                {
+                  id: id!,
+                  patch: {
+                    endpoint: editEndpoint,
+                    vipPool: editVipPool,
+                    credentialsSecretRef: editCredsSecret,
+                  },
+                },
+                { onSuccess: () => setEditOpen(false) },
+              )
+            }
+          >
+            Save
+          </Button>
+          <Button variant="link" onClick={() => setEditOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Deregister confirmation modal */}
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        aria-label="Confirm deregister backend"
+      >
+        <ModalHeader title="Deregister storage backend?" />
+        <ModalBody>
+          Are you sure you want to deregister <strong>{backend.metadata.name}</strong>? This cannot
+          be undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="danger"
+            isLoading={isDeleting}
+            isDisabled={isDeleting}
+            onClick={() =>
+              deleteBackend(id!, { onSuccess: () => navigate('/resources/storage/storage-backends') })
+            }
+          >
+            Deregister
+          </Button>
+          <Button variant="link" onClick={() => setDeleteOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </PageLayout>
   )
 }

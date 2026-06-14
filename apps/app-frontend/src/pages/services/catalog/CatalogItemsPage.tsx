@@ -13,12 +13,11 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  PageSection,
   SearchInput,
 } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { CatalogItemType, FullCatalogItem, WorkloadProfile } from '@osac/ui-components'
-import { FullCatalogItemCard, PageHeader } from '@osac/ui-components'
+import { FullCatalogItemCard, PageLayout } from '@osac/ui-components'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { catalogItemsStore } from './catalogItemsStore'
 import { LaunchInstanceWizard } from '../../../components/instances/LaunchInstanceWizard'
@@ -154,25 +153,23 @@ export function CatalogItemsPage() {
   }
 
   return (
-    <PageSection isFilled>
+    <PageLayout
+      title="Services"
+      description="Browse available offerings and provision workloads."
+      actions={
+        <Button
+          variant="primary"
+          icon={<PlusCircleIcon />}
+          onClick={() => setLaunchWizardOpen(true)}
+        >
+          Launch an instance
+        </Button>
+      }
+    >
       <LaunchInstanceWizard
         isOpen={launchWizardOpen}
         onClose={() => setLaunchWizardOpen(false)}
         onProvisioned={handleProvisioned}
-      />
-
-      <PageHeader
-        title="Services"
-        description="Browse available offerings and provision workloads."
-        actions={
-          <Button
-            variant="primary"
-            icon={<PlusCircleIcon />}
-            onClick={() => setLaunchWizardOpen(true)}
-          >
-            Launch an instance
-          </Button>
-        }
       />
 
       {/* Toolbar: search + type + profile filters */}
@@ -224,6 +221,6 @@ export function CatalogItemsPage() {
           ))}
         </div>
       )}
-    </PageSection>
+    </PageLayout>
   )
 }

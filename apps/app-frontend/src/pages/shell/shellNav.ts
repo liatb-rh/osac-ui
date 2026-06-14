@@ -23,6 +23,8 @@ export interface NavItem {
   roles?: OsacRole[]
   /** When set, renders as a collapsible NavExpandable group instead of a link. */
   children?: NavItem[]
+  /** When true, only exact path match marks this item active (no startsWith). */
+  exactMatch?: boolean
 }
 
 export interface NavSection {
@@ -117,14 +119,29 @@ const ALL_NAV: NavSection[] = [
         label: 'Storage',
         path: '',
         icon: DatabaseIcon,
-        roles: ['providerAdmin'],
+        roles: ['providerAdmin', 'tenantUser', 'tenantAdmin'],
         children: [
+          {
+            id: 'platform-storage-overview',
+            label: 'Storage',
+            path: '/resources/storage',
+            icon: DatabaseIcon,
+            roles: ['providerAdmin'],
+            exactMatch: true,
+          },
           {
             id: 'platform-storage-tiers',
             label: 'Storage Tiers',
             path: '/resources/storage/storage-tiers',
             icon: DatabaseIcon,
             roles: ['providerAdmin'],
+          },
+          {
+            id: 'platform-storage-tiers-readonly',
+            label: 'Storage Tiers',
+            path: '/resources/storage/storage-tiers',
+            icon: DatabaseIcon,
+            roles: ['tenantUser', 'tenantAdmin'],
           },
           {
             id: 'platform-storage-backends',
@@ -134,11 +151,11 @@ const ALL_NAV: NavSection[] = [
             roles: ['providerAdmin'],
           },
           {
-            id: 'platform-org-storage-status',
-            label: 'Org Storage Status',
-            path: '/resources/storage/org-storage-status',
+            id: 'platform-storage-volumes',
+            label: 'Volumes',
+            path: '/resources/storage/storage-volumes',
             icon: DatabaseIcon,
-            roles: ['providerAdmin'],
+            roles: ['tenantUser', 'tenantAdmin'],
           },
         ],
       },

@@ -48,11 +48,11 @@ export function ShellSidebar({
                       const Icon = item.icon
 
                       if (item.children && item.children.length > 0) {
-                        const isExpanded = item.children.some(
-                          (c) =>
-                            pathname === c.path ||
-                            (c.path !== '/' && pathname.startsWith(c.path + '/')),
-                        )
+                        const isExpanded = item.children.some((c) => {
+                          if (pathname === c.path) return true
+                          if (c.exactMatch) return false
+                          return c.path !== '/' && pathname.startsWith(c.path + '/')
+                        })
                         return (
                           <NavExpandable
                             key={item.id}
@@ -70,7 +70,7 @@ export function ShellSidebar({
                               const ChildIcon = child.icon
                               const isActive =
                                 pathname === child.path ||
-                                (child.path !== '/' && pathname.startsWith(child.path + '/'))
+                                (!child.exactMatch && child.path !== '/' && pathname.startsWith(child.path + '/'))
                               return (
                                 <NavItem
                                   key={child.id}

@@ -7,15 +7,13 @@ import { css } from '@emotion/css'
 import {
   ExpandableSection,
   Label,
-  PageSection,
   Skeleton,
-  Spinner,
-  Title,
 } from '@patternfly/react-core'
 import { CheckCircleIcon } from '@patternfly/react-icons/dist/esm/icons/check-circle-icon'
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon'
 import { MinusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/minus-circle-icon'
-import { PageHeader } from '@osac/ui-components'
+import { ObjectsTable, PageLayout } from '@osac/ui-components'
+import type { ObjectsTableColumn } from '@osac/ui-components'
 import type { OrgStorageCondition, OrgStorageStatus, OrgStorageTierStatus } from '@osac/api-contracts'
 import { useOrgStorageStatuses } from '../../../hooks/useAgents'
 
@@ -45,25 +43,6 @@ const orgNameCss = css`
   font-weight: var(--pf-v5-global--FontWeight--semi-bold);
 `
 
-const tierTableCss = css`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--pf-v5-global--FontSize--sm);
-  margin-bottom: 8px;
-
-  th {
-    text-align: left;
-    padding: 6px 8px;
-    font-weight: var(--pf-v5-global--FontWeight--semi-bold);
-    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100);
-    color: var(--pf-v5-global--Color--200);
-  }
-
-  td {
-    padding: 6px 8px;
-    vertical-align: middle;
-  }
-`
 
 const conditionListCss = css`
   list-style: none;
@@ -111,41 +90,67 @@ function PhaseCell({ ready }: { ready: boolean }) {
   )
 }
 
+const TIER_COLUMNS: ObjectsTableColumn<OrgStorageTierStatus>[] = [
+  {
+    label: 'Tier',
+    dataLabel: 'Tier',
+    render: (t) => t.tierName,
+  },
+  {
+    label: 'Protocol',
+    dataLabel: 'Protocol',
+    render: (t) =>
+      t.protocol ? (
+        <Label color="cyan" isCompact>
+          {t.protocol}
+        </Label>
+      ) : (
+        '—'
+      ),
+  },
+  {
+    label: 'Phase 1 (backend)',
+    dataLabel: 'Phase 1',
+    render: (t) => <PhaseCell ready={t.phase1Ready} />,
+  },
+  {
+    label: 'Phase 2 (cluster)',
+    dataLabel: 'Phase 2',
+    render: (t) => <PhaseCell ready={t.phase2Ready} />,
+  },
+  {
+    label: 'Hub Secret',
+    dataLabel: 'Hub Secret',
+    render: (t) =>
+      t.hubSecretName ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <code style={{ fontSize: 'var(--pf-v5-global--FontSize--xs)' }}>{t.hubSecretName}</code>
+          {t.hubSecretReady === true ? (
+            <CheckCircleIcon color="var(--pf-v5-global--success-color--100)" title="Secret ready" />
+          ) : (
+            <ExclamationCircleIcon color="var(--pf-v5-global--danger-color--100)" title="Secret not ready" />
+          )}
+        </span>
+      ) : (
+        '—'
+      ),
+  },
+]
+
 function TierTable({ tiers }: { tiers: OrgStorageTierStatus[] }) {
-  if (tiers.length === 0) return <p style={{ color: 'var(--pf-v5-global--Color--200)', fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>No tiers configured.</p>
+  if (tiers.length === 0)
+    return (
+      <p style={{ color: 'var(--pf-v5-global--Color--200)', fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
+        No tiers configured.
+      </p>
+    )
   return (
-    <table className={tierTableCss}>
-      <thead>
-        <tr>
-          <th>Tier</th>
-          <th>Protocol</th>
-          <th>Phase 1 (backend)</th>
-          <th>Phase 2 (cluster)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {tiers.map((t) => (
-          <tr key={t.tierId}>
-            <td>{t.tierName}</td>
-            <td>
-              {t.protocol ? (
-                <Label color="cyan" isCompact>
-                  {t.protocol}
-                </Label>
-              ) : (
-                '—'
-              )}
-            </td>
-            <td>
-              <PhaseCell ready={t.phase1Ready} />
-            </td>
-            <td>
-              <PhaseCell ready={t.phase2Ready} />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <ObjectsTable
+      ariaLabel="Tier status"
+      columns={TIER_COLUMNS}
+      rows={tiers}
+      getRowKey={(t) => t.tierId}
+    />
   )
 }
 
@@ -193,39 +198,34 @@ function OrgStorageCard({ status }: { status: OrgStorageStatus }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export function OrgStorageStatusPage() {
+export function StoragePage() {
   const { data: statuses, isLoading, isError } = useOrgStorageStatuses()
 
   return (
-    <>
-      <PageHeader
-        title="Org Storage Status"
-        subtitle="Per-organization storage provisioning status: VAST backend (Phase 1) and cluster-side CSI setup (Phase 2)."
-      />
-      <PageSection>
-        {isLoading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} height="120px" />
-            ))}
-          </div>
-        )}
-        {isError && (
-          <p style={{ color: 'var(--pf-v5-global--danger-color--100)' }}>
-            Failed to load org storage statuses.
-          </p>
-        )}
-        {statuses && statuses.length === 0 && (
-          <p style={{ color: 'var(--pf-v5-global--Color--200)' }}>No storage status records found.</p>
-        )}
-        {statuses && statuses.length > 0 && (
-          <div className={gridCss}>
-            {statuses.map((s) => (
-              <OrgStorageCard key={s.orgId} status={s} />
-            ))}
-          </div>
-        )}
-      </PageSection>
-    </>
+    <PageLayout
+      title="Storage"
+      description="Per-organization storage provisioning status: VAST backend (Phase 1) and cluster-side CSI setup (Phase 2)."
+      error={isError ? 'Failed to load org storage statuses.' : null}
+    >
+      {isLoading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} height="120px" />
+          ))}
+        </div>
+      )}
+      {!isLoading && !isError && statuses?.length === 0 && (
+        <p style={{ color: 'var(--pf-v5-global--Color--200)', marginTop: 8 }}>
+          No storage status records found.
+        </p>
+      )}
+      {!isLoading && statuses && statuses.length > 0 && (
+        <div className={gridCss}>
+          {statuses.map((s) => (
+            <OrgStorageCard key={s.orgId} status={s} />
+          ))}
+        </div>
+      )}
+    </PageLayout>
   )
 }

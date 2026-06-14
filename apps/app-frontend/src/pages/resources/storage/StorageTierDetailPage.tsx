@@ -23,6 +23,11 @@ import {
   EmptyStateBody,
   Label,
   LabelGroup,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
   PageSection,
   Spinner,
   Tab,
@@ -32,9 +37,8 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { EditIcon } from '@patternfly/react-icons/dist/esm/icons/edit-icon'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
-import { StatCard } from '@osac/ui-components'
-import { useStorageTiers } from '../../../hooks/useAgents'
-import { PageHeader } from '@osac/ui-components'
+import { ActionRow, PageHeader, StatCard } from '@osac/ui-components'
+import { useDeleteStorageTier, useStorageTiers } from '../../../hooks/useAgents'
 import { MOCK_CONSUMERS, tierMeta } from './storageTierUtils'
 
 const tabContentCss = css`
@@ -108,6 +112,8 @@ export function StorageTierDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [tab, setTab] = useState<string | number>('overview')
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const { mutate: deleteTier, isPending: isDeleting } = useDeleteStorageTier()
 
   const { data: tiers, isLoading } = useStorageTiers()
   const tier = (tiers ?? []).find((t) => t.id === id)
@@ -180,14 +186,9 @@ export function StorageTierDetailPage() {
         title={tier.name}
         description={meta.description}
         actions={
-          <>
-            <Button variant="secondary" icon={<EditIcon />}>
-              Edit tier
-            </Button>
-            <Button variant="danger" icon={<TrashIcon />} isDisabled={consumers.length > 0}>
-              Retire
-            </Button>
-          </>
+          <Button variant="secondary" icon={<EditIcon />}>
+            Edit tier
+          </Button>
         }
       />
 
@@ -245,6 +246,24 @@ export function StorageTierDetailPage() {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Replication</DescriptionListTerm>
                     <DescriptionListDescription>{meta.replication}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>StorageClass</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <code>{tier.storageClassName ?? scTemplate}</code>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>VolumeSnapshotClass</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <code>{vscTemplate}</code>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>CSI driver</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <code>{meta.csiDriver}</code>
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Labels</DescriptionListTerm>
@@ -443,6 +462,50 @@ export function StorageTierDetailPage() {
           </div>
         </Tab>
       </Tabs>
+
+      <ActionRow
+        tone="danger"
+        title="Delete tier"
+        body={
+          consumers.length > 0
+            ? `This tier has ${consumers.length} active consumer(s). Remove all consumers before deleting.`
+            : 'Permanently remove this storage tier and its configuration.'
+        }
+        cta="Delete tier"
+        icon={<TrashIcon />}
+        disabled={consumers.length > 0}
+        onClick={() => setDeleteOpen(true)}
+      />
+
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        aria-label="Confirm delete tier"
+      >
+        <ModalHeader title="Delete storage tier?" />
+        <ModalBody>
+          Are you sure you want to delete <strong>{tier.name}</strong>? This action cannot be
+          undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="danger"
+            isLoading={isDeleting}
+            isDisabled={isDeleting}
+            onClick={() =>
+              deleteTier(tier.id, {
+                onSuccess: () => navigate('/resources/storage/storage-tiers'),
+              })
+            }
+          >
+            Delete
+          </Button>
+          <Button variant="link" onClick={() => setDeleteOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </PageSection>
   )
 }

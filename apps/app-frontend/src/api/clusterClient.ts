@@ -6,10 +6,13 @@ import type {
   Agent,
   Cluster,
   ClusterCatalogItem,
+  ComputeInstance,
   OrgStorageStatus,
   PageOfT,
   StorageBackend,
   StorageTier,
+  StorageVolume,
+  VolumeSnapshot,
 } from '@osac/api-contracts'
 import { buildAuthHeaders } from './authToken'
 import {
@@ -21,6 +24,8 @@ import {
   normalizeOrgStorageStatus,
   normalizeStorageBackend,
   normalizeStorageTier,
+  normalizeStorageVolume,
+  normalizeVolumeSnapshot,
 } from './clusterNormalize'
 
 const BASE = '/api/fulfillment/v1'
@@ -187,6 +192,27 @@ export async function patchStorageTier(
   return normalizeStorageTier(raw)
 }
 
+export async function createStorageTier(
+  payload: Omit<StorageTier, 'id' | 'available'> & { name: string },
+): Promise<StorageTier> {
+  const raw = await request<unknown>('/storage_tiers', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: payload.name,
+      qos_class: payload.qosClass,
+      protocol: payload.protocol,
+      storage_class_name: payload.storageClassName,
+      vip_pool: payload.vipPool,
+      storage_backend_id: payload.storageBackendId,
+    }),
+  })
+  return normalizeStorageTier(raw)
+}
+
+export async function deleteStorageTier(id: string): Promise<void> {
+  await request<void>(`/storage_tiers/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 // ---------------------------------------------------------------------------
 // Storage backends (Phase 3)
 // ---------------------------------------------------------------------------
@@ -222,6 +248,26 @@ export async function createStorageBackend(
   return normalizeStorageBackend(raw)
 }
 
+export async function updateStorageBackend(
+  id: string,
+  patch: Partial<Pick<StorageBackend, 'endpoint' | 'credentialsSecretRef' | 'vipPool' | 'deploymentModel'>>,
+): Promise<StorageBackend> {
+  const raw = await request<unknown>(`/storage_backends/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      endpoint: patch.endpoint,
+      credentials_secret_ref: patch.credentialsSecretRef,
+      vip_pool: patch.vipPool,
+      deployment_model: patch.deploymentModel,
+    }),
+  })
+  return normalizeStorageBackend(raw)
+}
+
+export async function deleteStorageBackend(id: string): Promise<void> {
+  await request<void>(`/storage_backends/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 // ---------------------------------------------------------------------------
 // Org storage statuses (Phase 2)
 // ---------------------------------------------------------------------------
@@ -240,6 +286,137 @@ export async function listOrgStorageStatuses(): Promise<PageOfT<OrgStorageStatus
 export async function getOrgStorageStatus(orgId: string): Promise<OrgStorageStatus> {
   const raw = await request<unknown>(`/org_storage_statuses/${encodeURIComponent(orgId)}`)
   return normalizeOrgStorageStatus(raw)
+}
+
+// ---------------------------------------------------------------------------
+// Storage Volumes (Phase 3)
+// ---------------------------------------------------------------------------
+
+export async function listStorageVolumes(orgId?: string): Promise<PageOfT<StorageVolume>> {
+  const qs = orgId ? `?orgId=${encodeURIComponent(orgId)}` : ''
+  const raw = await request<{ size: number; total: number; items: unknown[] }>(
+    `/storage_volumes${qs}`,
+  )
+  return { size: raw.size, total: raw.total, items: raw.items.map(normalizeStorageVolume) }
+}
+
+export async function getStorageVolume(id: string): Promise<StorageVolume> {
+  const raw = await request<unknown>(`/storage_volumes/${encodeURIComponent(id)}`)
+  return normalizeStorageVolume(raw)
+}
+
+export async function createStorageVolume(payload: {
+  name: string
+  orgId: string
+  sizeGiB: number
+  tierId: string
+  accessMode?: 'ReadWriteOnce' | 'ReadWriteMany'
+}): Promise<StorageVolume> {
+  const raw = await request<unknown>('/storage_volumes', {
+    method: 'POST',
+    body: JSON.stringify({
+      metadata: { name: payload.name },
+      org_id: payload.orgId,
+      size_gi_b: payload.sizeGiB,
+      tier_id: payload.tierId,
+      access_mode: payload.accessMode ?? 'ReadWriteOnce',
+    }),
+  })
+  return normalizeStorageVolume(raw)
+}
+
+export async function resizeStorageVolume(id: string, sizeGiB: number): Promise<StorageVolume> {
+  const raw = await request<unknown>(`/storage_volumes/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sizeGiB }),
+  })
+  return normalizeStorageVolume(raw)
+}
+
+export async function deleteStorageVolume(id: string): Promise<void> {
+  await request<void>(`/storage_volumes/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+/** Mount a volume on a VM by PATCHing the VM's spec.disks list. */
+export async function mountVolumeOnVm(
+  vmId: string,
+  volumeId: string,
+  device?: string,
+): Promise<ComputeInstance> {
+  const current = await request<ComputeInstance>(`/compute_instances/${encodeURIComponent(vmId)}`)
+  const existingDisks = (current as { spec?: { disks?: unknown[] } }).spec?.disks ?? []
+  const raw = await request<unknown>(`/compute_instances/${encodeURIComponent(vmId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      spec: {
+        disks: [...existingDisks, { pvc_ref: volumeId, device: device ?? '/dev/vdb' }],
+      },
+    }),
+  })
+  return raw as ComputeInstance
+}
+
+/** Unmount a volume from a VM by removing the disk entry from spec.disks. */
+export async function unmountVolumeFromVm(
+  vmId: string,
+  volumeId: string,
+): Promise<ComputeInstance> {
+  const current = await request<ComputeInstance>(`/compute_instances/${encodeURIComponent(vmId)}`)
+  const existingDisks = (current as { spec?: { disks?: Array<{ pvc_ref?: string }> } }).spec?.disks ?? []
+  const raw = await request<unknown>(`/compute_instances/${encodeURIComponent(vmId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      spec: {
+        disks: existingDisks.filter((d) => d.pvc_ref !== volumeId),
+      },
+    }),
+  })
+  return raw as ComputeInstance
+}
+
+// ---------------------------------------------------------------------------
+// Volume Snapshots (Phase 4) — all paths nested under /storage_volumes/:volumeId
+// ---------------------------------------------------------------------------
+
+export async function listVolumeSnapshots(volumeId: string): Promise<PageOfT<VolumeSnapshot>> {
+  const raw = await request<{ size: number; total: number; items: unknown[] }>(
+    `/storage_volumes/${encodeURIComponent(volumeId)}/snapshots`,
+  )
+  return { size: raw.size, total: raw.total, items: raw.items.map(normalizeVolumeSnapshot) }
+}
+
+export async function createVolumeSnapshot(
+  volumeId: string,
+  name: string,
+  snapshotClassName?: string,
+): Promise<VolumeSnapshot> {
+  const raw = await request<unknown>(`/storage_volumes/${encodeURIComponent(volumeId)}/snapshots`, {
+    method: 'POST',
+    body: JSON.stringify({ name, snapshot_class_name: snapshotClassName }),
+  })
+  return normalizeVolumeSnapshot(raw)
+}
+
+export async function deleteVolumeSnapshot(volumeId: string, id: string): Promise<void> {
+  await request<void>(
+    `/storage_volumes/${encodeURIComponent(volumeId)}/snapshots/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  )
+}
+
+export async function restoreVolumeSnapshot(
+  volumeId: string,
+  id: string,
+  newVolumeName?: string,
+): Promise<StorageVolume> {
+  const raw = await request<unknown>(
+    `/storage_volumes/${encodeURIComponent(volumeId)}/snapshots/${encodeURIComponent(id)}/restore`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ name: newVolumeName }),
+    },
+  )
+  return normalizeStorageVolume(raw)
 }
 
 // Virtual network / subnet / security group CRUD moved to networkClient.ts
