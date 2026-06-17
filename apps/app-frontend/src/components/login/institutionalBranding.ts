@@ -34,7 +34,7 @@ export interface InstitutionalBranding {
 export const institutionalBrandingByTenant: Record<DemoTenantId, InstitutionalBranding> = {
   vertexa: {
     profileId: 'vertexa_provider',
-    displayName: 'T-Mobile AI',
+    displayName: 'T-Mobile AI GRID',
     tagline: 'Provider platform portal',
     cardTitle: 'Sign in to your account',
     emailLabel: 'Work email',
@@ -47,7 +47,7 @@ export const institutionalBrandingByTenant: Record<DemoTenantId, InstitutionalBr
     cardTitleStyle: { color: '#fff' },
     headerMark: {
       kind: 'letter',
-      letter: 'V',
+      letter: 'T',
       boxGradient: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
       borderRadius: '10px',
     },

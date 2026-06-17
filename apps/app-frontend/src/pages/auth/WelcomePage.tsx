@@ -68,7 +68,7 @@ export function WelcomePage() {
     {
       id: 'provider-admin',
       badge: 'Platform Operator',
-      orgName: 'T-Mobile AI',
+      orgName: 'T-Mobile AI GRID',
       roleLabel: 'Provider Admin',
       tone: 'provider',
       accentColor: '#6753c2',
