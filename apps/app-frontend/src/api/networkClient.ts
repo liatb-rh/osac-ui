@@ -8,6 +8,7 @@ import type {
   PublicIP,
   PublicIPPool,
   SecurityGroup,
+  SecurityRule,
   Subnet,
   VirtualNetwork,
 } from '@osac/api-contracts'
@@ -155,6 +156,39 @@ export async function createSecurityGroup(
 
 export async function deleteSecurityGroup(id: string): Promise<void> {
   await request<void>(`/security_groups/${id}`, { method: 'DELETE' })
+}
+
+export interface UpdateSecurityGroupParams {
+  ingress: SecurityRule[]
+  egress: SecurityRule[]
+}
+
+export async function updateSecurityGroup(
+  id: string,
+  params: UpdateSecurityGroupParams,
+): Promise<SecurityGroup> {
+  const raw = await request<unknown>(`/security_groups/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      spec: {
+        ingress: params.ingress.map((r) => ({
+          protocol: r.protocol,
+          port_from: r.portFrom,
+          port_to: r.portTo,
+          ipv4_cidr: r.ipv4Cidr,
+          ipv6_cidr: r.ipv6Cidr,
+        })),
+        egress: params.egress.map((r) => ({
+          protocol: r.protocol,
+          port_from: r.portFrom,
+          port_to: r.portTo,
+          ipv4_cidr: r.ipv4Cidr,
+          ipv6_cidr: r.ipv6Cidr,
+        })),
+      },
+    }),
+  })
+  return normalizeSecurityGroup(raw)
 }
 
 // ---------------------------------------------------------------------------

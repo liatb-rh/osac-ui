@@ -85,8 +85,15 @@ const ALL_NAV: NavSection[] = [
         roles: ['tenantAdmin', 'providerAdmin'],
         children: [
           {
+            id: 'networks',
+            label: 'Networks',
+            path: '/networks',
+            icon: NetworkIcon,
+            roles: ['tenantAdmin'],
+          },
+          {
             id: 'admin-public-ips',
-            label: 'Public IP Pools',
+            label: 'Public IPs',
             path: '/resources/network/catalog/public-ips',
             icon: NetworkIcon,
             roles: ['tenantAdmin'],
@@ -171,13 +178,6 @@ const ALL_NAV: NavSection[] = [
   {
     groupLabel: 'Deprecated',
     items: [
-      {
-        id: 'networks',
-        label: 'Networks',
-        path: '/networks',
-        icon: NetworkIcon,
-        roles: ['tenantAdmin', 'providerAdmin'],
-      },
       {
         id: 'cluster-offerings',
         label: 'Cluster offerings',

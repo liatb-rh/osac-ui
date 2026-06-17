@@ -15,12 +15,14 @@ import {
   listSubnets,
   listVirtualNetworks,
   updatePublicIP,
+  updateSecurityGroup,
 } from '../api/networkClient'
 import type {
   AllocatePublicIPParams,
   CreateSecurityGroupParams,
   CreateSubnetParams,
   CreateVirtualNetworkParams,
+  UpdateSecurityGroupParams,
 } from '../api/networkClient'
 
 export const networkQueryKeys = {
@@ -140,6 +142,17 @@ export function useDeleteSecurityGroup() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => deleteSecurityGroup(id),
+    onSuccess: async () => {
+      await qc.refetchQueries({ queryKey: networkQueryKeys.securityGroups })
+    },
+  })
+}
+
+export function useUpdateSecurityGroup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...params }: { id: string } & UpdateSecurityGroupParams) =>
+      updateSecurityGroup(id, params),
     onSuccess: async () => {
       await qc.refetchQueries({ queryKey: networkQueryKeys.securityGroups })
     },

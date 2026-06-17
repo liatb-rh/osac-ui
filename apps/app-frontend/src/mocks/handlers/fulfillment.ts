@@ -20,6 +20,7 @@ import type {
   FulfillmentBareMetalInstance,
   NetworkClass,
   OrgStorageStatus,
+  Protocol,
   PublicIP,
   SecurityGroup,
   StorageBackend,
@@ -758,6 +759,36 @@ export const fulfillmentHandlers = [
     }
     sgStore.set(id, sg)
     return HttpResponse.json(sg, { status: 201 })
+  }),
+
+  http.patch(`${PREFIX}/security_groups/:id`, async ({ params, request }) => {
+    const id = params.id as string
+    const existing = sgStore.get(id)
+    if (!existing) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const body = asNestedRecord(await request.json())
+    const spec = asNestedRecord(body.spec)
+
+    function parseRules(raw: unknown) {
+      if (!Array.isArray(raw)) return undefined
+      return (raw as Record<string, unknown>[]).map((r) => ({
+        protocol: String(r.protocol ?? 'PROTOCOL_UNSPECIFIED') as Protocol,
+        portFrom: r.port_from != null ? Number(r.port_from) : undefined,
+        portTo: r.port_to != null ? Number(r.port_to) : undefined,
+        ipv4Cidr: r.ipv4_cidr != null ? String(r.ipv4_cidr) : undefined,
+        ipv6Cidr: r.ipv6_cidr != null ? String(r.ipv6_cidr) : undefined,
+      }))
+    }
+
+    const updated: SecurityGroup = {
+      ...existing,
+      spec: {
+        ...existing.spec,
+        ingress: parseRules(spec.ingress) ?? existing.spec.ingress,
+        egress: parseRules(spec.egress) ?? existing.spec.egress,
+      },
+    }
+    sgStore.set(id, updated)
+    return HttpResponse.json(updated)
   }),
 
   http.delete(`${PREFIX}/security_groups/:id`, ({ params }) => {

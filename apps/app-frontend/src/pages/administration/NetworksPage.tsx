@@ -2,8 +2,9 @@
  * flow: tenant-administration
  * step: tad_networks_management
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FC, MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch, FC, MouseEvent, SetStateAction } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { css } from '@emotion/css'
 import {
   Alert,
@@ -54,7 +55,13 @@ import {
   useVisualizationController,
 } from '@patternfly/react-topology'
 import '@patternfly/react-topology/dist/esm/css/topology-components.css'
-import type { SecurityGroup, Subnet, VirtualNetwork } from '@osac/api-contracts'
+import type {
+  Protocol,
+  SecurityGroup,
+  SecurityRule,
+  Subnet,
+  VirtualNetwork,
+} from '@osac/api-contracts'
 import { useComputeInstances } from '../../hooks/hooks'
 import {
   useAllSubnets,
@@ -67,6 +74,7 @@ import {
   useNetworkClasses,
   useSecurityGroups,
   useSubnets,
+  useUpdateSecurityGroup,
   useVirtualNetworks,
 } from '../../hooks/useNetworking'
 import { PageHeader } from '@osac/ui-components'
@@ -230,6 +238,7 @@ function SgStateLabel({ state }: { state: string }) {
 // ---------------------------------------------------------------------------
 
 function VirtualNetworksTab() {
+  const navigate = useNavigate()
   const { data: vns, isLoading, error, refetch } = useVirtualNetworks()
   const { data: networkClasses } = useNetworkClasses()
   const { data: allSubnets } = useAllSubnets()
@@ -319,7 +328,13 @@ function VirtualNetworksTab() {
               {pageVns.map((vn) => (
                 <Tr key={vn.id}>
                   <Td dataLabel="Name">
-                    <strong>{vn.metadata.name}</strong>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => navigate(`/networks/virtual-networks/${vn.id}`)}
+                    >
+                      {vn.metadata.name}
+                    </Button>
                   </Td>
                   <Td dataLabel="State">
                     <VnStateLabel state={vn.status.state} />
@@ -469,6 +484,7 @@ function VirtualNetworksTab() {
 // ---------------------------------------------------------------------------
 
 function SubnetsTab() {
+  const navigate = useNavigate()
   const { data: vns } = useVirtualNetworks()
   const [filterVnId, setFilterVnId] = useState('')
   const [page, setPage] = useState(1)
@@ -574,7 +590,13 @@ function SubnetsTab() {
               {pageSubnets.map((s) => (
                 <Tr key={s.id}>
                   <Td dataLabel="Name">
-                    <strong>{s.metadata.name}</strong>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => navigate(`/networks/subnets/${s.id}`)}
+                    >
+                      {s.metadata.name}
+                    </Button>
                   </Td>
                   <Td dataLabel="Virtual Network">{vnName(s.spec.virtualNetwork)}</Td>
                   <Td dataLabel="IPv4 CIDR">
@@ -707,6 +729,179 @@ function SubnetsTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Security Groups — Rules Editor Modal
+// ---------------------------------------------------------------------------
+
+const PROTOCOL_OPTIONS: { value: Protocol; label: string }[] = [
+  { value: 'PROTOCOL_ALL', label: 'All' },
+  { value: 'PROTOCOL_TCP', label: 'TCP' },
+  { value: 'PROTOCOL_UDP', label: 'UDP' },
+  { value: 'PROTOCOL_ICMP', label: 'ICMP' },
+]
+
+interface EditableRule extends SecurityRule {
+  _key: string
+}
+
+function makeEditable(rules?: SecurityRule[]): EditableRule[] {
+  return (rules ?? []).map((r) => ({ ...r, _key: Math.random().toString(36).slice(2) }))
+}
+
+function newRule(): EditableRule {
+  return { _key: Math.random().toString(36).slice(2), protocol: 'PROTOCOL_TCP' }
+}
+
+function RuleTable({
+  rules,
+  setRules,
+  ariaLabel,
+}: {
+  rules: EditableRule[]
+  setRules: Dispatch<SetStateAction<EditableRule[]>>
+  ariaLabel: string
+}) {
+  function updateField(key: string, field: keyof SecurityRule, value: string | number | undefined) {
+    setRules((prev) => prev.map((r) => (r._key === key ? { ...r, [field]: value } : r)))
+  }
+
+  return (
+    <>
+      {rules.length > 0 && (
+        <Table aria-label={ariaLabel} variant="compact" style={{ marginBottom: '0.5rem' }}>
+          <Thead>
+            <Tr>
+              <Th>Protocol</Th>
+              <Th>Port from</Th>
+              <Th>Port to</Th>
+              <Th>IPv4 CIDR</Th>
+              <Th aria-label="Remove rule" />
+            </Tr>
+          </Thead>
+          <Tbody>
+            {rules.map((r) => (
+              <Tr key={r._key}>
+                <Td>
+                  <FormSelect
+                    value={r.protocol}
+                    onChange={(_e, v) => updateField(r._key, 'protocol', v as Protocol)}
+                    aria-label="Protocol"
+                  >
+                    {PROTOCOL_OPTIONS.map((opt) => (
+                      <FormSelectOption key={opt.value} value={opt.value} label={opt.label} />
+                    ))}
+                  </FormSelect>
+                </Td>
+                <Td>
+                  <TextInput
+                    type="number"
+                    value={r.portFrom ?? ''}
+                    onChange={(_e, v) =>
+                      updateField(r._key, 'portFrom', v.trim() ? Number(v) : undefined)
+                    }
+                    placeholder="1"
+                    aria-label="Port from"
+                  />
+                </Td>
+                <Td>
+                  <TextInput
+                    type="number"
+                    value={r.portTo ?? ''}
+                    onChange={(_e, v) =>
+                      updateField(r._key, 'portTo', v.trim() ? Number(v) : undefined)
+                    }
+                    placeholder="65535"
+                    aria-label="Port to"
+                  />
+                </Td>
+                <Td>
+                  <TextInput
+                    value={r.ipv4Cidr ?? ''}
+                    onChange={(_e, v) => updateField(r._key, 'ipv4Cidr', v.trim() || undefined)}
+                    placeholder="0.0.0.0/0"
+                    aria-label="IPv4 CIDR"
+                  />
+                </Td>
+                <Td isActionCell>
+                  <Button
+                    variant="plain"
+                    onClick={() => setRules((prev) => prev.filter((x) => x._key !== r._key))}
+                    aria-label="Remove rule"
+                  >
+                    ✕
+                  </Button>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      )}
+      <Button variant="link" onClick={() => setRules((prev) => [...prev, newRule()])}>
+        + Add rule
+      </Button>
+    </>
+  )
+}
+
+interface RulesEditorModalProps {
+  sg: SecurityGroup
+  onClose: () => void
+}
+
+function RulesEditorModal({ sg, onClose }: RulesEditorModalProps) {
+  const { mutateAsync: updateSg, isPending: saving } = useUpdateSecurityGroup()
+  const [ingress, setIngress] = useState<EditableRule[]>(() => makeEditable(sg.spec.ingress))
+  const [egress, setEgress] = useState<EditableRule[]>(() => makeEditable(sg.spec.egress))
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const sgIdRef = useRef(sg.id)
+
+  async function handleSave() {
+    setSaveError(null)
+    try {
+      await updateSg({
+        id: sgIdRef.current,
+        ingress: ingress.map(({ _key: _k, ...r }) => r),
+        egress: egress.map(({ _key: _k, ...r }) => r),
+      })
+      onClose()
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Unknown error')
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} variant="large" aria-labelledby="sg-rules-editor-title">
+      <ModalHeader title={`Edit rules — ${sg.metadata.name}`} labelId="sg-rules-editor-title" />
+      <ModalBody>
+        {saveError && (
+          <Alert variant="danger" title="Save failed" isInline className={modalAlertCss}>
+            {saveError}
+          </Alert>
+        )}
+        <ExpandableSection toggleText={`Ingress rules (${ingress.length})`} isExpanded>
+          <RuleTable rules={ingress} setRules={setIngress} ariaLabel="Ingress rules" />
+        </ExpandableSection>
+        <ExpandableSection toggleText={`Egress rules (${egress.length})`} isExpanded>
+          <RuleTable rules={egress} setRules={setEgress} ariaLabel="Egress rules" />
+        </ExpandableSection>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          isDisabled={saving}
+          icon={saving ? <Spinner size="sm" aria-label="Saving" /> : undefined}
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={saving}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Security Groups tab
 // ---------------------------------------------------------------------------
 
@@ -721,6 +916,7 @@ function SecurityGroupsTab() {
   const [form, setForm] = useState({ name: '', virtualNetworkId: '' })
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<SecurityGroup | null>(null)
+  const [editSg, setEditSg] = useState<SecurityGroup | null>(null)
 
   const allSgs = sgs ?? []
   const totalItems = allSgs.length
@@ -793,7 +989,10 @@ function SecurityGroupsTab() {
                   </Td>
                   <Td isActionCell>
                     <ActionsColumn
-                      items={[{ title: 'Delete', onClick: () => setConfirmDelete(sg) }]}
+                      items={[
+                        { title: 'Edit rules', onClick: () => setEditSg(sg) },
+                        { title: 'Delete', onClick: () => setConfirmDelete(sg) },
+                      ]}
                     />
                   </Td>
                 </Tr>
@@ -896,6 +1095,8 @@ function SecurityGroupsTab() {
           </ModalFooter>
         </Modal>
       )}
+
+      {editSg && <RulesEditorModal sg={editSg} onClose={() => setEditSg(null)} />}
     </>
   )
 }
