@@ -2,12 +2,10 @@
  * flow: welcome-and-role-selection
  * step: wrs_welcome_landing
  */
-import { css } from '@emotion/css'
 import { type ReactNode, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core'
 import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
-import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt-icon'
 import type { DemoTenantId, OsacRole } from '@osac/api-contracts'
 import { CardActive, type CardActiveTone, LightDarkToggle } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
@@ -28,12 +26,6 @@ interface Persona {
   desc: string
   iconNode: ReactNode
   onSelect: () => void
-}
-
-function personaIconCss(accentColor: string) {
-  return css`
-    color: ${accentColor};
-  `
 }
 
 // ---------------------------------------------------------------------------
