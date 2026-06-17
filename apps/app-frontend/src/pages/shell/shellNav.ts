@@ -176,7 +176,7 @@ const ALL_NAV: NavSection[] = [
     ],
   },
   {
-    groupLabel: 'Deprecated',
+    groupLabel: 'Roadmap Preview',
     items: [
       {
         id: 'cluster-offerings',
