@@ -29,6 +29,7 @@ import {
 import type { MouseEvent } from 'react'
 import type { DemoTenantId, OsacRole, TenantSovereignty } from '@osac/api-contracts'
 import { demoOperatingModeLabel } from '@osac/api-contracts'
+import serveRoboticsLogo from '../../assets/serve-robotics-logo.png'
 
 const brandTitleCss = css`
   margin: 0;
@@ -85,13 +86,13 @@ export function ShellMasthead({
         </MastheadToggle>
         <MastheadLogo>
           <MastheadBrand>
-            <Title headingLevel="h4" size="lg" className={brandTitleCss}>
-              {selectedTenant === 'vertexa'
-                ? '✦ Vertexa Cloud'
-                : selectedTenant === 'northstar'
-                  ? '⭐ Northstar Bank'
-                  : '◆ Bluestone'}
-            </Title>
+            {selectedTenant === 'northstar' ? (
+              <img src={serveRoboticsLogo} alt="Serve Robotics" style={{ width: '6rem' }} />
+            ) : (
+              <Title headingLevel="h4" size="lg" className={brandTitleCss}>
+                {selectedTenant === 'vertexa' ? '✦ Vertexa Cloud' : '◆ Bluestone'}
+              </Title>
+            )}
           </MastheadBrand>
         </MastheadLogo>
       </MastheadMain>

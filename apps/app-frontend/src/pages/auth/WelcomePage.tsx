@@ -3,16 +3,15 @@
  * step: wrs_welcome_landing
  */
 import { css } from '@emotion/css'
-import { type ElementType, useLayoutEffect } from 'react'
+import { type ReactNode, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core'
 import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
 import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt-icon'
-import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
-import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
 import type { DemoTenantId, OsacRole } from '@osac/api-contracts'
 import { CardActive, type CardActiveTone, LightDarkToggle } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
+import serveRoboticsLogo from '../../assets/serve-robotics-logo.png'
 
 // ---------------------------------------------------------------------------
 // Persona definitions
@@ -26,7 +25,7 @@ interface Persona {
   tone: CardActiveTone
   accentColor: string
   desc: string
-  Icon: ElementType
+  iconNode: ReactNode
   onSelect: () => void
 }
 
@@ -81,53 +80,53 @@ export function WelcomePage() {
       tone: 'provider',
       accentColor: '#6753c2',
       desc: 'Govern sovereign infrastructure, tenant organizations, storage tiers and global templates.',
-      Icon: ShieldAltIcon,
+      iconNode: <ShieldAltIcon className={personaIconCss('#6753c2')} aria-hidden />,
       onSelect: () => go(selectProviderAdmin),
     },
     {
       id: 'northstar-admin',
       badge: 'Tenant Organization',
-      orgName: 'Northstar Bank',
-      roleLabel: 'Tenant Admin',
+      orgName: 'Serve Robotics',
+      roleLabel: 'Admin',
       tone: 'northstar',
-      accentColor: '#003f87',
+      accentColor: '#1e7e34',
       desc: 'Administer users, quota, networks, and cluster offerings for a regulated institution.',
-      Icon: BuildingIcon,
+      iconNode: <img src={serveRoboticsLogo} alt="Serve Robotics" style={{ height: '2rem', objectFit: 'contain' }} />,
       onSelect: tenantEntry('northstar', 'tenantAdmin'),
     },
     {
       id: 'northstar-user',
       badge: 'Tenant Organization',
-      orgName: 'Northstar Bank',
-      roleLabel: 'Tenant User',
+      orgName: 'Serve Robotics',
+      roleLabel: 'User',
       tone: 'northstar',
       accentColor: '#003f87',
       desc: 'Provision VMs, manage workloads and provision OpenShift clusters as a workspace operator.',
-      Icon: UserIcon,
+      iconNode: <img src={serveRoboticsLogo} alt="Serve Robotics" style={{ height: '2rem', objectFit: 'contain' }} />,
       onSelect: tenantEntry('northstar', 'tenantUser'),
     },
-    {
-      id: 'bluestone-admin',
-      badge: 'Tenant Organization',
-      orgName: 'Bluestone Financial Group',
-      roleLabel: 'Tenant Admin',
-      tone: 'bluestone',
-      accentColor: '#1f7a4d',
-      desc: 'Administer users, quota, networks, and cluster offerings for Bluestone teams.',
-      Icon: BuildingIcon,
-      onSelect: tenantEntry('evergreen', 'tenantAdmin'),
-    },
-    {
-      id: 'bluestone-user',
-      badge: 'Tenant Organization',
-      orgName: 'Bluestone Financial Group',
-      roleLabel: 'Tenant User',
-      tone: 'bluestone',
-      accentColor: '#1f7a4d',
-      desc: 'Operate the VM and cluster lifecycle inside the Bluestone workspace.',
-      Icon: UserIcon,
-      onSelect: tenantEntry('evergreen', 'tenantUser'),
-    },
+    // {
+    //   id: 'bluestone-admin',
+    //   badge: 'Tenant Organization',
+    //   orgName: 'Bluestone Financial Group',
+    //   roleLabel: 'Tenant Admin',
+    //   tone: 'bluestone',
+    //   accentColor: '#1f7a4d',
+    //   desc: 'Administer users, quota, networks, and cluster offerings for Bluestone teams.',
+    //   Icon: BuildingIcon,
+    //   onSelect: tenantEntry('evergreen', 'tenantAdmin'),
+    // },
+    // {
+    //   id: 'bluestone-user',
+    //   badge: 'Tenant Organization',
+    //   orgName: 'Bluestone Financial Group',
+    //   roleLabel: 'Tenant User',
+    //   tone: 'bluestone',
+    //   accentColor: '#1f7a4d',
+    //   desc: 'Operate the VM and cluster lifecycle inside the Bluestone workspace.',
+    //   Icon: UserIcon,
+    //   onSelect: tenantEntry('evergreen', 'tenantUser'),
+    // },
   ]
 
   return (
@@ -190,7 +189,7 @@ export function WelcomePage() {
                 key={p.id}
                 tone={p.tone}
                 badge={p.badge}
-                icon={<p.Icon className={personaIconCss(p.accentColor)} aria-hidden />}
+                icon={p.iconNode}
                 title={p.orgName}
                 subtitle={p.roleLabel}
                 description={p.desc}
