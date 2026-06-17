@@ -30,6 +30,7 @@ import type { MouseEvent } from 'react'
 import type { DemoTenantId, OsacRole, TenantSovereignty } from '@osac/api-contracts'
 import { demoOperatingModeLabel } from '@osac/api-contracts'
 import serveRoboticsLogo from '../../assets/serve-robotics-logo.png'
+import tmobileLogo from '../../assets/tmobile-logo.png'
 
 const brandTitleCss = css`
   margin: 0;
@@ -37,7 +38,7 @@ const brandTitleCss = css`
 `
 
 const contentRailCss = css`
-  width: 100%;
+  width: 100%;  
   min-width: 0;
   flex: 1;
 `
@@ -86,11 +87,13 @@ export function ShellMasthead({
         </MastheadToggle>
         <MastheadLogo>
           <MastheadBrand>
-            {selectedTenant === 'northstar' ? (
+            {role === 'providerAdmin' ? (
+              <img src={tmobileLogo} alt="T-Mobile" style={{ width: '6rem' }} />
+            ) : role === 'tenantAdmin' || role === 'tenantUser' ? (
               <img src={serveRoboticsLogo} alt="Serve Robotics" style={{ width: '6rem' }} />
             ) : (
               <Title headingLevel="h4" size="lg" className={brandTitleCss}>
-                {selectedTenant === 'vertexa' ? '✦ Vertexa Cloud' : '◆ Bluestone'}
+                {selectedTenant === 'vertexa' ? '✦ T-Mobile AI' : '◆ Bluestone'}
               </Title>
             )}
           </MastheadBrand>

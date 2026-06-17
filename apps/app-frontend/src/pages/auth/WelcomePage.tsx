@@ -12,6 +12,7 @@ import type { DemoTenantId, OsacRole } from '@osac/api-contracts'
 import { CardActive, type CardActiveTone, LightDarkToggle } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
 import serveRoboticsLogo from '../../assets/serve-robotics-logo.png'
+import tmobileLogo from '../../assets/tmobile-logo.png'
 
 // ---------------------------------------------------------------------------
 // Persona definitions
@@ -75,12 +76,12 @@ export function WelcomePage() {
     {
       id: 'provider-admin',
       badge: 'Platform Operator',
-      orgName: 'Vertexa Cloud Services',
+      orgName: 'T-Mobile AI',
       roleLabel: 'Provider Admin',
       tone: 'provider',
       accentColor: '#6753c2',
       desc: 'Govern sovereign infrastructure, tenant organizations, storage tiers and global templates.',
-      iconNode: <ShieldAltIcon className={personaIconCss('#6753c2')} aria-hidden />,
+      iconNode: <img src={tmobileLogo} alt="T-Mobile" style={{ height: '2rem', objectFit: 'contain' }} />,
       onSelect: () => go(selectProviderAdmin),
     },
     {

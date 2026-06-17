@@ -34,7 +34,7 @@ export interface InstitutionalBranding {
 export const institutionalBrandingByTenant: Record<DemoTenantId, InstitutionalBranding> = {
   vertexa: {
     profileId: 'vertexa_provider',
-    displayName: 'Vertexa Cloud Solutions',
+    displayName: 'T-Mobile AI',
     tagline: 'Provider platform portal',
     cardTitle: 'Sign in to your account',
     emailLabel: 'Work email',
