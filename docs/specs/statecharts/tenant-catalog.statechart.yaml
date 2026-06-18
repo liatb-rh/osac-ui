@@ -1,0 +1,20 @@
+id: tenant-catalog
+title: Tenant Catalog Statechart
+source_flow: ../ui-flows/tenant-catalog.yaml
+rbac_ref: ../rbac.yaml
+initial: cat_catalog_browse
+
+states:
+  cat_catalog_browse:
+    permissions: [view_catalog]
+    on:
+      CLICK_VM_ITEM:
+        target: cvm_wizard_template
+        guard: can(role, "create_vm_from_catalog")
+        external: create-virtual-machine-wizard.statechart.yaml#cvm_wizard_template
+        notes: navigate('/vms?catalogItem=<id>') + wizardRef.openFromTemplate on mount
+      CLICK_CLUSTER_ITEM:
+        target: cat_catalog_browse
+        notes: LaunchInstanceWizard opens as overlay; stays on catalog route
+ai-hints:
+  summary: Catalog browse; VM item launches wizard via navigation; cluster via modal.

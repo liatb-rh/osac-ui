@@ -1,0 +1,187 @@
+# OSAC UI — UX Patterns
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+
+version: 1
+id: osac-ui-ux-patterns
+
+ai-hints:
+  summary: >-
+    Named UX patterns that appear in ≥2 flows.  A coding agent should apply the
+    applicable pattern before inventing a new UI approach.
+
+patterns:
+
+  - id: list_page_with_filters
+    title: List Page With Filters
+    description: >-
+      A full-page list view backed by an ObjectsTable.  Contains: page title + optional
+      description (PageLayout / PageHeader), an ActionRow with 1-N primary actions
+      (Create, Request, Register, …), a toolbar with SearchInput, optional Label/Select
+      filters, and a paginated ObjectsTable.  Empty-state and error-state handling are
+      required; spinner covers initial load.
+    components:
+      - PageLayout
+      - ActionRow
+      - Toolbar + SearchInput (@patternfly/react-core)
+      - ObjectsTable
+      - Pagination (@patternfly/react-core)
+      - Spinner, EmptyState (@patternfly/react-core)
+    when_to_use: Any resource that has a list, e.g. VMs, Clusters, Public IPs, Storage Volumes.
+    flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-public-ips
+      - manage-agents
+      - manage-storage-volumes
+      - manage-storage-tiers
+      - manage-baremetal
+      - manage-baremetal-inventory
+      - manage-storage-backends
+      - manage-catalog-items
+      - manage-provider-public-ip-pools
+    example_flow: manage-virtual-machines
+    example_state: mvm_list_view
+
+  - id: multi_step_wizard
+    title: Multi-Step Modal Wizard
+    description: >-
+      A PF Wizard rendered inside a Modal.  Steps are numbered and shown in the wizard
+      nav sidebar.  Each step renders a Form.  Navigation: Back, Next (disabled when
+      validation fails), Cancel (fires abandon BFF call if a server session is open),
+      Submit on final step.  Step IDs are registered in FLOW-INDEX canonical_step_ids.
+    components:
+      - Modal (@patternfly/react-core)
+      - Wizard, WizardStep (@patternfly/react-core)
+      - Form, FormGroup, FormHelperText (@patternfly/react-core)
+    when_to_use: >-
+      Resource creation that requires ≥2 screens of input (VM, Cluster, BM request,
+      Storage Volume), or any flow that manages server-side wizard sessions via POST
+      wizard/v1/sessions.
+    flows:
+      - create-virtual-machine-wizard
+      - manage-baremetal
+      - manage-storage-volumes
+      - manage-clusters
+    example_flow: create-virtual-machine-wizard
+    example_state: cvm_wizard_template
+
+  - id: confirmation_delete_modal
+    title: Confirmation Delete Modal
+    description: >-
+      A Modal containing a danger-variant delete confirmation form.  The user must type
+      the resource name (or a confirming phrase) before the Delete button becomes
+      enabled.  On confirm the resource is DELETEd and the parent view refreshes.
+      On cancel the modal closes with no side effect.
+    components:
+      - Modal, ModalHeader, ModalBody, ModalFooter (@patternfly/react-core)
+      - Form, FormGroup, TextInput
+      - Button variant=danger, Button variant=link (cancel)
+    when_to_use: >-
+      Any destructive, irreversible delete action (VMs, Clusters, Public IPs,
+      Storage Volumes, Baremetal instances).
+    flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-storage-volumes
+      - manage-public-ips
+    example_flow: manage-virtual-machines
+    example_state: mvm_delete_confirm_modal
+
+  - id: tabbed_resource_page
+    title: Tabbed Resource Page
+    description: >-
+      A page rendered with PF Tabs.  Each tab is a discrete category of sub-resources
+      or metadata.  Tabs share a page-level breadcrumb but maintain independent
+      toolbar+table state.  URL does not encode active tab (tab state is local).
+      Switching tabs fires a tab-change event and does NOT navigate.
+    components:
+      - Tabs, Tab, TabTitleText (@patternfly/react-core)
+      - PageSection
+    when_to_use: >-
+      Resource detail pages with multiple categories (VM: Overview, Networking, Storage,
+      Activity).  Also used for multi-category list pages (Networks: Topology, VNets,
+      Subnets, SGs).
+    flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-networks
+    example_flow: manage-networks
+    example_state: net_virtual_networks_tab
+
+  - id: inline_row_actions_menu
+    title: Inline Row Actions Menu
+    description: >-
+      A PF ActionsColumn (⋮ kebab menu) or explicit action buttons inside each
+      table row.  Actions are conditionally rendered or disabled based on resource
+      state and role.  Permission-gated actions are either hidden (providerAdmin-only
+      such as delete) or disabled (pending state).
+    components:
+      - ActionsColumn (@patternfly/react-table)
+      - Button variant=plain (for direct icon buttons)
+      - Tooltip (for disabled states)
+    when_to_use: >-
+      Any ObjectsTable row that supports ≥1 action beyond navigation to detail page
+      (delete, edit, publish toggle, power action, provision, deprovision, etc.).
+    flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-public-ips
+      - manage-agents
+      - manage-catalog-items
+      - manage-storage-volumes
+      - manage-storage-tiers
+      - manage-baremetal
+    example_flow: manage-catalog-items
+    example_state: tci_list_view
+
+  - id: split_pane_admin_studio
+    title: Split-Pane Admin Studio
+    description: >-
+      A two-column edit layout: left column contains a structured Form builder
+      (FieldDefinitionBuilder), right column shows a live preview (CatalogFormPreview).
+      Used for admin catalog item configuration where the author needs immediate
+      visual feedback.
+    components:
+      - CatalogItemStudio
+      - FieldDefinitionBuilder
+      - CatalogFormPreview
+    when_to_use: Any admin authoring surface where live preview reduces errors.
+    flows:
+      - manage-catalog-items
+    example_flow: manage-catalog-items
+    example_state: tci_detail_studio
+
+  - id: persona_selection_landing
+    title: Persona Selection Landing Page
+    description: >-
+      Pre-authentication page showing N persona cards (CardActive).  Clicking a card
+      sets the session role and navigates to sign-in.  Light/dark toggle is available
+      without authentication.  Deep link via ?osac-entry bypasses the persona picker.
+    components:
+      - CardActive
+      - LightDarkToggle
+    when_to_use: Demo / standalone deployments with multiple simulated user roles.
+    flows:
+      - welcome-and-role-selection
+      - institutional-sign-in
+    example_flow: welcome-and-role-selection
+    example_state: wrs_welcome_landing
+
+  - id: detail_page_kpi_header
+    title: Detail Page KPI Header
+    description: >-
+      Resource detail page with a title row + KPI strip (KpiHeader) followed by PF Tabs.
+      The KPI strip surfaces 3-6 essential metrics (state, count, key config values)
+      without requiring the user to open a tab.
+    components:
+      - KpiHeader
+      - PageHeader
+      - Tabs
+    when_to_use: >-
+      Any resource detail page where the primary metadata can be summarised in ≤6
+      label:value pairs visible at all times (e.g. VM: Power, vCPU, Memory, IP).
+    flows:
+      - manage-virtual-machines
+      - manage-storage-backends
+    example_flow: manage-virtual-machines
+    example_state: mvm_detail_page

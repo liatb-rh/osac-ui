@@ -1,0 +1,39 @@
+# statechart: application-shell-session
+# source_flow: ../ui-flows/application-shell-session.yaml
+# Generated: 2026-06-18
+
+id: application-shell-session
+title: Application Shell Session Statechart
+source_flow: ../ui-flows/application-shell-session.yaml
+rbac_ref: ../rbac.yaml
+initial: shell_primary_workspace
+
+states:
+  shell_primary_workspace:
+    permissions: [view_shell]
+    on:
+      CLICK_LOGOUT:
+        target: shell_logout_confirmed
+        guard: can(role, "logout")
+      CLICK_ACTIVITIES_BELL:
+        target: ra_activity_feed
+        guard: can(role, "view_recent_activities")
+        external: recent-activities.statechart.yaml#ra_activity_feed
+      OPEN_ACCOUNT_MENU:
+        target: shell_account_menu_open
+
+  shell_account_menu_open:
+    on:
+      CLICK_LOGOUT:
+        target: shell_logout_confirmed
+      CLOSE_MENU:
+        target: shell_primary_workspace
+
+  shell_logout_confirmed:
+    on:
+      AUTO_NAVIGATE_WELCOME:
+        target: wrs_welcome_landing
+        external: welcome-and-role-selection.statechart.yaml#wrs_welcome_landing
+
+ai-hints:
+  summary: Shell wraps all authenticated routes. Logout clears session and returns to welcome.

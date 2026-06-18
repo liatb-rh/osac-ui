@@ -71,7 +71,7 @@ export function WelcomePage() {
       orgName: 'T-Mobile AI GRID',
       roleLabel: 'Provider Admin',
       tone: 'provider',
-      accentColor: '#6753c2',
+      accentColor: '#E41578',
       desc: 'Govern sovereign infrastructure, tenant organizations, storage tiers and global templates.',
       iconNode: <img src={tmobileLogo} alt="T-Mobile" style={{ height: '2rem', objectFit: 'contain' }} />,
       onSelect: () => go(selectProviderAdmin),

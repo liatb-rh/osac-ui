@@ -1,0 +1,19 @@
+id: manage-catalog-items
+title: Manage Catalog Items Statechart
+source_flow: ../ui-flows/manage-catalog-items.yaml
+rbac_ref: ../rbac.yaml
+initial: tci_list_view
+
+states:
+  tci_list_view:
+    permissions: [manage_catalog_items]
+    on:
+      CLICK_NEW: { target: tci_detail_studio, guard: "can(role, 'manage_catalog_items')" }
+      CLICK_EDIT: { target: tci_detail_studio }
+  tci_detail_studio:
+    permissions: [manage_catalog_items]
+    on:
+      SAVE: { target: tci_list_view }
+      CLICK_BACK: { target: tci_list_view }
+ai-hints:
+  summary: Catalog item list + studio editor.

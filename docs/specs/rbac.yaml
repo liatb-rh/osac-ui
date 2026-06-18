@@ -1,327 +1,407 @@
-version: 1
-id: osac-rbac
-title: OSAC Role and Permission Definitions
+# OSAC UI — Role and Permission Definitions
+# Extracted from: shellNav.ts (nav gating), SessionContext.tsx (role enum),
+#   AppShell.tsx (route gating), VmsPage.tsx (Create VM button), StorageTiersPage.tsx (CRUD gating)
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+
+version: 2
+id: osac-ui-rbac
+title: OSAC UI Role and Permission Definitions
+permission_model: role-based-ui-demo
+
+ai-hints:
+  summary: >-
+    Three roles (providerAdmin, tenantAdmin, tenantUser).  Role is set at persona selection
+    on the welcome page and stored in SessionContext (no JWT in demo mode).  Nav visibility
+    is filtered by shellNav.navRowsForRole(role).  There are no checkPermissions() /
+    canEdit / canDelete props in this codebase — all gating is role comparison in component
+    render logic (e.g. role === 'tenantUser' to show Create VM button).
+  integration_modes:
+    demo: >-
+      Session role is a client-side enum (providerAdmin | tenantAdmin | tenantUser).
+      No Authorino, no JWT verification — all gating is presentational.
+    production_intent: >-
+      A production deployment would replace SessionContext role with a JWT claim and enforce
+      resource-level RBAC server-side.  See backend-api.yaml for intended role alignment.
+
+# ---------------------------------------------------------------------------
+# Roles
+# ---------------------------------------------------------------------------
 
 roles:
   - id: providerAdmin
     label: Provider Admin
-    description: Manages platform services, tenant organizations, and provider-wide policies in the Vertexa context.
-    inherits: []
-  - id: tenantAdmin
-    label: Tenant Admin
-    description: Manages users, quota, network topology, and tenant-scoped workspace operations.
-    inherits:
-      - tenantUser
-  - id: tenantUser
-    label: Tenant User
-    description: Operates VM workload lifecycle within a single tenant organization workspace.
+    description: >-
+      Manages the OSAC platform — tenants, agents, storage backends, global network
+      templates, public IP pools, network classes, and cluster offerings CRUD.
+      Persona: Vertexa employee.
+    default_route: /agents
+    nav_sections: [Resources, Roadmap Preview]
     inherits: []
 
+  - id: tenantAdmin
+    label: Tenant Admin
+    description: >-
+      Manages a single tenant organisation — networks (VNs/Subnets/SGs), public IPs,
+      catalog items, cluster offerings (enable/disable per org), storage volumes.
+      Also has all tenantUser VM/cluster/baremetal workload capabilities.
+      Persona: tenant organisation administrator.
+    default_route: /admin/dashboard   # → SparsePlaceholderPage (no dashboard route yet)
+    nav_sections: [Services, Resources, Roadmap Preview]
+    inherits:
+      - tenantUser
+
+  - id: tenantUser
+    label: Tenant User
+    description: >-
+      Operates VM/cluster/baremetal workloads within a tenant organisation — catalog browse,
+      create/power/delete VMs, manage clusters, request baremetal, view storage tiers and
+      volumes, and view recent activities.
+      Persona: tenant engineer.
+    default_route: /catalog-items
+    nav_sections: [Services, Account]
+    inherits: []
+
+# ---------------------------------------------------------------------------
+# Permissions
+# Semantic IDs (agent-friendly).  Each maps to one or more flows and
+# notes the UI affordance when denied (hidden | disabled | redirect | n/a).
+# ---------------------------------------------------------------------------
+
 permissions:
-  - id: choose_persona
+  # -- Auth --
+  - id: select_persona
     label: Choose entry persona on welcome landing
     risk: low
-    flows:
-      - welcome-and-role-selection
-  - id: use_theme_toggle
-    label: Toggle UI theme
-    risk: low
-    flows:
-      - welcome-and-role-selection
-      - application-shell-session
+    flows: [welcome-and-role-selection]
+    ui_affordance: n/a
+    notes: All unauthenticated visitors can select a persona.
+
   - id: submit_sign_in
-    label: Submit institutional sign-in
+    label: Submit institutional sign-in form
     risk: medium
-    flows:
-      - institutional-sign-in
-  - id: switch_institution
-    label: Return to institution chooser before sign-in
-    risk: low
-    flows:
-      - institutional-sign-in
+    flows: [institutional-sign-in]
+    ui_affordance: n/a
+    notes: Any persona can attempt sign-in; email/password not validated in demo.
+
+  # -- Shell --
   - id: view_shell
     label: View authenticated application shell
     risk: low
-    flows:
-      - application-shell-session
-  - id: navigate_shell_sections
-    label: Navigate sidebar shell sections
+    flows: [application-shell-session]
+    ui_affordance: redirect
+    notes: Unauthenticated users are redirected to WelcomePage.
+
+  - id: navigate_sidebar
+    label: Navigate sidebar sections and items
     risk: low
-    flows:
-      - application-shell-session
+    flows: [application-shell-session]
+    ui_affordance: hidden
+    notes: Nav items with roles[] gate visibility via navRowsForRole.
+
+  - id: toggle_theme
+    label: Toggle light/dark theme
+    risk: low
+    flows: [application-shell-session, welcome-and-role-selection]
+    ui_affordance: n/a
+    notes: Available to all authenticated users and welcome page.
+
   - id: logout
     label: Log out to welcome landing
     risk: medium
-    flows:
-      - application-shell-session
+    flows: [application-shell-session]
+    ui_affordance: n/a
+
   - id: view_recent_activities
-    label: View recent activity feed
+    label: View full-page activity feed
     risk: low
-    flows:
-      - application-shell-session
-      - recent-activities
-  - id: view_dashboard
-    label: View tenant user dashboard
-    risk: low
-    flows:
-      - tenant-user-dashboard
-  - id: open_create_vm
-    label: Open create virtual machine workflow
-    risk: high
-    flows:
-      - tenant-user-dashboard
-      - create-virtual-machine-wizard
+    flows: [application-shell-session, recent-activities]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantUser only (shellNav).
+
+  # -- VM workloads --
   - id: view_catalog
-    label: View VM template catalog
+    label: Browse tenant catalog items
     risk: low
-    flows:
-      - vm-template-catalog
-  - id: create_from_template
-    label: Start create VM from selected template
+    flows: [tenant-catalog]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantUser only.
+
+  - id: create_vm_from_catalog
+    label: Launch create-VM wizard from catalog item
     risk: high
-    flows:
-      - vm-template-catalog
-      - create-virtual-machine-wizard
-  - id: use_vm_wizard
-    label: Complete VM creation wizard steps
-    risk: high
-    flows:
-      - create-virtual-machine-wizard
-  - id: provision_vm
-    label: Provision a virtual machine
-    risk: high
-    flows:
-      - create-virtual-machine-wizard
-  - id: view_my_vms
-    label: View virtual machine list and details
+    flows: [tenant-catalog, create-virtual-machine-wizard]
+    ui_affordance: hidden
+    notes: Card click navigates to /vms?catalogItem=<id> which opens wizard.
+
+  - id: view_vms
+    label: View virtual machine list and detail
     risk: low
-    flows:
-      - manage-virtual-machines
+    flows: [manage-virtual-machines]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantUser only; tenantAdmin accesses via role=tenantAdmin.
+
+  - id: create_vm
+    label: Create a virtual machine
+    risk: high
+    flows: [manage-virtual-machines, create-virtual-machine-wizard]
+    ui_affordance: hidden
+    notes: >-
+      "Create VM" button rendered only when role === 'tenantUser'
+      (VmsPage.tsx line ~271).
+
   - id: operate_vm_power
-    label: Start, stop, or restart virtual machines
+    label: Start, stop, or restart a virtual machine
     risk: high
-    flows:
-      - manage-virtual-machines
-  - id: clone_vm
-    label: Clone virtual machine into new workload
+    flows: [manage-virtual-machines]
+    ui_affordance: disabled
+    notes: Power buttons disabled when wrong state or action pending.
+
+  - id: delete_vm
+    label: Delete a virtual machine
     risk: high
-    flows:
-      - manage-virtual-machines
-      - create-virtual-machine-wizard
-  - id: launch_console
-    label: Launch VM console demo from running VM
+    flows: [manage-virtual-machines]
+    ui_affordance: hidden
+    notes: >-
+      Actions row renders delete option; confirm modal warns about auto-stop
+      if VM is running.
+
+  - id: open_vm_console
+    label: Open VM console demo (new tab)
     risk: medium
-    flows:
-      - manage-virtual-machines
-      - vm-console-standalone-demo
-  - id: view_tenant_admin_dashboard
-    label: View tenant administration dashboard
-    risk: low
-    flows:
-      - tenant-administration
-  - id: manage_users
-    label: Manage tenant users
-    risk: high
-    flows:
-      - tenant-administration
-  - id: view_quota
-    label: View tenant quota
-    risk: medium
-    flows:
-      - tenant-administration
-  - id: view_topology
-    label: View tenant or provider network topology
-    risk: medium
-    flows:
-      - tenant-administration
-      - provider-administration
-  - id: open_vm_from_topology
-    label: Open VM detail handoff from tenant topology
-    risk: medium
-    flows:
-      - tenant-administration
-      - manage-virtual-machines
-  - id: view_provider_dashboard
-    label: View provider administration dashboard
-    risk: low
-    flows:
-      - provider-administration
-  - id: manage_tenants
-    label: Manage tenant organizations
-    risk: high
-    flows:
-      - provider-administration
-  - id: manage_resource_allocation
-    label: Manage provider resource allocation policy
-    risk: high
-    flows:
-      - provider-administration
-  - id: manage_global_templates
-    label: Manage provider global templates
-    risk: high
-    flows:
-      - provider-administration
-  - id: view_infrastructure
-    label: View provider infrastructure pages
-    risk: medium
-    flows:
-      - provider-administration
+    flows: [manage-virtual-machines, vm-console-demo]
+    ui_affordance: disabled
+    notes: Disabled in ActionsColumn when VM is not in running state.
+
+  # -- Clusters --
   - id: view_clusters
-    label: View cluster list and details
+    label: View cluster list and detail
     risk: low
-    flows:
-      - cluster-service-catalog
-  - id: open_create_cluster
-    label: Open create cluster workflow and submit
+    flows: [manage-clusters]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantUser.
+
+  - id: create_cluster
+    label: Create a cluster via CreateClusterModal
     risk: high
-    flows:
-      - cluster-service-catalog
-  - id: view_cluster_catalog_items
-    label: Browse cluster catalog items for provisioning
-    risk: low
-    flows:
-      - cluster-service-catalog
-  - id: scale_cluster_nodes
-    label: Scale worker node count on an existing cluster
+    flows: [manage-clusters]
+    ui_affordance: hidden
+
+  - id: upgrade_cluster
+    label: Upgrade cluster to a new OCP version
     risk: high
-    flows:
-      - cluster-service-catalog
+    flows: [manage-clusters]
+    ui_affordance: disabled
+    notes: Menu item disabled when cluster not READY.
+
   - id: delete_cluster
     label: Delete a cluster
     risk: high
-    flows:
-      - cluster-service-catalog
-  - id: upgrade_cluster
-    label: Upgrade an existing cluster to a new OCP version
-    risk: high
-    flows:
-      - cluster-service-catalog
+    flows: [manage-clusters]
+    ui_affordance: hidden
+
   - id: download_kubeconfig
-    label: Download cluster kubeconfig
+    label: Download cluster kubeconfig YAML
     risk: medium
-    flows:
-      - cluster-service-catalog
-  - id: manage_cluster_offerings
-    label: Manage cluster catalog item offerings (enable/disable per org, edit defaults, provider CRUD)
-    risk: high
-    flows:
-      - tenant-administration
-      - provider-administration
-  - id: view_agents
-    label: View infrastructure agents
+    flows: [manage-clusters]
+    ui_affordance: disabled
+    notes: Disabled when cluster not READY.
+
+  # -- Baremetal (tenant) --
+  - id: view_baremetal
+    label: View tenant baremetal instance list and detail
     risk: low
-    flows:
-      - provider-administration
+    flows: [manage-baremetal]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantUser.
+
+  - id: request_baremetal
+    label: Request a baremetal instance via wizard
+    risk: high
+    flows: [manage-baremetal]
+    ui_affordance: hidden
+
+  # -- Tenant admin resources --
+  - id: manage_networks
+    label: Manage tenant virtual networks, subnets, and security groups
+    risk: high
+    flows: [manage-networks]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantAdmin only.
+
+  - id: manage_public_ips
+    label: Allocate, attach, detach, and delete tenant public IPs
+    risk: high
+    flows: [manage-public-ips]
+    ui_affordance: hidden
+    notes: Nav item (admin-public-ips) visible to tenantAdmin only.
+
+  - id: manage_catalog_items
+    label: Create, edit, and toggle catalog items (tenantAdmin studio)
+    risk: high
+    flows: [manage-catalog-items]
+    ui_affordance: hidden
+    notes: Nav item admin-catalog-items visible to tenantAdmin.
+
+  - id: manage_storage_volumes
+    label: Create, view, and delete storage volumes and snapshots
+    risk: high
+    flows: [manage-storage-volumes]
+    ui_affordance: hidden
+    notes: Nav item visible to tenantUser and tenantAdmin.
+
+  - id: view_storage_tiers
+    label: View storage tier definitions (read-only for tenant roles)
+    risk: low
+    flows: [manage-storage-tiers]
+    ui_affordance: hidden
+    notes: Nav item platform-storage-tiers-readonly visible to tenantUser and tenantAdmin.
+
+  - id: manage_cluster_offerings_tenant
+    label: Enable/disable cluster offerings per org (tenantAdmin)
+    risk: high
+    flows: [manage-cluster-offerings]
+    ui_affordance: hidden
+    notes: Nav item cluster-offerings visible to tenantAdmin.
+
+  # -- Provider admin resources --
+  - id: manage_storage_tiers
+    label: Create, edit, and toggle storage tier availability (providerAdmin)
+    risk: high
+    flows: [manage-storage-tiers]
+    ui_affordance: hidden
+    notes: Create/edit/toggle affordances rendered only for providerAdmin in StorageTiersPage.
+
+  - id: manage_storage_backends
+    label: Register and view storage backends (providerAdmin)
+    risk: high
+    flows: [manage-storage-backends]
+    ui_affordance: hidden
+    notes: Nav items platform-storage-overview, platform-storage-backends visible to providerAdmin.
+
   - id: manage_agents
     label: Provision and deprovision infrastructure agents
     risk: high
-    flows:
-      - provider-administration
-  - id: view_storage_tiers
-    label: View storage tier definitions
-    risk: low
-    flows:
-      - provider-administration
-  - id: manage_storage_tiers
-    label: Edit storage tier definitions and toggle availability
+    flows: [manage-agents]
+    ui_affordance: hidden
+    notes: Nav item platform-agents visible to providerAdmin.
+
+  - id: manage_global_templates
+    label: Manage provider global network templates
     risk: high
-    flows:
-      - provider-administration
+    flows: [manage-global-templates]
+    ui_affordance: hidden
+    notes: Nav item platform-templates visible to providerAdmin.
+
+  - id: manage_provider_public_ip_pools
+    label: Manage provider public IP pools
+    risk: high
+    flows: [manage-provider-public-ip-pools]
+    ui_affordance: hidden
+    notes: Nav item platform-public-ip-pools visible to providerAdmin.
+
+  - id: manage_network_classes
+    label: View provider network classes (roadmap preview)
+    risk: low
+    flows: [manage-network-classes]
+    ui_affordance: hidden
+    notes: Nav item provider-net-classes visible to providerAdmin.
+
+  - id: manage_cluster_offerings_provider
+    label: CRUD on cluster catalog items (providerAdmin)
+    risk: high
+    flows: [manage-cluster-offerings]
+    ui_affordance: hidden
+    notes: Nav item cluster-offerings visible to providerAdmin.
+
+  - id: manage_baremetal_inventory
+    label: View provider baremetal host inventory
+    risk: medium
+    flows: [manage-baremetal-inventory]
+    ui_affordance: hidden
+    notes: Nav item provider-baremetal visible to providerAdmin.
+
+# ---------------------------------------------------------------------------
+# Role-permission matrix
+# ---------------------------------------------------------------------------
 
 role_permission_matrix:
   providerAdmin:
     grants:
-      - choose_persona
-      - use_theme_toggle
+      - select_persona
       - submit_sign_in
-      - switch_institution
       - view_shell
-      - navigate_shell_sections
+      - navigate_sidebar
+      - toggle_theme
       - logout
-      - view_recent_activities
-      - view_provider_dashboard
-      - manage_tenants
-      - manage_resource_allocation
-      - manage_global_templates
-      - view_infrastructure
-      - view_topology
-      - view_clusters
-      - view_cluster_catalog_items
-      - manage_cluster_offerings
-      - view_agents
-      - manage_agents
-      - view_storage_tiers
       - manage_storage_tiers
+      - manage_storage_backends
+      - manage_agents
+      - manage_global_templates
+      - manage_provider_public_ip_pools
+      - manage_network_classes
+      - manage_cluster_offerings_provider
+      - manage_baremetal_inventory
+      - view_clusters               # cluster-offerings page accessible
+    denies:
+      - view_catalog
+      - view_vms
+      - create_vm
+      - view_recent_activities
+      - manage_networks
+      - manage_public_ips
+
   tenantAdmin:
     grants:
-      - choose_persona
-      - use_theme_toggle
+      - select_persona
       - submit_sign_in
-      - switch_institution
       - view_shell
-      - navigate_shell_sections
+      - navigate_sidebar
+      - toggle_theme
       - logout
       - view_recent_activities
-      - view_dashboard
-      - open_create_vm
       - view_catalog
-      - create_from_template
-      - use_vm_wizard
-      - provision_vm
-      - view_my_vms
+      - create_vm_from_catalog
+      - view_vms
+      - create_vm
       - operate_vm_power
-      - clone_vm
-      - launch_console
-      - view_tenant_admin_dashboard
-      - manage_users
-      - view_quota
-      - view_topology
-      - open_vm_from_topology
-      - manage_cluster_offerings
+      - delete_vm
+      - open_vm_console
+      - view_clusters
+      - create_cluster
+      - upgrade_cluster
+      - delete_cluster
+      - download_kubeconfig
+      - view_baremetal
+      - request_baremetal
+      - manage_networks
+      - manage_public_ips
+      - manage_catalog_items
+      - manage_storage_volumes
+      - view_storage_tiers
+      - manage_cluster_offerings_tenant
+
   tenantUser:
     grants:
-      - choose_persona
-      - use_theme_toggle
+      - select_persona
       - submit_sign_in
-      - switch_institution
       - view_shell
-      - navigate_shell_sections
+      - navigate_sidebar
+      - toggle_theme
       - logout
       - view_recent_activities
-      - view_dashboard
-      - open_create_vm
       - view_catalog
-      - create_from_template
-      - use_vm_wizard
-      - provision_vm
-      - view_my_vms
+      - create_vm_from_catalog
+      - view_vms
+      - create_vm
       - operate_vm_power
-      - clone_vm
-      - launch_console
+      - delete_vm
+      - open_vm_console
       - view_clusters
-      - open_create_cluster
-      - view_cluster_catalog_items
-      - scale_cluster_nodes
-      - delete_cluster
+      - create_cluster
       - upgrade_cluster
+      - delete_cluster
       - download_kubeconfig
-
-ai-hints:
-  summary: >-
-    Canonical RBAC for OSAC. Three roles (providerAdmin, tenantAdmin, tenantUser) are
-    sourced from welcome-and-role-selection routing_matrix. Each listed permission maps to
-    one or more flow ids from FLOW-INDEX.yaml and ui-flows/*.yaml. XState guards should use
-    can(role, permissionId) against this manifest.
-  constraints:
-    - tenantAdmin inherits all tenantUser permissions
-    - providerAdmin does not manage individual virtual machines in this demo baseline
-    - vm lifecycle actions must remain tenant-scoped and must not cross tenant boundaries
-  integration_modes:
-    dev: >-
-      With OSAC_API_MODE=dev, this manifest must be reconciled with
-      backend-fulfillment.yaml context.osac_real_api_integration.role_model_alignment and
-      jwt_claims_and_authorino_alignment. SPA personas are valid only if they map to
-      backend-enforced permissions and tenant scope from JWT/Authorino.
-    mock: >-
-      With OSAC_API_MODE=mock, this manifest continues to drive local demo navigation and
-      guards without requiring real IdP tokens, Authorino checks, or fulfillment RoleBindings.
+      - view_baremetal
+      - request_baremetal
+      - manage_storage_volumes
+      - view_storage_tiers

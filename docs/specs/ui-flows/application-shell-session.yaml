@@ -1,0 +1,115 @@
+# ui-flow: application-shell-session
+# statechart_ref: ../statecharts/application-shell-session.statechart.yaml
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+
+flow: application-shell-session
+title: Application Shell Session
+summary: >-
+  Authenticated page frame — masthead (role/tenant identity, theme toggle, account menu,
+  logout, recent-activities bell), role-gated sidebar nav, and breadcrumb.
+statechart_ref: ../statecharts/application-shell-session.statechart.yaml
+rbac_ref: ../rbac.yaml
+
+rbac:
+  required_permissions_by_step:
+    shell_primary_workspace:
+      view_shell: view_shell
+      navigate_sidebar: navigate_sidebar
+      toggle_theme: toggle_theme
+      logout: logout
+      open_activities: view_recent_activities
+
+steps:
+  - id: shell_primary_workspace
+    title: Authenticated workspace
+    goal: >-
+      Render the full authenticated application frame with role-appropriate sidebar
+      and all child routes available.
+    route: /* (all authenticated routes)
+    ui:
+      components:
+        - Page (isManagedSidebar)
+        - ShellMasthead (role badge, tenant name, sovereignty strip, account menu, theme toggle)
+        - ShellSidebar (navRows filtered by navRowsForRole(role), LightDarkToggle)
+        - ShellBreadcrumb (rendered for /activities only)
+        - Routes (child route tree via React Router)
+    states:
+      active:
+        description: >-
+          User is authenticated (isLoggedIn=true); role and selectedTenant set in
+          SessionContext.  Nav renders role-gated sections.
+      sidebar_collapsed:
+        description: PF isManagedSidebar handles collapse on mobile breakpoints.
+    interactions:
+      - "Sidebar nav items call handleSidebarNavigate(path). Re-selecting current path
+         uses navigate(path, { replace: true, state: { navReselect: true } })."
+      - "Theme toggle calls setIsDarkTheme; pf-v6-theme-dark class toggled on root."
+      - "Account menu (isUserMenuOpen toggle) shows: account settings (no-op), logout."
+      - "Logout calls logout() → clearAccessToken() → onNavigateToWelcome()."
+      - "Bell/activity icon in masthead calls onOpenActivities → navigate('/activities')."
+      - "displayName derives from DEMO_PROVIDER_ADMIN_DISPLAY_NAME or DEMO_TENANT_DISPLAY_*."
+    nav_sections_by_role:
+      providerAdmin:
+        - Resources: [Bare Metal Inventory, Network→(Public IP Pools, Global Templates), Storage→(Storage, Storage Tiers, Storage Backends)]
+        - Roadmap Preview: [Cluster offerings, Network classes, Storage, Agents]
+      tenantAdmin:
+        - Services: [Virtual Machines, Bare Metal, Clusters]
+        - Resources: [Network→(Networks, Public IPs, Catalog Items), Storage→(Storage Tiers, Volumes)]
+        - Roadmap Preview: [Cluster offerings]
+      tenantUser:
+        - Services: [Catalog, Virtual Machines, Bare Metal, Clusters]
+        - Account: [Recent Activity]
+
+  - id: shell_account_menu_open
+    title: Account menu open
+    goal: Display account options dropdown.
+    ui:
+      components:
+        - Dropdown or Menu (account menu items: Account settings [no-op], Log out)
+    states:
+      open: { description: isUserMenuOpen=true. }
+    interactions:
+      - "Log out triggers logout() action."
+      - "Account settings calls preventDefault (no-op in demo)."
+    validation_rules: []
+
+  - id: shell_logout_confirmed
+    title: Logged out
+    goal: >-
+      Session cleared; user navigated to WelcomePage.
+    ui:
+      components: []
+    states:
+      cleared:
+        description: >-
+          isLoggedIn=false, selectedTenant=null, role='tenantUser' (reset).
+          App navigates to welcome route.
+    interactions: []
+    validation_rules: []
+
+transitions:
+  - from: auth_post_login_transition
+    to: shell_primary_workspace
+    event: LOGIN_SUCCESS
+    mechanism: onNavigateAfterLogin(role) → navigate(defaultRouteForRole(role))
+
+  - from: shell_primary_workspace
+    to: shell_logout_confirmed
+    event: CLICK_LOGOUT
+
+  - from: shell_primary_workspace
+    to: ra_activity_feed
+    event: CLICK_ACTIVITIES_BELL
+    mechanism: navigate('/activities')
+
+implementation_status:
+  as_of: "2026-06-18"
+  code_refs:
+    - apps/app-frontend/src/pages/AppShell.tsx
+    - apps/app-frontend/src/pages/shell/ShellMasthead.tsx
+    - apps/app-frontend/src/pages/shell/ShellSidebar.tsx
+    - apps/app-frontend/src/pages/shell/ShellBreadcrumb.tsx
+    - apps/app-frontend/src/pages/shell/shellNav.ts
+    - apps/app-frontend/src/pages/shell/shellRoutes.ts
+    - apps/app-frontend/src/contexts/SessionContext.tsx
+  deployment_variants: [standalone]

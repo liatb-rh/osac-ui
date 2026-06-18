@@ -1,0 +1,29 @@
+id: manage-storage-volumes
+title: Manage Storage Volumes Statechart
+source_flow: ../ui-flows/manage-storage-volumes.yaml
+rbac_ref: ../rbac.yaml
+initial: vol_list_view
+
+states:
+  vol_list_view:
+    permissions: [manage_storage_volumes]
+    on:
+      CLICK_CREATE: { target: vol_create_wizard, guard: "can(role, 'manage_storage_volumes')" }
+      CLICK_VOLUME_NAME: { target: vol_detail_page }
+  vol_create_wizard:
+    permissions: [manage_storage_volumes]
+    on:
+      WIZARD_COMPLETE: { target: vol_list_view }
+      WIZARD_CANCEL: { target: vol_list_view }
+  vol_detail_page:
+    permissions: [manage_storage_volumes]
+    on:
+      CLICK_BACK: { target: vol_list_view }
+      CLICK_CREATE_SNAPSHOT: { target: vol_snapshot_create_modal }
+  vol_snapshot_create_modal:
+    permissions: [manage_storage_volumes]
+    on:
+      CONFIRM: { target: vol_detail_page }
+      CANCEL: { target: vol_detail_page }
+ai-hints:
+  summary: Volume list + detail + snapshot management.

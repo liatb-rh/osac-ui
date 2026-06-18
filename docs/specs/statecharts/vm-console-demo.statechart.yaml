@@ -1,0 +1,12 @@
+id: vm-console-demo
+title: VM Console Demo Statechart
+source_flow: ../ui-flows/vm-console-demo.yaml
+rbac_ref: ../rbac.yaml
+initial: vcd_console_page
+
+states:
+  vcd_console_page:
+    permissions: [open_vm_console]
+    on: {}
+ai-hints:
+  summary: Standalone new-tab console demo. Single page state.

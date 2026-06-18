@@ -1,0 +1,321 @@
+# OSAC UI — Component Catalog
+# Extracted from: libs/ui-components/src/**
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+
+version: 1
+id: osac-ui-components
+
+ai-hints:
+  summary: >-
+    Catalog of non-trivial shared components in libs/ui-components.  Every component listed
+    here is reused in ≥1 flow.  PF primitives composed inside each component are noted for
+    design system compliance checking.
+
+components:
+
+  # ── Layout ────────────────────────────────────────────────────────────────
+
+  - name: PageLayout
+    file: libs/ui-components/src/layout/PageLayout.tsx
+    ux_role: page_wrapper
+    ux_role_description: >-
+      Standard list-page shell — title + optional description + optional actions row
+      (ActionRow) + content children.  Wraps PF PageSection.
+    classification: layout
+    used_in_flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-baremetal
+      - manage-agents
+      - manage-storage-volumes
+      - manage-storage-tiers
+      - tenant-catalog
+      - manage-network-classes
+      - manage-provider-public-ip-pools
+    used_in_routes:
+      - /vms
+      - /baremetal
+      - /agents
+      - /resources/storage/storage-volumes
+      - /resources/storage/storage-tiers
+      - /catalog-items
+    composes:
+      - PageSection (@patternfly/react-core)
+      - ActionRow (libs/ui-components/src/layout/ActionRow.tsx)
+    design_system_gaps: []
+
+  - name: ActionRow
+    file: libs/ui-components/src/layout/ActionRow.tsx
+    ux_role: action_bar
+    ux_role_description: Horizontal bar for page-level action buttons (create, import, etc.).
+    classification: layout
+    used_in_flows: [manage-virtual-machines, manage-clusters, manage-storage-tiers]
+    composes:
+      - Flex + FlexItem (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: PagePlaceholder
+    file: libs/ui-components/src/layout/PagePlaceholder.tsx
+    ux_role: placeholder_page
+    ux_role_description: >-
+      Branded placeholder for deferred routes.  Shows title, lede text, and
+      "coming soon" treatment.
+    classification: layout
+    used_in_flows: [application-shell-session]
+    composes:
+      - EmptyState, EmptyStateBody, Title (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Headers ───────────────────────────────────────────────────────────────
+
+  - name: PageHeader
+    file: libs/ui-components/src/headers/PageHeader.tsx
+    ux_role: page_header
+    ux_role_description: >-
+      Reusable page title + optional description + optional actions row.
+      Used for detail pages and tab-content pages (not wrapped in PageLayout).
+    classification: header
+    used_in_flows:
+      - manage-virtual-machines
+      - manage-networks
+      - manage-public-ips
+      - manage-cluster-offerings
+      - manage-catalog-items
+    composes:
+      - Title, Flex, FlexItem, Content (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: KpiHeader
+    file: libs/ui-components/src/headers/KpiHeader.tsx
+    ux_role: kpi_bar
+    ux_role_description: >-
+      Horizontal strip of label:value KPI pairs (e.g. Power state, vCPU, Memory, IP).
+      Used in VM detail page header area.
+    classification: header
+    used_in_flows: [manage-virtual-machines]
+    composes:
+      - Flex, FlexItem, Title, Content (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Tables ────────────────────────────────────────────────────────────────
+
+  - name: ObjectsTable
+    file: libs/ui-components/src/components/tables/ObjectsTable.tsx
+    ux_role: data_table
+    ux_role_description: >-
+      Generic paginated PF Table wrapper.  Accepts column definitions (ObjectsTableColumn[])
+      with render functions; handles row click, disabled rows, and default pagination
+      (defaultPageSize=10).
+    classification: data_display
+    used_in_flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-public-ips
+      - manage-agents
+      - manage-catalog-items
+      - manage-baremetal
+      - manage-provider-public-ip-pools
+    composes:
+      - Table, Thead, Tbody, Tr, Th, Td, Pagination (@patternfly/react-table, @patternfly/react-core)
+    design_system_gaps: []
+
+  - name: CustomTableLink
+    file: libs/ui-components/src/components/tables/CustomTableLink.tsx
+    ux_role: table_cell_link
+    ux_role_description: >-
+      Link-styled button for table name cells.  Supports isDisabled prop to prevent
+      navigation while operations are pending (pending delete, etc.).
+    classification: data_display
+    used_in_flows:
+      - manage-virtual-machines
+      - manage-clusters
+      - manage-storage-volumes
+      - manage-storage-tiers
+      - manage-baremetal
+    composes:
+      - Button variant=link (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Cards ─────────────────────────────────────────────────────────────────
+
+  - name: CardActive
+    file: libs/ui-components/src/components/cards/CardActive.tsx
+    ux_role: clickable_accent_card
+    ux_role_description: >-
+      Interactive card with accent colour strip (tone: blue/magenta/neutral).
+      Used for persona selection on the welcome page.
+    classification: card
+    used_in_flows: [welcome-and-role-selection]
+    composes:
+      - Card, CardBody, CardTitle (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: CatalogItemCard
+    file: libs/ui-components/src/components/catalogitem/CatalogItemCard.tsx
+    ux_role: catalog_gallery_card
+    ux_role_description: >-
+      Catalog item display card — icon, title, description, type badge, workload
+      profile chips.  Used in tenant catalog gallery.
+    classification: card
+    used_in_flows: [tenant-catalog]
+    composes:
+      - Card, CardBody, CardFooter, CardTitle, Gallery (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: MetricCard
+    file: libs/ui-components/src/components/cards/MetricCard.tsx
+    ux_role: metric_display_card
+    ux_role_description: Single-metric card (label + value + optional trend).
+    classification: card
+    used_in_flows: []
+    composes:
+      - Card (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: SparklineCard
+    file: libs/ui-components/src/components/cards/SparklineCard.tsx
+    ux_role: sparkline_card
+    ux_role_description: Metric card with embedded sparkline chart.
+    classification: card
+    used_in_flows: []
+    composes:
+      - Card, Chart (@patternfly/react-core, @patternfly/react-charts)
+    design_system_gaps: []
+
+  # ── Labels / Status ───────────────────────────────────────────────────────
+
+  - name: VmStatusLabel
+    file: libs/ui-components/src/vms/VmStatusLabel.tsx
+    ux_role: status_label
+    ux_role_description: >-
+      Coloured PF Label for VmPowerState values.  Maps states to colours:
+      running=green, stopped=grey, starting/stopping/restarting=blue (pending),
+      error=red, creating/still_provisioning=orange.
+    classification: status
+    used_in_flows: [manage-virtual-machines]
+    composes:
+      - Label (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: ClusterStatusLabel
+    file: libs/ui-components/src/clusters/ClusterStatusLabel.tsx
+    ux_role: status_label
+    ux_role_description: >-
+      Coloured PF Label for ClusterState values.  READY=green, PROGRESSING=blue,
+      FAILED/UPGRADE_FAILED=red, UPGRADING=orange.
+    classification: status
+    used_in_flows: [manage-clusters]
+    composes:
+      - Label (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: UnavailableRow
+    file: libs/ui-components/src/clusters/UnavailableRow.tsx
+    ux_role: table_row_placeholder
+    ux_role_description: Placeholder row for unavailable or loading cluster data.
+    classification: status
+    used_in_flows: [manage-clusters]
+    composes:
+      - Tr, Td (@patternfly/react-table)
+    design_system_gaps: []
+
+  # ── Networking ────────────────────────────────────────────────────────────
+
+  - name: NetworkTopology
+    file: libs/ui-components/src/networks/NetworkTopology.tsx
+    ux_role: topology_canvas
+    ux_role_description: >-
+      PatternFly react-topology DAG canvas for VN → Subnet → VM visualisation.
+      Re-exported from libs for use in NetworksPage.
+    classification: data_visualisation
+    used_in_flows: [manage-networks]
+    composes:
+      - VisualizationProvider, TopologyView, TopologyControlBar (@patternfly/react-topology)
+    design_system_gaps: []
+
+  - name: PublicIpField
+    file: libs/ui-components/src/components/networks/PublicIpField.tsx
+    ux_role: form_field
+    ux_role_description: Form field for public IP selection/display.
+    classification: form
+    used_in_flows: [manage-public-ips]
+    composes:
+      - FormGroup, TextInput (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Baremetal ─────────────────────────────────────────────────────────────
+
+  - name: RequestBareMetalWizard
+    file: libs/ui-components/src/components/baremetal/RequestBareMetalWizard.tsx
+    ux_role: provisioning_wizard
+    ux_role_description: >-
+      Multi-step wizard for requesting a baremetal instance — catalog item selection,
+      configuration (sshKey, zone, image, network), and review.
+    classification: wizard
+    used_in_flows: [manage-baremetal]
+    composes:
+      - Modal, Wizard, WizardStep, Form, FormGroup (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Studio ────────────────────────────────────────────────────────────────
+
+  - name: CatalogItemStudio
+    file: libs/ui-components/src/components/studio/CatalogItemStudio.tsx
+    ux_role: admin_studio
+    ux_role_description: >-
+      Split-pane catalog item editor — left: FieldDefinitionBuilder form; right:
+      CatalogFormPreview live preview.  Used for tenant admin catalog item CRUD.
+    classification: admin_editor
+    used_in_flows: [manage-catalog-items]
+    composes:
+      - Form, FormGroup, TextInput, TextArea (@patternfly/react-core)
+      - CatalogFormPreview, FieldDefinitionBuilder (libs/ui-components)
+    design_system_gaps: []
+
+  - name: CatalogFormPreview
+    file: libs/ui-components/src/components/studio/CatalogFormPreview.tsx
+    ux_role: live_preview
+    ux_role_description: Live preview panel of a catalog item form inside CatalogItemStudio.
+    classification: admin_editor
+    used_in_flows: [manage-catalog-items]
+    composes:
+      - Card, Form (@patternfly/react-core)
+    design_system_gaps: []
+
+  - name: FieldDefinitionBuilder
+    file: libs/ui-components/src/components/studio/FieldDefinitionBuilder.tsx
+    ux_role: form_builder
+    ux_role_description: >-
+      Dynamic field definition editor for catalog items.  Allows adding/removing/editing
+      field definitions (name, type, label, required, options).
+    classification: admin_editor
+    used_in_flows: [manage-catalog-items]
+    composes:
+      - Form, FormGroup, TextInput, Select, Button (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Theme ─────────────────────────────────────────────────────────────────
+
+  - name: LightDarkToggle
+    file: libs/ui-components/src/components/LightDarkToggle.tsx
+    ux_role: theme_toggle
+    ux_role_description: >-
+      Light/dark mode toggle.  Rendered on welcome page and in sidebar footer.
+      Calls setIsDarkTheme from SessionContext.
+    classification: utility
+    used_in_flows: [welcome-and-role-selection, application-shell-session]
+    composes:
+      - Switch (@patternfly/react-core)
+    design_system_gaps: []
+
+  # ── Gallery ───────────────────────────────────────────────────────────────
+
+  - name: TemplatesGallery
+    file: libs/ui-components/src/components/TemplatesGallery.tsx
+    ux_role: template_gallery
+    ux_role_description: Grid gallery of ClusterTemplate cards for the cluster template browser.
+    classification: data_display
+    used_in_flows: [manage-clusters]
+    composes:
+      - Gallery, Card (@patternfly/react-core)
+    design_system_gaps: []

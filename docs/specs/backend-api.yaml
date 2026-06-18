@@ -1,0 +1,518 @@
+# OSAC UI — Backend API Specification
+# Extracted from: apps/app-backend/src/routes/*.ts, libs/api-contracts/src/types.ts,
+#   libs/api-contracts/src/index.ts (mock data exports), SessionContext.tsx
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+#
+# This file documents the API surface consumed by the SPA (app-frontend) via the
+# BFF (app-backend/Fastify).  Wire format notes, endpoint inventory, and per-flow
+# data requirements are all derived from actual code.
+
+version: 2
+id: osac-ui-backend-api
+
+architecture:
+  bff:
+    name: app-backend
+    framework: Fastify (Node.js)
+    run_modes:
+      mock:
+        env: OSAC_API_MODE=mock
+        description: >-
+          All /api/* routes return in-memory mock data seeded from @osac/api-contracts
+          DEMO_* constants and in-process stores.
+      dev:
+        env: OSAC_API_MODE=dev
+        description: >-
+          BFF proxies /api/fulfillment/v1/* and /api/events/v1/* to
+          FULFILLMENT_API_URL (upstream gRPC-Gateway).  Buffers full response body
+          before replying (Undici workaround).
+    base_url: http://localhost:<BFF_PORT>
+    code_ref: apps/app-backend/src/app.ts
+
+  wire_format:
+    notes: >-
+      BFF mock routes return camelCase TypeScript objects (same shape as
+      libs/api-contracts/src/types.ts ComputeInstance, Cluster, etc.).
+      Live upstream uses PROTO_JSON snake_case (e.g. memory_gib, creation_timestamp,
+      COMPUTE_INSTANCE_STATE_RUNNING).  normalizeComputeInstance() in api-contracts
+      handles the conversion at the API client boundary.
+    enum_format: PROTO_JSON SCREAMING_SNAKE strings on upstream wire (e.g. CLUSTER_STATE_READY).
+
+# ---------------------------------------------------------------------------
+# Endpoint inventory (all from BFF prefix /api/fulfillment/v1)
+# ---------------------------------------------------------------------------
+
+endpoints:
+  capabilities:
+    - method: GET
+      path: /api/fulfillment/v1/capabilities
+      response: FulfillmentCapabilities
+      notes: Returns trustedTokenIssuers list; empty in mock mode.
+
+  compute_instances:
+    - method: GET
+      path: /api/fulfillment/v1/compute_instances
+      query: [filter, limit, offset]
+      response: PageOfT<ComputeInstance>
+      code_ref: apps/app-backend/src/routes/fulfillment.ts
+
+    - method: GET
+      path: /api/fulfillment/v1/compute_instances/:id
+      response: ComputeInstance
+
+    - method: POST
+      path: /api/fulfillment/v1/compute_instances
+      body: ComputeInstance (bare object; legacy { object } wrapper also accepted)
+      response: "{ object: ComputeInstance }"
+      notes: >-
+        Status set to COMPUTE_INSTANCE_STATE_STARTING on create.
+        normalizeComputeInstance() applied before storing.
+
+    - method: PATCH
+      path: /api/fulfillment/v1/compute_instances/:id
+      body: Partial<ComputeInstance>
+      response: "{ object: ComputeInstance }"
+      notes: Power action patch merges spec.runStrategy or status.state.
+
+    - method: DELETE
+      path: /api/fulfillment/v1/compute_instances/:id
+      response: "{}"
+
+  compute_instance_templates:
+    - method: GET
+      path: /api/fulfillment/v1/compute_instance_templates
+      query: [filter, limit, offset]
+      response: PageOfT<ClusterTemplate>
+      notes: VM template gallery and CreateVmWizard template step share this endpoint.
+
+    - method: GET
+      path: /api/fulfillment/v1/compute_instance_templates/:id
+      response: ClusterTemplate
+
+  organizations:
+    - method: GET
+      path: /api/fulfillment/v1/organizations
+      response: PageOfT<Organization>
+
+  clusters:
+    - method: GET
+      path: /api/fulfillment/v1/clusters
+      query: [filter, limit, offset]
+      response: PageOfT<Cluster>
+
+    - method: GET
+      path: /api/fulfillment/v1/clusters/:id
+      response: Cluster
+
+    - method: POST
+      path: /api/fulfillment/v1/clusters
+      body: Partial<Cluster>
+      response: Cluster
+      notes: Creates with state CLUSTER_STATE_PROGRESSING; schedules auto-progression.
+
+    - method: PATCH
+      path: /api/fulfillment/v1/clusters/:id
+      body: Partial<Cluster>
+      response: Cluster
+
+    - method: DELETE
+      path: /api/fulfillment/v1/clusters/:id
+      response: "{}"
+
+    - method: POST
+      path: /api/fulfillment/v1/clusters/:id/upgrade
+      body: "{ target_version: string }"
+      response: Cluster
+      notes: Requires CLUSTER_STATE_READY; transitions to CLUSTER_STATE_UPGRADING.
+
+    - method: GET
+      path: /api/fulfillment/v1/clusters/:id/kubeconfig
+      response: YAML string (Content-Disposition attachment)
+      notes: Requires CLUSTER_STATE_READY.
+
+  cluster_catalog_items:
+    - method: GET
+      path: /api/fulfillment/v1/cluster_catalog_items
+      query: [filter, limit, offset]
+      response: PageOfT<ClusterCatalogItem>
+      notes: Returns published items only.
+
+    - method: GET
+      path: /api/fulfillment/v1/cluster_catalog_items/:id
+      response: ClusterCatalogItem
+
+  agents:
+    - method: GET
+      path: /api/fulfillment/v1/agents
+      query: [limit, offset]
+      response: PageOfT<Agent>
+
+    - method: POST
+      path: /api/fulfillment/v1/agents/:id/provision
+      response: Agent
+      notes: Requires AGENT_STATE_AVAILABLE; transitions PROVISIONING → PROVISIONED in ~5s.
+
+    - method: POST
+      path: /api/fulfillment/v1/agents/:id/deprovision
+      response: Agent
+      notes: Requires AGENT_STATE_PROVISIONED; transitions DEPROVISIONING → AVAILABLE in ~5s.
+
+  storage_tiers:
+    - method: GET
+      path: /api/fulfillment/v1/storage_tiers
+      response: PageOfT<StorageTier>
+
+    - method: PATCH
+      path: /api/fulfillment/v1/storage_tiers/:id
+      body: Partial<StorageTier>
+      response: StorageTier
+
+  storage_backends:
+    - method: GET
+      path: /api/fulfillment/v1/storage_backends
+      response: PageOfT<StorageBackend>
+
+    - method: GET
+      path: /api/fulfillment/v1/storage_backends/:id
+      response: StorageBackend
+
+    - method: POST
+      path: /api/fulfillment/v1/storage_backends
+      body: Partial<StorageBackend>
+      response: StorageBackend
+      status: 201
+
+  org_storage_statuses:
+    - method: GET
+      path: /api/fulfillment/v1/org_storage_statuses
+      response: PageOfT<OrgStorageStatus>
+
+    - method: GET
+      path: /api/fulfillment/v1/org_storage_statuses/:orgId
+      response: OrgStorageStatus
+
+  storage_volumes:
+    - method: GET
+      path: /api/fulfillment/v1/storage_volumes
+      query: [orgId]
+      response: PageOfT<StorageVolume>
+
+    - method: POST
+      path: /api/fulfillment/v1/storage_volumes
+      body: >-
+        { metadata: { name }, org_id, size_gi_b, tier_id, access_mode,
+          cluster_ref }  (snake_case accepted in mock)
+      response: StorageVolume
+      status: 201
+      notes: Creates with phase=Pending; transitions to phase=Bound/state=available after 2s.
+
+    - method: GET
+      path: /api/fulfillment/v1/storage_volumes/:id
+      response: StorageVolume
+
+    - method: PATCH
+      path: /api/fulfillment/v1/storage_volumes/:id
+      body: "{ size_gi_b?: number }"
+      response: StorageVolume
+
+    - method: DELETE
+      path: /api/fulfillment/v1/storage_volumes/:id
+      response: 204 No Content
+      notes: Returns 409 if volume state === in-use.
+
+  volume_snapshots:
+    - method: GET
+      path: /api/fulfillment/v1/storage_volumes/:volumeId/snapshots
+      response: PageOfT<VolumeSnapshot>
+
+    - method: POST
+      path: /api/fulfillment/v1/storage_volumes/:volumeId/snapshots
+      body: "{ name?, snapshot_class_name? }"
+      response: VolumeSnapshot
+      status: 201
+      notes: readyToUse=false initially; becomes true after 2s.
+
+    - method: DELETE
+      path: /api/fulfillment/v1/storage_volumes/:volumeId/snapshots/:id
+      response: 204 No Content
+
+    - method: POST
+      path: /api/fulfillment/v1/storage_volumes/:volumeId/snapshots/:id/restore
+      body: "{ name? }"
+      response: StorageVolume (new volume)
+      status: 201
+      notes: Creates a new volume cloned from snapshot; phase=Pending → Bound after 2s.
+
+  networking:
+    virtual_networks:
+      - method: GET
+        path: /api/fulfillment/v1/virtual_networks
+        response: PageOfT<VirtualNetwork>
+      - method: GET
+        path: /api/fulfillment/v1/virtual_networks/:id
+        response: VirtualNetwork
+      - method: POST
+        path: /api/fulfillment/v1/virtual_networks
+        body: "{ metadata: { name }, spec: { network_class?, ipv4_cidr?, ipv6_cidr? } }"
+        response: VirtualNetwork
+      - method: DELETE
+        path: /api/fulfillment/v1/virtual_networks/:id
+        response: 204 No Content
+        notes: Cascades deletion of associated subnets and security groups.
+
+    subnets:
+      - method: GET
+        path: /api/fulfillment/v1/subnets
+        query: [virtual_network_id]
+        response: PageOfT<Subnet>
+      - method: GET
+        path: /api/fulfillment/v1/subnets/:id
+        response: Subnet
+      - method: POST
+        path: /api/fulfillment/v1/subnets
+        body: "{ metadata: { name }, spec: { virtual_network, ipv4_cidr?, ipv6_cidr? } }"
+        response: Subnet
+      - method: DELETE
+        path: /api/fulfillment/v1/subnets/:id
+        response: 204 No Content
+
+    security_groups:
+      - method: GET
+        path: /api/fulfillment/v1/security_groups
+        response: PageOfT<SecurityGroup>
+      - method: GET
+        path: /api/fulfillment/v1/security_groups/:id
+        response: SecurityGroup
+      - method: POST
+        path: /api/fulfillment/v1/security_groups
+        body: "{ metadata: { name }, spec: { virtual_network } }"
+        response: SecurityGroup
+      - method: DELETE
+        path: /api/fulfillment/v1/security_groups/:id
+        response: 204 No Content
+      - method: PATCH
+        path: /api/fulfillment/v1/security_groups/:id
+        body: "{ spec: { ingress?: SecurityRule[], egress?: SecurityRule[] } }"
+        response: SecurityGroup
+        notes: Inferred from useUpdateSecurityGroup hook in NetworksPage.
+
+    network_classes:
+      - method: GET
+        path: /api/fulfillment/v1/network_classes
+        response: PageOfT<NetworkClass>
+        notes: Read-only.
+
+    public_ips:
+      - method: GET
+        path: /api/fulfillment/v1/public_ips
+        response: PageOfT<PublicIP>
+      - method: GET
+        path: /api/fulfillment/v1/public_ips/:id
+        response: PublicIP
+      - method: POST
+        path: /api/fulfillment/v1/public_ips
+        body: "{ metadata: { name }, spec: { pool } }"
+        response: PublicIP
+      - method: PATCH
+        path: /api/fulfillment/v1/public_ips/:id
+        body: "{ spec: { compute_instance: string | null } }"
+        response: PublicIP
+        notes: >-
+          Attach (compute_instance = vm id) → state ATTACHED.
+          Detach (compute_instance = null) → state ALLOCATED.
+      - method: DELETE
+        path: /api/fulfillment/v1/public_ips/:id
+        response: 204 No Content
+
+    public_ip_pools:
+      - method: GET
+        path: /api/fulfillment/v1/public_ip_pools
+        response: PageOfT<PublicIPPool>
+        notes: Read-only; provider-seeded.
+
+  wizard_session:
+    notes: >-
+      BFF wizard session endpoints are NOT under /api/fulfillment/v1; they are separate
+      routes managed by apps/app-backend/src/routes/createVmWizard.ts.
+    - method: POST
+      path: /api/wizard/v1/sessions
+      body: "{ entry: 'dashboard'|'catalog'|'clone_drawer', presetTemplateId?, presetCloneSourceVmId? }"
+      response: WizardSessionResponse
+
+    - method: POST
+      path: /api/wizard/v1/sessions/:sessionId/advance
+      body: "{ stepId, draft: WizardState }"
+      response: WizardSessionResponse
+
+    - method: POST
+      path: /api/wizard/v1/sessions/:sessionId/back
+      response: WizardSessionResponse
+
+    - method: POST
+      path: /api/wizard/v1/sessions/:sessionId/finalize
+      body: WizardState (draft)
+      response: "{ object: ComputeInstance }"
+
+    - method: POST
+      path: /api/wizard/v1/sessions/:sessionId/abandon
+      response: "{}"
+
+  console:
+    notes: Demo console session — standalone window with ?demo=vm-console param.
+    - method: POST
+      path: /api/console/v1/sessions
+      body: "{ vmId, vmName, os }"
+      response: ConsoleAccess
+      code_ref: apps/app-backend/src/routes/console.ts
+
+  events:
+    - method: GET
+      path: /api/events/v1/events
+      query: [limit, offset]
+      response: PageOfT<OsacEvent> (mock) | SSE stream (dev)
+      code_ref: apps/app-backend/src/routes/events.ts
+      notes: >-
+        In mock mode: static paginated JSON array.
+        In dev mode: proxy to upstream watch stream (chunked JSON).
+
+# ---------------------------------------------------------------------------
+# Data requirements by flow
+# ---------------------------------------------------------------------------
+
+data_requirements_by_flow:
+  welcome-and-role-selection:
+    reads: []
+    writes: []
+    notes: Pure client-side session state.
+
+  institutional-sign-in:
+    reads:
+      - GET /api/fulfillment/v1/capabilities  # optional — trusted issuers
+    writes: []
+
+  application-shell-session:
+    reads:
+      - GET /api/events/v1/events  # masthead bell badge count (dev mode)
+
+  tenant-catalog:
+    reads:
+      - GET /api/fulfillment/v1/compute_instance_templates
+      - catalogItemsStore (client-side DEMO_CATALOG_ITEMS)
+
+  manage-virtual-machines:
+    reads:
+      - GET /api/fulfillment/v1/compute_instances
+    writes:
+      - POST /api/fulfillment/v1/compute_instances  # via wizard finalize
+      - PATCH /api/fulfillment/v1/compute_instances/:id  # power actions
+      - DELETE /api/fulfillment/v1/compute_instances/:id
+
+  create-virtual-machine-wizard:
+    reads:
+      - GET /api/fulfillment/v1/compute_instance_templates
+    writes:
+      - POST /api/wizard/v1/sessions
+      - POST /api/wizard/v1/sessions/:id/advance
+      - POST /api/wizard/v1/sessions/:id/back
+      - POST /api/wizard/v1/sessions/:id/finalize  # → POST compute_instances
+      - POST /api/wizard/v1/sessions/:id/abandon
+
+  manage-clusters:
+    reads:
+      - GET /api/fulfillment/v1/clusters
+      - GET /api/fulfillment/v1/clusters/:id
+      - GET /api/fulfillment/v1/cluster_catalog_items
+    writes:
+      - POST /api/fulfillment/v1/clusters
+      - PATCH /api/fulfillment/v1/clusters/:id
+      - DELETE /api/fulfillment/v1/clusters/:id
+      - POST /api/fulfillment/v1/clusters/:id/upgrade
+      - GET /api/fulfillment/v1/clusters/:id/kubeconfig
+
+  manage-networks:
+    reads:
+      - GET /api/fulfillment/v1/virtual_networks
+      - GET /api/fulfillment/v1/subnets
+      - GET /api/fulfillment/v1/security_groups
+      - GET /api/fulfillment/v1/network_classes
+      - GET /api/fulfillment/v1/compute_instances  # topology VM overlay
+    writes:
+      - POST/DELETE /api/fulfillment/v1/virtual_networks
+      - POST/DELETE /api/fulfillment/v1/subnets
+      - POST/PATCH/DELETE /api/fulfillment/v1/security_groups
+
+  manage-public-ips:
+    reads:
+      - GET /api/fulfillment/v1/public_ips
+      - GET /api/fulfillment/v1/public_ip_pools
+      - GET /api/fulfillment/v1/compute_instances  # attach target list
+    writes:
+      - POST /api/fulfillment/v1/public_ips
+      - PATCH /api/fulfillment/v1/public_ips/:id
+      - DELETE /api/fulfillment/v1/public_ips/:id
+
+  manage-storage-volumes:
+    reads:
+      - GET /api/fulfillment/v1/storage_volumes
+      - GET /api/fulfillment/v1/storage_tiers
+      - GET /api/fulfillment/v1/clusters
+      - GET /api/fulfillment/v1/storage_volumes/:id/snapshots
+    writes:
+      - POST /api/fulfillment/v1/storage_volumes
+      - DELETE /api/fulfillment/v1/storage_volumes/:id
+      - POST /api/fulfillment/v1/storage_volumes/:id/snapshots
+      - DELETE /api/fulfillment/v1/storage_volumes/:id/snapshots/:sid
+      - POST /api/fulfillment/v1/storage_volumes/:id/snapshots/:sid/restore
+
+  manage-storage-tiers:
+    reads:
+      - GET /api/fulfillment/v1/storage_tiers
+      - GET /api/fulfillment/v1/storage_backends
+    writes:
+      - PATCH /api/fulfillment/v1/storage_tiers/:id
+      - POST /api/fulfillment/v1/storage_tiers  # create — providerAdmin only
+        # NOTE: create storage tier endpoint inferred from useCreateStorageTier hook;
+        # not in fulfillment.ts at time of extraction — TODO: confirm with product
+
+  manage-storage-backends:
+    reads:
+      - GET /api/fulfillment/v1/storage_backends
+      - GET /api/fulfillment/v1/storage_backends/:id
+      - GET /api/fulfillment/v1/org_storage_statuses
+    writes:
+      - POST /api/fulfillment/v1/storage_backends
+
+  manage-agents:
+    reads:
+      - GET /api/fulfillment/v1/agents
+    writes:
+      - POST /api/fulfillment/v1/agents/:id/provision
+      - POST /api/fulfillment/v1/agents/:id/deprovision
+
+  manage-baremetal:
+    reads:
+      - BARE_METAL_INSTANCES (client-side mock constant)
+      - catalogItemsStore (BareMetalInstanceCatalogItem)
+    writes:
+      - RequestBareMetalWizard creates via catalogItemsStore local state (mock only)
+
+  recent-activities:
+    reads:
+      - GET /api/events/v1/events
+
+  vm-console-demo:
+    reads: []
+    writes:
+      - POST /api/console/v1/sessions  # opens terminal session
+
+# ---------------------------------------------------------------------------
+# Browser security notes
+# ---------------------------------------------------------------------------
+
+browser_security:
+  - The browser SPA never calls the upstream fulfillment gRPC-Gateway directly.
+    All calls go via BFF (/api/*) which holds credentials.
+  - In dev mode, BFF uses a static bearer token (TEMP_FULFILLMENT_STATIC_BEARER)
+    as a workaround until Authorino / OIDC is wired.
+  - Console sessions are opened in a new tab (noopener,noreferrer).
+  - No local storage of credentials; clearAccessToken() clears auth on logout.

@@ -1,0 +1,257 @@
+# OSAC UI — Design System Policy
+# Extends the OSAC demo baseline design-system from specs/original/design-system.yaml.
+# Repo-specific discoveries from osac-ui are added below; baseline policy is preserved.
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+
+version: 2
+id: osac-ui-design-system-patternfly-6
+title: PatternFly 6 design system for OSAC UI (osac-ui monorepo)
+
+# ---------------------------------------------------------------------------
+# Baseline — inherited from specs/original/design-system.yaml
+# ---------------------------------------------------------------------------
+
+system:
+  name: PatternFly
+  major_version: 6
+  stack: React 19
+  documentation:
+    primary: https://www.patternfly.org/
+    foundations: https://www.patternfly.org/design-foundations/about-design-foundations
+    develop_react: https://www.patternfly.org/develop/react-developer-resources
+
+# ---------------------------------------------------------------------------
+# Package versions (actual — from apps/app-frontend/package.json)
+# ---------------------------------------------------------------------------
+
+packages:
+  actual_versions:
+    patternfly: "^6.4.0"
+    react_core: "^6.4.1"
+    react_icons: "^6.4.0"
+    react_table: "^6.4.0"
+    react_topology: "^6.5.0"
+    react_charts: "^8.0.0"
+    victory: "^37.3.6"              # peer dep for react-charts
+    emotion_css: "^11.13.5"         # scoped CSS utility (used alongside PF tokens)
+    react: "^19.2.4"
+    react_router_dom: "^7.0.0"
+    tanstack_react_query: "^5.0.0"
+    msw: "^2.14.6"                  # mock service worker (VITE_MSW=true dev mode)
+
+  required:
+    - name: "@patternfly/patternfly"
+      use_for: Base styles, design tokens, global CSS custom properties
+    - name: "@patternfly/react-core"
+      use_for: >-
+        Page, Masthead, PageSection, Sidebar, Modal, Wizard, Tabs, Tab, Form,
+        FormGroup, TextInput, SearchInput, ToggleGroup, Alert, Button, Label,
+        Spinner, Breadcrumb, EmptyState, Flex, Stack, Grid, Gallery, Pagination
+    - name: "@patternfly/react-icons"
+      use_for: Masthead, action icons (ServerIcon, CogIcon, CloudIcon, etc.)
+    - name: "@patternfly/react-table"
+      use_for: Table, Thead, Tbody, Tr, Th, Td, ActionsColumn
+
+  optional:
+    - name: "@patternfly/react-charts"
+      use_for: >-
+        Donut / line charts.  Import from @patternfly/react-charts/victory.
+        victory-* packages are peer deps resolved automatically by pnpm.
+    - name: "@patternfly/react-topology"
+      use_for: >-
+        NetworksPage topology tab — Visualization, VisualizationProvider,
+        TopologyView, TopologyControlBar, DagreLayout.  Required CSS:
+        import '@patternfly/react-topology/dist/esm/css/topology-components.css'.
+
+  custom_tooling:
+    emotion_css: >-
+      @emotion/css (css`...` tagged template) is used for scoped utility CSS alongside
+      PF tokens.  Co-located with component files.  PF design tokens
+      (var(--pf-t--global--spacer--*), var(--pf-t--global--text--color--*), etc.)
+      are used inside emotion CSS strings.  Do NOT use React inline style={} for
+      layout or spacing.
+
+# ---------------------------------------------------------------------------
+# Layout and shell policy
+# ---------------------------------------------------------------------------
+
+layout_and_shell:
+  shell_pattern:
+    component: Page              # @patternfly/react-core
+    props: [masthead, sidebar, breadcrumb, isManagedSidebar]
+    code_ref: apps/app-frontend/src/pages/AppShell.tsx
+
+  page_content_pattern:
+    preferred: PageLayout        # libs/ui-components/src/layout/PageLayout.tsx
+    fallback: PageSection        # @patternfly/react-core (direct, for detail pages)
+    notes: >-
+      PageLayout wraps PageSection with a standardised title + description + actions
+      row (ActionRow) and optional children.  Use for all list pages.
+      Detail pages (VmDetailPage, ClusterDetailPage) use PageSection isFilled directly
+      because they need full-bleed Stack layout.
+
+  document_scroll:
+    policy: >-
+      The osac-ui repo does not ship a global.css in public — scrollport rules are
+      applied in-component via PatternFly Page isManagedSidebar.  AppShell renders
+      inside React Router's root route.  Unauthenticated layouts (WelcomePage,
+      InstitutionalSignInPage) should use Bullseye or Stack + StackItem, not
+      min-height: 100dvh wrappers inside a Page.
+    code_refs:
+      - apps/app-frontend/src/App.tsx
+
+  breadcrumb:
+    implementation: ShellBreadcrumb
+    activation: isRecentActivities (when pathname === '/activities')
+    code_ref: apps/app-frontend/src/pages/shell/ShellBreadcrumb.tsx
+    notes: >-
+      Currently breadcrumb is only rendered for /activities.  Detail pages
+      (VmDetailPage, ClusterDetailPage) render their own PF Breadcrumb inline.
+
+# ---------------------------------------------------------------------------
+# Design tokens and theming
+# ---------------------------------------------------------------------------
+
+tokens:
+  source: PatternFly 6 CSS custom properties (var(--pf-t--global--*))
+  theme_toggle:
+    dark_class: pf-v6-theme-dark (added to document.documentElement)
+    data_attribute: data-osac-theme = 'dark' | 'light'
+    code_ref: apps/app-frontend/src/contexts/SessionContext.tsx (useLayoutEffect)
+  commonly_used:
+    spacer_md: var(--pf-t--global--spacer--md)
+    spacer_2xl: var(--pf-t--global--spacer--2xl)
+    text_subtle: var(--pf-t--global--text--color--subtle)
+    border_default: var(--pf-t--global--border--color--default)
+    border_radius_medium: var(--pf-t--global--border--radius--medium)
+    background_primary: var(--pf-t--global--background--color--primary--default)
+    background_secondary: var(--pf-t--global--background--color--secondary--default)
+
+# ---------------------------------------------------------------------------
+# Accessibility
+# ---------------------------------------------------------------------------
+
+accessibility:
+  standard: WCAG 2.1 AA
+  practices:
+    - Use aria-label on all Icon-only buttons and actions columns
+    - Use aria-labelledby on Modals (ModalHeader labelId prop)
+    - SearchInput: set aria-label matching visible placeholder
+    - ToggleGroup / ToggleGroupItem: set aria-label on ToggleGroup
+    - Spinner: always set aria-label
+    - Tabs: set aria-label on Tabs component
+    - Table: set aria-label on Table component; Th aria-label for icon-only headers
+    - EmptyState / EmptyStateBody: use for zero-data states, not loading
+  code_example_ref: apps/app-frontend/src/pages/services/vms/VmsPage.tsx
+
+# ---------------------------------------------------------------------------
+# Topology canvas (react-topology)
+# ---------------------------------------------------------------------------
+
+topology_canvas:
+  library: "@patternfly/react-topology ^6.5.0"
+  layout: DagreLayout (rankdir LR, ranksep 100, nodesep 40, marginx 30, marginy 30)
+  required_css_import: "@patternfly/react-topology/dist/esm/css/topology-components.css"
+  node_pattern: >-
+    Custom SVG node (OsacTopoNode) — rect + dot colour + name text + description text.
+    nodeType drives dot colour: vnet=#0066cc, subnet=#3e8635, vm=#f0ab00.
+  edge_pattern: >-
+    Custom SVG path (OsacTopoEdge) — stroke #cfe1f5, strokeWidth 2.
+  canvas_container:
+    height: 480px
+    border: 1px solid var(--pf-t--global--border--color--default)
+    border_radius: var(--pf-t--global--border--radius--medium)
+    overflow: hidden
+    background: var(--pf-t--global--background--color--secondary--default)
+  code_ref: apps/app-frontend/src/pages/administration/NetworksPage.tsx (NetworkTopologyTab)
+
+# ---------------------------------------------------------------------------
+# Storybook
+# ---------------------------------------------------------------------------
+
+storybook:
+  present: false
+  notes: >-
+    No storybook app found in the osac-ui monorepo at time of extraction.
+    ui-components README.md references README docs; no storybook/ app discovered.
+
+# ---------------------------------------------------------------------------
+# Flow component mapping
+# ---------------------------------------------------------------------------
+
+flow_component_mapping:
+  # Maps logical component names (FLOW-INDEX reusable_components_across_flows) to PF primitives.
+  PageLayout:
+    pf_primitives: [PageSection]
+    lib_file: libs/ui-components/src/layout/PageLayout.tsx
+    slots: [title, description, actions, children]
+    used_in_flows: [manage-virtual-machines, manage-clusters, manage-baremetal, manage-storage-volumes, manage-storage-tiers, tenant-catalog, manage-agents]
+
+  PageHeader:
+    pf_primitives: [Title, Flex, FlexItem, Content]
+    lib_file: libs/ui-components/src/headers/PageHeader.tsx
+    used_in_flows: [manage-virtual-machines, manage-networks, manage-public-ips, manage-cluster-offerings]
+
+  KpiHeader:
+    pf_primitives: [Flex, FlexItem, Title, Content]
+    lib_file: libs/ui-components/src/headers/KpiHeader.tsx
+    used_in_flows: [manage-virtual-machines]
+    notes: Horizontal KPI bar with label:value pairs.
+
+  ObjectsTable:
+    pf_primitives: [Table, Thead, Tbody, Tr, Th, Td, Pagination]
+    lib_file: libs/ui-components/src/components/tables/ObjectsTable.tsx
+    used_in_flows: [manage-virtual-machines, manage-clusters, manage-public-ips, manage-agents, manage-catalog-items, manage-baremetal]
+    notes: Generic paginated table; column config via ObjectsTableColumn[].
+
+  CustomTableLink:
+    pf_primitives: [Button variant=link]
+    lib_file: libs/ui-components/src/components/tables/CustomTableLink.tsx
+    used_in_flows: [manage-virtual-machines, manage-clusters, manage-storage-volumes]
+
+  VmStatusLabel:
+    pf_primitives: [Label]
+    lib_file: libs/ui-components/src/vms/VmStatusLabel.tsx
+    used_in_flows: [manage-virtual-machines]
+
+  ClusterStatusLabel:
+    pf_primitives: [Label]
+    lib_file: libs/ui-components/src/clusters/ClusterStatusLabel.tsx
+    used_in_flows: [manage-clusters]
+
+  CardActive:
+    pf_primitives: [Card, CardBody, CardTitle]
+    lib_file: libs/ui-components/src/components/cards/CardActive.tsx
+    used_in_flows: [welcome-and-role-selection]
+    notes: Clickable accent card for persona selection.
+
+  CatalogItemCard:
+    pf_primitives: [Card, CardBody, CardFooter, CardTitle, Gallery]
+    lib_file: libs/ui-components/src/components/catalogitem/CatalogItemCard.tsx
+    used_in_flows: [tenant-catalog]
+
+  RequestBareMetalWizard:
+    pf_primitives: [Modal, Wizard, WizardStep]
+    lib_file: libs/ui-components/src/components/baremetal/RequestBareMetalWizard.tsx
+    used_in_flows: [manage-baremetal]
+
+  LightDarkToggle:
+    pf_primitives: [Switch]
+    lib_file: libs/ui-components/src/components/LightDarkToggle.tsx
+    used_in_flows: [welcome-and-role-selection, application-shell-session]
+
+  PagePlaceholder:
+    pf_primitives: [EmptyState, EmptyStateBody, Title]
+    lib_file: libs/ui-components/src/layout/PagePlaceholder.tsx
+    used_in_flows: [application-shell-session]
+    notes: Used for all ADMIN_PLACEHOLDER_ROUTES and PROVIDER_PLACEHOLDER_ROUTES.
+
+  NetworkTopology:
+    pf_primitives: [VisualizationProvider, TopologyView, TopologyControlBar]
+    lib_file: libs/ui-components/src/networks/NetworkTopology.tsx
+    used_in_flows: [manage-networks]
+
+  CatalogItemStudio:
+    pf_primitives: [Form, FormGroup, TextInput, TextArea, Select, Preview]
+    lib_file: libs/ui-components/src/components/studio/CatalogItemStudio.tsx
+    used_in_flows: [manage-catalog-items]

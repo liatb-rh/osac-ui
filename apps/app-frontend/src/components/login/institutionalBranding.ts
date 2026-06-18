@@ -48,7 +48,7 @@ export const institutionalBrandingByTenant: Record<DemoTenantId, InstitutionalBr
     headerMark: {
       kind: 'letter',
       letter: 'T',
-      boxGradient: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+      boxGradient: 'linear-gradient(135deg,rgb(243, 132, 174), #E41578)',
       borderRadius: '10px',
     },
   },

@@ -1,0 +1,19 @@
+id: manage-agents
+title: Manage Agents Statechart
+source_flow: ../ui-flows/manage-agents.yaml
+rbac_ref: ../rbac.yaml
+initial: agt_list_view
+
+states:
+  agt_list_view:
+    permissions: [manage_agents]
+    on:
+      CLICK_PROVISION: { target: agt_list_view, guard: "agent.state === 'AGENT_STATE_AVAILABLE'" }
+      CLICK_DEPROVISION: { target: agt_list_view, guard: "agent.state === 'AGENT_STATE_PROVISIONED'" }
+      CLICK_AGENT: { target: agt_detail_page }
+  agt_detail_page:
+    permissions: [manage_agents]
+    on:
+      CLICK_BACK: { target: agt_list_view }
+ai-hints:
+  summary: Agent provision/deprovision are in-place actions; no modal needed.

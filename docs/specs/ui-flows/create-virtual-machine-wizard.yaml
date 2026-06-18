@@ -1,0 +1,162 @@
+# ui-flow: create-virtual-machine-wizard
+# statechart_ref: ../statecharts/create-virtual-machine-wizard.statechart.yaml
+# Generated: 2026-06-18  Blueprint Extraction Agent v1
+
+flow: create-virtual-machine-wizard
+title: Create Virtual Machine Wizard
+summary: >-
+  PatternFly Wizard inside a large Modal.  Active path: Templates → Customization → Review.
+  Controlled by BFF session API; each step advance/back is a server round-trip.
+statechart_ref: ../statecharts/create-virtual-machine-wizard.statechart.yaml
+rbac_ref: ../rbac.yaml
+
+rbac:
+  required_permissions_by_step:
+    cvm_wizard_template:
+      view_template_gallery: view_vms    # inherits from VM access
+      select_template: create_vm
+    cvm_wizard_customization:
+      submit_customization: create_vm
+    cvm_wizard_review:
+      confirm_create: create_vm
+
+steps:
+  - id: cvm_wizard_closed
+    title: Wizard closed
+    goal: Wizard is not mounted; modal not visible.
+    ui:
+      components: []
+    states:
+      closed: { description: Default idle state; no modal visible. }
+
+  - id: cvm_wizard_template
+    title: Template selection
+    goal: User selects a VM template from the gallery.
+    ui:
+      components:
+        - Modal (large, ~980px, aria-label="Create virtual machine wizard")
+        - ModalHeader (title="Create virtual machine")
+        - Wizard with WizardStep "Templates"
+        - TemplateStep (template gallery from GET compute_instance_templates)
+        - WizardFooterWrapper (Back[disabled], Next[disabled until template selected], Cancel)
+        - Spinner (while loading templates)
+        - Alert danger inline (API error)
+    states:
+      loading: { description: Spinner shown while GET compute_instance_templates in flight. }
+      templates_loaded: { description: Gallery of ClusterTemplate cards rendered. }
+      template_selected: { description: selectedTemplateId set; Next button enabled. }
+      api_error: { description: Alert danger "Could not continue" with error message. }
+    interactions:
+      - "Selecting a template card sets draft.selectedTemplateId."
+      - "Next calls POST .../advance; transitions to cvm_wizard_customization."
+      - "Cancel calls POST .../abandon then closes modal."
+    validation_rules:
+      - Next disabled if !state.selectedTemplateId
+
+  - id: cvm_wizard_customization
+    title: Customization
+    goal: User sets VM name, boot disk, compute resources, and additional disks.
+    ui:
+      components:
+        - WizardStep "Customization"
+        - CustomizationStep
+        - Fields: VM Name (TextInput), Boot disk GiB (NumberInput), Cores (NumberInput),
+          Memory GiB (NumberInput), Additional disks GiB (TextInput)
+        - WizardFooterWrapper (Back, Next[disabled until valid], Cancel)
+    states:
+      idle: { description: Form fields pre-populated from session draft. }
+      invalid: { description: One or more parse validations fail; Next disabled. }
+      valid: { description: All fields pass parseTemplate*Input; Next enabled. }
+      api_error: { description: Field errors from server rendered per-field or as _api alert. }
+    interactions:
+      - "Back calls POST .../back to return to template step."
+      - "Next calls POST .../advance with current draft values."
+    validation_rules:
+      - templateVmName must be non-empty (trimmed)
+      - templateBootDiskSizeGib must parse to valid number (parseTemplateBootDiskGibInput)
+      - templateCores must parse to valid number (parseTemplateCoresInput)
+      - templateMemoryGib must parse to valid number (parseTemplateMemoryGibInput)
+      - templateAdditionalDisksGibRaw must parse (parseTemplateAdditionalDisksGibInput)
+
+  - id: cvm_wizard_review
+    title: Review and create
+    goal: User reviews full VM spec and submits provisioning.
+    ui:
+      components:
+        - WizardStep "Review"
+        - ReviewStep (displays template, name, disk, CPU, memory summary)
+        - WizardFooterWrapper (Back, "Create virtual machine"[primary, isLoading when pending], Cancel)
+    states:
+      idle: { description: Review summary visible. }
+      submitting: { description: isReview=true; finalize in flight; Create button spinner. }
+      error: { description: Alert danger with creation error. }
+    interactions:
+      - "'Create virtual machine' calls POST .../finalize which returns { object: ComputeInstance }."
+      - "onProvision(vm, { mode }) fires; wizard closes; pending creation tracked in VmsPage."
+      - "Cancel calls POST .../abandon then closes."
+    validation_rules: []
+
+transitions:
+  - from: cvm_wizard_closed
+    to: cvm_wizard_template
+    event: OPEN_WIZARD
+    guard: can(role, "create_vm")
+
+  - from: cvm_wizard_closed
+    to: cvm_wizard_template
+    event: OPEN_FROM_TEMPLATE
+    guard: can(role, "create_vm")
+    notes: openFromTemplate(templateId) presets template; still starts at template step.
+
+  - from: cvm_wizard_template
+    to: cvm_wizard_customization
+    event: WIZARD_NEXT
+    guard: draft.selectedTemplateId != null
+
+  - from: cvm_wizard_customization
+    to: cvm_wizard_template
+    event: WIZARD_BACK
+
+  - from: cvm_wizard_customization
+    to: cvm_wizard_review
+    event: WIZARD_NEXT
+    guard: canProceedLocal('customization', draft)
+
+  - from: cvm_wizard_review
+    to: cvm_wizard_customization
+    event: WIZARD_BACK
+
+  - from: cvm_wizard_review
+    to: cvm_wizard_closed
+    event: WIZARD_FINALIZE
+    notes: Fires onProvision callback before closing.
+
+  - from: cvm_wizard_template
+    to: cvm_wizard_closed
+    event: WIZARD_CANCEL
+
+  - from: cvm_wizard_customization
+    to: cvm_wizard_closed
+    event: WIZARD_CANCEL
+
+  - from: cvm_wizard_review
+    to: cvm_wizard_closed
+    event: WIZARD_CANCEL
+
+implementation_status:
+  as_of: "2026-06-18"
+  code_refs:
+    - apps/app-frontend/src/components/vm/createVmWizard/CreateVmWizard.tsx
+    - apps/app-frontend/src/components/vm/createVmWizard/stepIds.ts
+    - apps/app-frontend/src/components/vm/createVmWizard/constants.ts
+    - apps/app-frontend/src/components/vm/createVmWizard/steps/TemplateStep.tsx
+    - apps/app-frontend/src/components/vm/createVmWizard/steps/CustomizationStep.tsx
+    - apps/app-frontend/src/components/vm/createVmWizard/steps/ReviewStep.tsx
+    - apps/app-frontend/src/api/createVmWizardClient.ts
+  deployment_variants: [standalone]
+  deferred:
+    - DeploymentStep (deployment mode picker — commented WIZARD_TEMPLATE_ONLY)
+    - GuestOsStep
+    - BootSourceStep
+    - ComputeStep
+    - CloneSourceStep

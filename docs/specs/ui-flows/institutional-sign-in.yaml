@@ -1,0 +1,74 @@
+# ui-flow: institutional-sign-in
+# statechart_ref: ../statecharts/institutional-sign-in.statechart.yaml
+# Generated: 2026-06-18
+
+flow: institutional-sign-in
+title: Institutional Sign-In
+summary: >-
+  Per-tenant branded sign-in page.  Accepts any email/password; 2s simulated delay
+  then routes to defaultRouteForRole.
+statechart_ref: ../statecharts/institutional-sign-in.statechart.yaml
+rbac_ref: ../rbac.yaml
+
+rbac:
+  required_permissions_by_step:
+    auth_sign_in_form:
+      submit: submit_sign_in
+
+steps:
+  - id: auth_sign_in_form
+    title: Sign-in form
+    goal: User authenticates (demo: any credentials accepted after 2s delay).
+    route: /sign-in or /institutional-sign-in (varies by implementation)
+    ui:
+      components:
+        - Page (unauthenticated, no sidebar)
+        - Card (branded header: logo or emoji mark + org name)
+        - LoginForm (Email, Password, Sign In button)
+        - Alert (branding tagline/description from institutionalBrandingByTenant)
+    states:
+      idle: { description: Form empty; Sign In button enabled. }
+      submitting:
+        description: >-
+          isLoginLoading=true (2s timeout); Sign In button spinner; fields disabled.
+      error:
+        description: >-
+          Not currently implemented in demo — any credentials succeed.
+          Placeholder for production error state.
+    interactions:
+      - "Submit calls loginSuccess(email, password) → 2s delay → setIsLoggedIn(true)
+         → onNavigateAfterLogin(role) → defaultRouteForRole."
+      - "Back link calls navigate to WelcomePage."
+    validation_rules:
+      - No client-side validation — empty passwords accepted in demo.
+
+  - id: auth_post_login_transition
+    title: Post-login navigation
+    goal: Navigate to role-appropriate default route.
+    ui:
+      components: [Spinner (loading overlay while 2s timer runs)]
+    states:
+      loading:
+        description: 2s simulated auth delay; isLoginLoading=true.
+    transitions_target_by_role:
+      providerAdmin: /agents
+      tenantAdmin: /admin/dashboard (→ SparsePlaceholderPage fallback)
+      tenantUser: /catalog-items
+
+transitions:
+  - from: auth_sign_in_form
+    to: auth_post_login_transition
+    event: SUBMIT_SIGN_IN
+
+  - from: auth_post_login_transition
+    to: shell_primary_workspace
+    event: LOGIN_COMPLETE
+
+implementation_status:
+  as_of: "2026-06-18"
+  code_refs:
+    - apps/app-frontend/src/pages/auth/InstitutionalSignInPage.tsx
+    - apps/app-frontend/src/pages/auth/SignInPage.tsx
+    - apps/app-frontend/src/components/login/LoginForm.tsx
+    - apps/app-frontend/src/components/login/institutionalBranding.ts
+  deployment_variants: [standalone]

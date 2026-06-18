@@ -1,0 +1,32 @@
+# statechart: manage-public-ips
+# Generated: 2026-06-18
+
+id: manage-public-ips
+title: Manage Public IPs Statechart
+source_flow: ../ui-flows/manage-public-ips.yaml
+rbac_ref: ../rbac.yaml
+initial: pip_list_view
+
+states:
+  pip_list_view:
+    permissions: [manage_public_ips]
+    on:
+      CLICK_ALLOCATE:
+        target: pip_allocate_modal
+        guard: can(role, "manage_public_ips")
+      CLICK_IP_NAME:
+        target: pip_detail_page
+
+  pip_allocate_modal:
+    permissions: [manage_public_ips]
+    on:
+      CONFIRM_ALLOCATE: { target: pip_list_view }
+      CANCEL: { target: pip_list_view }
+
+  pip_detail_page:
+    permissions: [manage_public_ips]
+    on:
+      CLICK_BACK: { target: pip_list_view }
+
+ai-hints:
+  summary: Public IP list. Allocate → modal; attach/detach are inline row actions.

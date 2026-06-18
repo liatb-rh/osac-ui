@@ -1,0 +1,84 @@
+# statechart: manage-networks
+# Generated: 2026-06-18
+
+id: manage-networks
+title: Manage Networks Statechart
+source_flow: ../ui-flows/manage-networks.yaml
+rbac_ref: ../rbac.yaml
+initial: net_topology_tab
+
+states:
+  net_topology_tab:
+    permissions: [manage_networks]
+    on:
+      SELECT_TAB_1:
+        target: net_virtual_networks_tab
+      SELECT_TAB_2:
+        target: net_subnets_tab
+      SELECT_TAB_3:
+        target: net_security_groups_tab
+
+  net_virtual_networks_tab:
+    permissions: [manage_networks]
+    on:
+      CLICK_NEW_VN:
+        target: net_vn_create_modal
+        guard: can(role, "manage_networks")
+      CLICK_VN_NAME:
+        target: net_vn_detail_page
+      SELECT_TAB_0: { target: net_topology_tab }
+      SELECT_TAB_2: { target: net_subnets_tab }
+      SELECT_TAB_3: { target: net_security_groups_tab }
+
+  net_vn_create_modal:
+    permissions: [manage_networks]
+    on:
+      CONFIRM_CREATE: { target: net_virtual_networks_tab }
+      CANCEL: { target: net_virtual_networks_tab }
+
+  net_vn_detail_page:
+    permissions: [manage_networks]
+    on:
+      CLICK_BACK: { target: net_virtual_networks_tab }
+
+  net_subnets_tab:
+    permissions: [manage_networks]
+    on:
+      CLICK_CREATE_SUBNET:
+        target: net_subnet_create_modal
+      CLICK_SUBNET_NAME:
+        target: net_subnet_detail_page
+
+  net_subnet_create_modal:
+    permissions: [manage_networks]
+    on:
+      CONFIRM_CREATE: { target: net_subnets_tab }
+      CANCEL: { target: net_subnets_tab }
+
+  net_subnet_detail_page:
+    permissions: [manage_networks]
+    on:
+      CLICK_BACK: { target: net_subnets_tab }
+
+  net_security_groups_tab:
+    permissions: [manage_networks]
+    on:
+      CLICK_CREATE_SG:
+        target: net_sg_create_modal
+      CLICK_EDIT_RULES:
+        target: net_sg_rules_editor_modal
+
+  net_sg_create_modal:
+    permissions: [manage_networks]
+    on:
+      CONFIRM_CREATE: { target: net_security_groups_tab }
+      CANCEL: { target: net_security_groups_tab }
+
+  net_sg_rules_editor_modal:
+    permissions: [manage_networks]
+    on:
+      SAVE_RULES: { target: net_security_groups_tab }
+      CANCEL: { target: net_security_groups_tab }
+
+ai-hints:
+  summary: Four-tab page (Topology, VNets, Subnets, SGs). Create/edit via modals.

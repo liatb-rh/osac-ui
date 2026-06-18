@@ -1,0 +1,57 @@
+# statechart: create-virtual-machine-wizard
+# source_flow: ../ui-flows/create-virtual-machine-wizard.yaml
+# Generated: 2026-06-18
+
+id: create-virtual-machine-wizard
+title: Create Virtual Machine Wizard Statechart
+source_flow: ../ui-flows/create-virtual-machine-wizard.yaml
+rbac_ref: ../rbac.yaml
+initial: cvm_wizard_closed
+
+states:
+  cvm_wizard_closed:
+    on:
+      OPEN_WIZARD:
+        target: cvm_wizard_template
+        guard: can(role, "create_vm")
+      OPEN_FROM_TEMPLATE:
+        target: cvm_wizard_template
+        guard: can(role, "create_vm")
+
+  cvm_wizard_template:
+    permissions: [create_vm]
+    on:
+      WIZARD_NEXT:
+        target: cvm_wizard_customization
+        guard: draft.selectedTemplateId != null
+      WIZARD_CANCEL:
+        target: cvm_wizard_closed
+        notes: POST .../abandon before closing
+
+  cvm_wizard_customization:
+    permissions: [create_vm]
+    on:
+      WIZARD_NEXT:
+        target: cvm_wizard_review
+        guard: canProceedLocal('customization', draft)
+      WIZARD_BACK:
+        target: cvm_wizard_template
+      WIZARD_CANCEL:
+        target: cvm_wizard_closed
+
+  cvm_wizard_review:
+    permissions: [create_vm]
+    on:
+      WIZARD_FINALIZE:
+        target: cvm_wizard_closed
+        notes: POST .../finalize → fires onProvision callback
+      WIZARD_BACK:
+        target: cvm_wizard_customization
+      WIZARD_CANCEL:
+        target: cvm_wizard_closed
+
+ai-hints:
+  summary: Three-step wizard modal (template → customization → review). Template-only path active.
+  impossibleStates:
+    - cvm_wizard_review with session=null
+    - WIZARD_NEXT from cvm_wizard_template when selectedTemplateId is null

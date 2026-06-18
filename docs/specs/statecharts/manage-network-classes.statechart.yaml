@@ -1,0 +1,12 @@
+id: manage-network-classes
+title: Manage Network Classes Statechart
+source_flow: ../ui-flows/manage-network-classes.yaml
+rbac_ref: ../rbac.yaml
+initial: nc_list_view
+
+states:
+  nc_list_view:
+    permissions: [manage_network_classes]
+    on: {}
+ai-hints:
+  summary: Read-only network class list (roadmap preview).
