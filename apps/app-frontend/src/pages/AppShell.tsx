@@ -50,6 +50,7 @@ import {
   OrganizationsPage,
   PublicIpPoolDetailsPage,
   PublicIpPoolsPage,
+  RbacManagementPage,
   TenantDetailPage,
   UsersPage,
 } from './administration'
@@ -191,6 +192,7 @@ export function AppShell() {
         <Route path="/resources/storage/storage-volumes" element={<VolumesPage />} />
         <Route path="/resources/storage/storage-volumes/:id" element={<VolumeDetailPage />} />
         {/* Administration: providerAdmin */}
+        <Route path="/provider/rbac" element={<RbacManagementPage />} />
         <Route path="/provider/organizations" element={<OrganizationsPage />} />
         <Route
           path="/provider/tenants"

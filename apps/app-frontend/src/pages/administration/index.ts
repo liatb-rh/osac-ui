@@ -1,4 +1,5 @@
 export { OrganizationsPage } from './OrganizationsPage'
+export { RbacManagementPage } from './RbacManagementPage'
 export { TenantDetailPage } from './TenantDetailPage'
 export { UsersPage } from './UsersPage'
 export { ClusterOfferingsPage } from './ClusterOfferingsPage'

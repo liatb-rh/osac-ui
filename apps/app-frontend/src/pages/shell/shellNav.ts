@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
+import { LockIcon } from '@patternfly/react-icons/dist/esm/icons/lock-icon'
 import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
 import { CogIcon } from '@patternfly/react-icons/dist/esm/icons/cog-icon'
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon'
@@ -185,6 +186,13 @@ const ALL_NAV: NavSection[] = [
         label: 'Organizations',
         path: '/provider/organizations',
         icon: BuildingIcon,
+        roles: ['providerAdmin'],
+      },
+      {
+        id: 'rbac',
+        label: 'RBAC',
+        path: '/provider/rbac',
+        icon: LockIcon,
         roles: ['providerAdmin'],
       },
       {

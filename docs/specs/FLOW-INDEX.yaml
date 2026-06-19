@@ -100,6 +100,9 @@ statechart_specs:
     - id: manage-tenant-users
       file: ui-flows/manage-tenant-users.yaml
       notes: No separate statechart file — states are inline in the flow spec.
+    - id: manage-rbac
+      file: ui-flows/rbac-management.yaml
+      notes: No separate statechart file — states are inline in the flow spec.
 
 # ---------------------------------------------------------------------------
 # Flow inventory
@@ -554,6 +557,28 @@ flows:
     primary_routes:
       - /admin/users
     roles: [tenantAdmin]
+    summary: >-
+      Tenant admin user management — list users, invite new users, set roles and MFA.
+    implementation_status:
+      as_of: "2026-06-19"
+      code_refs:
+        - apps/app-frontend/src/pages/administration/UsersPage.tsx
+
+  - id: manage-rbac
+    file: ui-flows/rbac-management.yaml
+    primary_routes:
+      - /provider/rbac
+    roles: [providerAdmin]
+    summary: >-
+      Provider admin RBAC console — system and org-scoped roles with view-members and
+      edit-permissions actions; Group → Role mappings with edit-mapping and remove actions;
+      Enforcement tab showing Authorino AuthPolicy deny-by-default pattern.
+    implementation_status:
+      as_of: "2026-06-20"
+      code_refs:
+        - apps/app-frontend/src/pages/administration/RbacManagementPage.tsx
+        - apps/app-frontend/src/mocks/rbac-store.ts
+      deployment_variants: [standalone]
     summary: >-
       Tenant admin Users & Access page — lists users scoped to the current tenant with
       their name, email, RBAC role (tenantAdmin/tenantUser), and MFA enrollment status.
