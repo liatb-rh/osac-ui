@@ -7,8 +7,8 @@ import type {
   DemoTenantId,
   InventoryBackend,
   NetworkClass,
-  Organization,
   OrgStorageStatus,
+  Organization,
   OsType,
   OsacEvent,
   PublicIP,
@@ -1900,8 +1900,18 @@ export const DEMO_ORG_STORAGE_STATUSES: OrgStorageStatus[] = [
       },
     ],
     conditions: [
-      { type: 'Phase1Ready', status: 'True', reason: 'AllTiersProvisioned', lastTransitionTime: '2025-03-01T08:00:00Z' },
-      { type: 'Phase2Ready', status: 'True', reason: 'AllStorageClassesInstalled', lastTransitionTime: '2025-03-01T08:30:00Z' },
+      {
+        type: 'Phase1Ready',
+        status: 'True',
+        reason: 'AllTiersProvisioned',
+        lastTransitionTime: '2025-03-01T08:00:00Z',
+      },
+      {
+        type: 'Phase2Ready',
+        status: 'True',
+        reason: 'AllStorageClassesInstalled',
+        lastTransitionTime: '2025-03-01T08:30:00Z',
+      },
     ],
   },
   {
@@ -1929,12 +1939,18 @@ export const DEMO_ORG_STORAGE_STATUSES: OrgStorageStatus[] = [
       },
     ],
     conditions: [
-      { type: 'Phase1Ready', status: 'True', reason: 'AllTiersProvisioned', lastTransitionTime: '2025-04-10T10:00:00Z' },
+      {
+        type: 'Phase1Ready',
+        status: 'True',
+        reason: 'AllTiersProvisioned',
+        lastTransitionTime: '2025-04-10T10:00:00Z',
+      },
       {
         type: 'Phase2Ready',
         status: 'False',
         reason: 'CSIInstallPending',
-        message: 'VAST CSI operator installation via OLM is still in progress on cluster caas-northstar-1.',
+        message:
+          'VAST CSI operator installation via OLM is still in progress on cluster caas-northstar-1.',
         lastTransitionTime: '2025-04-10T10:05:00Z',
       },
     ],
@@ -1959,7 +1975,8 @@ export const DEMO_ORG_STORAGE_STATUSES: OrgStorageStatus[] = [
         type: 'Phase1Ready',
         status: 'False',
         reason: 'VASTProvisioningFailed',
-        message: 'VAST tenant creation failed: VMS API returned 503 — backend vast-archive is degraded (credentials expired).',
+        message:
+          'VAST tenant creation failed: VMS API returned 503 — backend vast-archive is degraded (credentials expired).',
         lastTransitionTime: '2025-05-20T14:00:00Z',
       },
     ],

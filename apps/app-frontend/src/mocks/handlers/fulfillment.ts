@@ -505,7 +505,9 @@ export const fulfillmentHandlers = [
     const id = nextId('vol')
     const tierId = String(body.tier_id ?? body.tierId ?? '')
     const tier = storageTierStore.get(tierId)
-    const accessMode = String(body.access_mode ?? body.accessMode ?? 'ReadWriteOnce') as 'ReadWriteOnce' | 'ReadWriteMany'
+    const accessMode = String(body.access_mode ?? body.accessMode ?? 'ReadWriteOnce') as
+      | 'ReadWriteOnce'
+      | 'ReadWriteMany'
     const newVol: StorageVolume = {
       id,
       metadata: { name: String(meta.name ?? id), createdAt: new Date().toISOString() },
@@ -578,7 +580,9 @@ export const fulfillmentHandlers = [
       volumeId: volId,
       volumeName: vol.metadata.name,
       sizeGiB: vol.sizeGiB,
-      snapshotClassName: String(body.snapshot_class_name ?? body.snapshotClassName ?? 'vast-snapshot'),
+      snapshotClassName: String(
+        body.snapshot_class_name ?? body.snapshotClassName ?? 'vast-snapshot',
+      ),
       readyToUse: false,
       restoreSize: vol.sizeGiB,
       status: { state: 'creating' },
@@ -598,36 +602,39 @@ export const fulfillmentHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.post(`${PREFIX}/storage_volumes/:volumeId/snapshots/:id/restore`, async ({ params, request }) => {
-    const id = params.id as string
-    const snap = snapshotStore.get(id)
-    if (!snap) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
-    const body = asNestedRecord(await request.json())
-    const newId = nextId('vol')
-    const srcVol = volumeStore.get(snap.volumeId)
-    const restored: StorageVolume = {
-      id: newId,
-      metadata: {
-        name: String(body.name ?? `${snap.metadata.name}-restored`),
-        createdAt: new Date().toISOString(),
-      },
-      orgId: srcVol?.orgId ?? '',
-      sizeGiB: snap.restoreSize,
-      tierId: srcVol?.tierId ?? '',
-      storageClassName: srcVol?.storageClassName,
-      accessMode: srcVol?.accessMode ?? 'ReadWriteOnce',
-      clusterRef: srcVol?.clusterRef,
-      phase: 'Pending',
-      attachments: [],
-      status: { state: 'creating' },
-    }
-    volumeStore.set(newId, restored)
-    setTimeout(() => {
-      const v = volumeStore.get(newId)
-      if (v) volumeStore.set(newId, { ...v, phase: 'Bound', status: { state: 'available' } })
-    }, 2000)
-    return HttpResponse.json(restored, { status: 201 })
-  }),
+  http.post(
+    `${PREFIX}/storage_volumes/:volumeId/snapshots/:id/restore`,
+    async ({ params, request }) => {
+      const id = params.id as string
+      const snap = snapshotStore.get(id)
+      if (!snap) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+      const body = asNestedRecord(await request.json())
+      const newId = nextId('vol')
+      const srcVol = volumeStore.get(snap.volumeId)
+      const restored: StorageVolume = {
+        id: newId,
+        metadata: {
+          name: String(body.name ?? `${snap.metadata.name}-restored`),
+          createdAt: new Date().toISOString(),
+        },
+        orgId: srcVol?.orgId ?? '',
+        sizeGiB: snap.restoreSize,
+        tierId: srcVol?.tierId ?? '',
+        storageClassName: srcVol?.storageClassName,
+        accessMode: srcVol?.accessMode ?? 'ReadWriteOnce',
+        clusterRef: srcVol?.clusterRef,
+        phase: 'Pending',
+        attachments: [],
+        status: { state: 'creating' },
+      }
+      volumeStore.set(newId, restored)
+      setTimeout(() => {
+        const v = volumeStore.get(newId)
+        if (v) volumeStore.set(newId, { ...v, phase: 'Bound', status: { state: 'available' } })
+      }, 2000)
+      return HttpResponse.json(restored, { status: 201 })
+    },
+  ),
 
   // ---------------------------------------------------------------------------
   // Virtual networks
@@ -893,9 +900,7 @@ export const fulfillmentHandlers = [
   http.get(`${PREFIX}/bare_metal_instance_catalog_items`, ({ request }) => {
     const url = new URL(request.url)
     const includeUnpublished = url.searchParams.get('include_unpublished') === 'true'
-    const all = Array.from(bmCatalogStore.values()).filter(
-      (i) => includeUnpublished || i.published,
-    )
+    const all = Array.from(bmCatalogStore.values()).filter((i) => includeUnpublished || i.published)
     return HttpResponse.json({ size: all.length, total: all.length, items: all })
   }),
 
@@ -925,7 +930,7 @@ export const fulfillmentHandlers = [
   }),
 
   http.post(`${PREFIX}/bare_metal_instances`, async ({ request }) => {
-    const body = asNestedRecord(await request.json() as unknown)
+    const body = asNestedRecord((await request.json()) as unknown)
     const incoming = 'object' in body && body.object ? asNestedRecord(body.object) : body
     const meta = asNestedRecord(incoming.metadata)
     const spec = asNestedRecord(incoming.spec)
@@ -948,12 +953,18 @@ export const fulfillmentHandlers = [
     setTimeout(() => {
       const existing = bmInstanceStore.get(id)
       if (existing)
-        bmInstanceStore.set(id, { ...existing, status: { state: 'BARE_METAL_INSTANCE_STATE_PROVISIONING' } })
+        bmInstanceStore.set(id, {
+          ...existing,
+          status: { state: 'BARE_METAL_INSTANCE_STATE_PROVISIONING' },
+        })
     }, 3000)
     setTimeout(() => {
       const existing = bmInstanceStore.get(id)
       if (existing)
-        bmInstanceStore.set(id, { ...existing, status: { state: 'BARE_METAL_INSTANCE_STATE_RUNNING' } })
+        bmInstanceStore.set(id, {
+          ...existing,
+          status: { state: 'BARE_METAL_INSTANCE_STATE_RUNNING' },
+        })
     }, 12000)
     return HttpResponse.json({ object: instance }, { status: 201 })
   }),

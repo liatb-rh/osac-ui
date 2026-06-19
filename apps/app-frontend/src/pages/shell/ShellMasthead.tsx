@@ -38,7 +38,7 @@ const brandTitleCss = css`
 `
 
 const contentRailCss = css`
-  width: 100%;  
+  width: 100%;
   min-width: 0;
   flex: 1;
 `

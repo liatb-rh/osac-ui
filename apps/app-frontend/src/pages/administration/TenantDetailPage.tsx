@@ -22,30 +22,25 @@ import {
   Progress,
   ProgressSize,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
 } from '@patternfly/react-core'
 import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
 import { KeyIcon } from '@patternfly/react-icons/dist/esm/icons/key-icon'
 import { LockIcon } from '@patternfly/react-icons/dist/esm/icons/lock-icon'
 import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt-icon'
-import {
-  CustomTableLink,
-  KpiHeader,
-  ObjectsTable,
-  PageLayout,
-} from '@osac/ui-components'
+import { CustomTableLink, KpiHeader, ObjectsTable, PageLayout } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import type { Agent, Cluster, ComputeInstance } from '@osac/api-contracts'
 import { DEMO_AGENTS, DEMO_CLUSTERS, buildVmsForTenant } from '@osac/api-contracts'
 import {
   ORGANIZATIONS,
-  getOrg,
-  isOidcConfig,
-  isLdapConfig,
-  idpPhaseToStatus,
-  orgStateToStatus,
   type OrgFixture,
+  getOrg,
+  idpPhaseToStatus,
+  isLdapConfig,
+  isOidcConfig,
+  orgStateToStatus,
 } from '../../mocks/organizations-store'
 
 // ---------------------------------------------------------------------------
@@ -73,11 +68,23 @@ function KV({ k, v }: { k: string; v: React.ReactNode }) {
   )
 }
 
-function QuotaBar({ label, used, max, unit }: { label: string; used: number; max: number; unit: string }) {
+function QuotaBar({
+  label,
+  used,
+  max,
+  unit,
+}: {
+  label: string
+  used: number
+  max: number
+  unit: string
+}) {
   const pct = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}
+      >
         <strong>{label}</strong>
         <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
           {used}
@@ -97,7 +104,13 @@ function QuotaBar({ label, used, max, unit }: { label: string; used: number; max
 
 function Empty({ msg }: { msg: string }) {
   return (
-    <div style={{ padding: 24, textAlign: 'center', color: 'var(--pf-t--global--text--color--subtle)' }}>
+    <div
+      style={{
+        padding: 24,
+        textAlign: 'center',
+        color: 'var(--pf-t--global--text--color--subtle)',
+      }}
+    >
       {msg}
     </div>
   )
@@ -107,12 +120,13 @@ function Empty({ msg }: { msg: string }) {
 // Quota fixture per tenant
 // ---------------------------------------------------------------------------
 
-const QUOTAS: Record<string, { cores: number; memGib: number; vmMax: number; clusterMax: number }> = {
-  northstar: { cores: 512, memGib: 2048, vmMax: 200, clusterMax: 6 },
-  evergreen: { cores: 384, memGib: 1536, vmMax: 160, clusterMax: 5 },
-  aurora: { cores: 256, memGib: 1024, vmMax: 100, clusterMax: 3 },
-  helix: { cores: 128, memGib: 512, vmMax: 60, clusterMax: 2 },
-}
+const QUOTAS: Record<string, { cores: number; memGib: number; vmMax: number; clusterMax: number }> =
+  {
+    northstar: { cores: 512, memGib: 2048, vmMax: 200, clusterMax: 6 },
+    evergreen: { cores: 384, memGib: 1536, vmMax: 160, clusterMax: 5 },
+    aurora: { cores: 256, memGib: 1024, vmMax: 100, clusterMax: 3 },
+    helix: { cores: 128, memGib: 512, vmMax: 60, clusterMax: 2 },
+  }
 
 const DEFAULT_QUOTA = { cores: 64, memGib: 256, vmMax: 50, clusterMax: 3 }
 
@@ -142,9 +156,7 @@ function OverviewTab({ tenantId, org }: { tenantId: string; org: OrgFixture }) {
             <DescriptionListGroup>
               <DescriptionListTerm>Issuer</DescriptionListTerm>
               <DescriptionListDescription>
-                <code style={{ fontSize: 12 }}>
-                  https://auth.osac.internal/realms/{org.realm}
-                </code>
+                <code style={{ fontSize: 12 }}>https://auth.osac.internal/realms/{org.realm}</code>
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
@@ -163,11 +175,15 @@ function OverviewTab({ tenantId, org }: { tenantId: string; org: OrgFixture }) {
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Break-glass</DescriptionListTerm>
-              <DescriptionListDescription>{org.break_glass.length} account(s)</DescriptionListDescription>
+              <DescriptionListDescription>
+                {org.break_glass.length} account(s)
+              </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Onboarded</DescriptionListTerm>
-              <DescriptionListDescription>{org.created_at.split('T')[0]}</DescriptionListDescription>
+              <DescriptionListDescription>
+                {org.created_at.split('T')[0]}
+              </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
         </CardBody>
@@ -176,14 +192,35 @@ function OverviewTab({ tenantId, org }: { tenantId: string; org: OrgFixture }) {
         <CardTitle>Governance</CardTitle>
         <CardBody>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontSize: 13 }}>
-            <li style={{ padding: '8px 0', borderBottom: '1px dashed var(--pf-t--global--border--color--default)' }}>
-              Authorino AuthPolicy: <Label isCompact color="green">enforced</Label>
+            <li
+              style={{
+                padding: '8px 0',
+                borderBottom: '1px dashed var(--pf-t--global--border--color--default)',
+              }}
+            >
+              Authorino AuthPolicy:{' '}
+              <Label isCompact color="green">
+                enforced
+              </Label>
             </li>
-            <li style={{ padding: '8px 0', borderBottom: '1px dashed var(--pf-t--global--border--color--default)' }}>
+            <li
+              style={{
+                padding: '8px 0',
+                borderBottom: '1px dashed var(--pf-t--global--border--color--default)',
+              }}
+            >
               Network isolation: <code>strict</code> (dedicated VRF)
             </li>
-            <li style={{ padding: '8px 0', borderBottom: '1px dashed var(--pf-t--global--border--color--default)' }}>
-              Audit export: <Label isCompact color="green">to SIEM</Label>
+            <li
+              style={{
+                padding: '8px 0',
+                borderBottom: '1px dashed var(--pf-t--global--border--color--default)',
+              }}
+            >
+              Audit export:{' '}
+              <Label isCompact color="green">
+                to SIEM
+              </Label>
             </li>
             <li style={{ padding: '8px 0' }}>RBAC source: osac-rbac v1</li>
           </ul>
@@ -277,11 +314,11 @@ function IdentityProviderTab({ org }: { org: OrgFixture }) {
             </span>
           }
         />
+        <KV k="status.message" v={<span style={{ fontSize: 12 }}>{idp.status.message}</span>} />
         <KV
-          k="status.message"
-          v={<span style={{ fontSize: 12 }}>{idp.status.message}</span>}
+          k="status.last_probe"
+          v={<span style={{ fontSize: 12 }}>{idp.status.last_probe}</span>}
         />
-        <KV k="status.last_probe" v={<span style={{ fontSize: 12 }}>{idp.status.last_probe}</span>} />
       </div>
 
       {/* Config card (full width) */}
@@ -303,7 +340,10 @@ function IdentityProviderTab({ org }: { org: OrgFixture }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <KV k="issuer" v={<code style={{ fontSize: 12 }}>{oidc.issuer}</code>} />
             <KV k="client_id" v={<code>{oidc.client_id}</code>} />
-            <KV k="authorization_url" v={<code style={{ fontSize: 12 }}>{oidc.authorization_url}</code>} />
+            <KV
+              k="authorization_url"
+              v={<code style={{ fontSize: 12 }}>{oidc.authorization_url}</code>}
+            />
             <KV k="token_url" v={<code style={{ fontSize: 12 }}>{oidc.token_url}</code>} />
             <KV k="jwks_url" v={<code style={{ fontSize: 12 }}>{oidc.jwks_url}</code>} />
             <KV k="logout_url" v={<code style={{ fontSize: 12 }}>{oidc.logout_url}</code>} />
@@ -312,7 +352,10 @@ function IdentityProviderTab({ org }: { org: OrgFixture }) {
         )}
         {ldap && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <KV k="connection_url" v={<code style={{ fontSize: 12 }}>{ldap.connection_url}</code>} />
+            <KV
+              k="connection_url"
+              v={<code style={{ fontSize: 12 }}>{ldap.connection_url}</code>}
+            />
             <KV k="vendor" v={<code>{ldap.vendor}</code>} />
             <KV k="bind_dn" v={<code style={{ fontSize: 12 }}>{ldap.bind_dn}</code>} />
             <KV k="bind_credential" v={<code>{ldap.bind_credential}</code>} />
@@ -367,8 +410,8 @@ function AuthnCapabilitiesTab({ org }: { org: OrgFixture }) {
           </Label>
         </div>
         <p style={{ fontSize: 13, color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
-          Issuers below are trusted by Authorino at the Kuadrant gateway. Tokens signed by any
-          other issuer are rejected before reaching any OSAC API.
+          Issuers below are trusted by Authorino at the Kuadrant gateway. Tokens signed by any other
+          issuer are rejected before reaching any OSAC API.
         </p>
         <ObjectsTable
           ariaLabel="Trusted token issuers"
@@ -497,8 +540,7 @@ export function TenantDetailPage() {
     {
       label: 'Release',
       dataLabel: 'Release',
-      render: (c) =>
-        (c.spec.releaseImage ?? '').split(':').pop()?.replace('-multi', '') ?? '—',
+      render: (c) => (c.spec.releaseImage ?? '').split(':').pop()?.replace('-multi', '') ?? '—',
     },
     {
       label: 'Workers',
@@ -514,9 +556,7 @@ export function TenantDetailPage() {
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <StatusDot
-              status={
-                state === 'ready' ? 'ready' : state === 'failed' ? 'failed' : 'progressing'
-              }
+              status={state === 'ready' ? 'ready' : state === 'failed' ? 'failed' : 'progressing'}
             />
             <span style={{ textTransform: 'capitalize' }}>{state}</span>
           </span>
@@ -553,14 +593,14 @@ export function TenantDetailPage() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <StatusDot
             status={
-              v.status.powerState === 'running'
+              v.status.state === 'running'
                 ? 'ready'
-                : v.status.powerState === 'error'
+                : v.status.state === 'error'
                   ? 'failed'
                   : 'progressing'
             }
           />
-          <span style={{ textTransform: 'capitalize' }}>{v.status.powerState}</span>
+          <span style={{ textTransform: 'capitalize' }}>{v.status.state}</span>
         </span>
       ),
     },
@@ -648,9 +688,13 @@ export function TenantDetailPage() {
               label: 'IdP',
               value: currentOrg.idp.kind,
               hint: currentOrg.idp.host,
-              tone: idpTone as 'success' | 'warning' | 'danger',
+              tone: idpTone,
             },
-            { label: 'Clusters', value: String(clusters.length), hint: `limit ${quota.clusterMax}` },
+            {
+              label: 'Clusters',
+              value: String(clusters.length),
+              hint: `limit ${quota.clusterMax}`,
+            },
             { label: 'VMs', value: String(vms.length), hint: `limit ${quota.vmMax}` },
             { label: 'vCPU used', value: `${usedCores} / ${quota.cores}` },
             { label: 'Memory used', value: `${usedMem} / ${quota.memGib} GiB` },
@@ -674,7 +718,12 @@ export function TenantDetailPage() {
                 <QuotaBar label="vCPU cores" used={usedCores} max={quota.cores} unit="" />
                 <QuotaBar label="Memory" used={usedMem} max={quota.memGib} unit=" GiB" />
                 <QuotaBar label="VM instances" used={vms.length} max={quota.vmMax} unit="" />
-                <QuotaBar label="CaaS clusters" used={clusters.length} max={quota.clusterMax} unit="" />
+                <QuotaBar
+                  label="CaaS clusters"
+                  used={clusters.length}
+                  max={quota.clusterMax}
+                  unit=""
+                />
               </div>
             </Tab>
 
@@ -750,13 +799,37 @@ export function TenantDetailPage() {
                     { label: 'Timestamp', dataLabel: 'Timestamp', render: (r) => r.ts },
                     { label: 'Actor', dataLabel: 'Actor', render: (r) => <code>{r.actor}</code> },
                     { label: 'Action', dataLabel: 'Action', render: (r) => r.action },
-                    { label: 'Resource', dataLabel: 'Resource', render: (r) => <code style={{ fontSize: 12 }}>{r.resource}</code> },
+                    {
+                      label: 'Resource',
+                      dataLabel: 'Resource',
+                      render: (r) => <code style={{ fontSize: 12 }}>{r.resource}</code>,
+                    },
                   ]}
                   rows={[
-                    { ts: '2026-06-05 10:42', actor: 'platform@osac', action: 'quota.update', resource: `cores → ${quota.cores}` },
-                    { ts: '2026-06-04 18:11', actor: `ops@${tenantId}`, action: 'cluster.create', resource: clusters[0]?.metadata.name ?? '—' },
-                    { ts: '2026-06-02 09:03', actor: `admin@${tenantId}`, action: 'rbac.assign', resource: `/${tenantId}/platform-admins → tenantAdmin` },
-                    { ts: currentOrg.created_at.split('T')[0], actor: 'platform@osac', action: 'tenant.onboard', resource: `realm ${currentOrg.realm}` },
+                    {
+                      ts: '2026-06-05 10:42',
+                      actor: 'platform@osac',
+                      action: 'quota.update',
+                      resource: `cores → ${quota.cores}`,
+                    },
+                    {
+                      ts: '2026-06-04 18:11',
+                      actor: `ops@${tenantId}`,
+                      action: 'cluster.create',
+                      resource: clusters[0]?.metadata.name ?? '—',
+                    },
+                    {
+                      ts: '2026-06-02 09:03',
+                      actor: `admin@${tenantId}`,
+                      action: 'rbac.assign',
+                      resource: `/${tenantId}/platform-admins → tenantAdmin`,
+                    },
+                    {
+                      ts: currentOrg.created_at.split('T')[0],
+                      actor: 'platform@osac',
+                      action: 'tenant.onboard',
+                      resource: `realm ${currentOrg.realm}`,
+                    },
                   ]}
                   getRowKey={(r) => r.ts + r.action}
                   variant="compact"

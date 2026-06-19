@@ -5,12 +5,7 @@
  *        /admin/catalog-items/:id        — edit mode
  */
 import { useNavigate, useParams } from 'react-router-dom'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  PageBreadcrumb,
-  PageSection,
-} from '@patternfly/react-core'
+import { Breadcrumb, BreadcrumbItem, PageBreadcrumb, PageSection } from '@patternfly/react-core'
 import type { FullCatalogItem, StudioTemplate } from '@osac/ui-components'
 import { CatalogItemStudio } from '@osac/ui-components'
 import { catalogItemsStore } from '../../../services/catalog/catalogItemsStore'
@@ -49,7 +44,10 @@ export function AdminCatalogItemDetailPage() {
         <Breadcrumb>
           <BreadcrumbItem
             to="/resources/network/catalog/admin-catalog-items"
-            onClick={(e) => { e.preventDefault(); navigate('/resources/network/catalog/admin-catalog-items') }}
+            onClick={(e) => {
+              e.preventDefault()
+              navigate('/resources/network/catalog/admin-catalog-items')
+            }}
           >
             Catalog Items
           </BreadcrumbItem>

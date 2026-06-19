@@ -57,7 +57,9 @@ export interface BareMetalWizardCreatePayload {
   metadata: { name: string; labels?: Record<string, string> }
   spec: {
     catalogItem: string
-    runStrategy: 'BARE_METAL_INSTANCE_RUN_STRATEGY_ALWAYS' | 'BARE_METAL_INSTANCE_RUN_STRATEGY_HALTED'
+    runStrategy:
+      | 'BARE_METAL_INSTANCE_RUN_STRATEGY_ALWAYS'
+      | 'BARE_METAL_INSTANCE_RUN_STRATEGY_HALTED'
     sshKey?: string
     userData?: string
     zone?: string
@@ -91,7 +93,10 @@ export interface RequestBareMetalWizardProps {
 const SSH_KEY_RE = /^(ssh-(rsa|ed25519|ecdsa)|ecdsa-sha2)/
 const MAX_USER_DATA_BYTES = 64 * 1024
 
-interface LabelPair { key: string; value: string }
+interface LabelPair {
+  key: string
+  value: string
+}
 
 function byteLength(s: string) {
   return new TextEncoder().encode(s).length
@@ -121,47 +126,75 @@ function Step1CatalogSelector({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h3" size="md">Select a hardware offering</Title>
-        <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.875rem', marginTop: 4 }}>
+        <Title headingLevel="h3" size="md">
+          Select a hardware offering
+        </Title>
+        <p
+          style={{
+            color: 'var(--pf-t--global--text--color--subtle)',
+            fontSize: '0.875rem',
+            marginTop: 4,
+          }}
+        >
           Each offering maps to a hardware profile defined by your tenant admin.
         </p>
       </StackItem>
       <StackItem>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-          {items.filter((i) => i.published).map((item) => (
-            <Card
-              key={item.id}
-              isClickable
-              isSelected={selected === item.id}
-              onClick={() => onSelect(item.id)}
-              style={{
-                cursor: 'pointer',
-                border: '1px solid var(--pf-t--global--border--color--default)',
-              }}
-            >
-              <CardTitle>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Label color="orange" isCompact>Bare Metal</Label>
-                  <span style={{ fontWeight: 600 }}>{item.title}</span>
-                </div>
-              </CardTitle>
-              {item.description && (
-                <CardBody>
-                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.875rem' }}>
-                    {item.description}
-                  </span>
-                </CardBody>
-              )}
-              {item.fieldDefinitions && item.fieldDefinitions.length > 0 && (
-                <CardBody>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    {item.fieldDefinitions.filter((f) => f.editable).length} configurable ·{' '}
-                    {item.fieldDefinitions.filter((f) => !f.editable).length} fixed parameters
-                  </span>
-                </CardBody>
-              )}
-            </Card>
-          ))}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 12,
+          }}
+        >
+          {items
+            .filter((i) => i.published)
+            .map((item) => (
+              <Card
+                key={item.id}
+                isClickable
+                isSelected={selected === item.id}
+                onClick={() => onSelect(item.id)}
+                style={{
+                  cursor: 'pointer',
+                  border: '1px solid var(--pf-t--global--border--color--default)',
+                }}
+              >
+                <CardTitle>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Label color="orange" isCompact>
+                      Bare Metal
+                    </Label>
+                    <span style={{ fontWeight: 600 }}>{item.title}</span>
+                  </div>
+                </CardTitle>
+                {item.description && (
+                  <CardBody>
+                    <span
+                      style={{
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      {item.description}
+                    </span>
+                  </CardBody>
+                )}
+                {item.fieldDefinitions && item.fieldDefinitions.length > 0 && (
+                  <CardBody>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                      }}
+                    >
+                      {item.fieldDefinitions.filter((f) => f.editable).length} configurable ·{' '}
+                      {item.fieldDefinitions.filter((f) => !f.editable).length} fixed parameters
+                    </span>
+                  </CardBody>
+                )}
+              </Card>
+            ))}
         </div>
       </StackItem>
     </Stack>
@@ -202,7 +235,13 @@ function DynamicFieldInput({
             aria-label={displayName}
           />
         )}
-        <p style={{ fontSize: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)', marginTop: 2 }}>
+        <p
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--pf-t--global--text--color--subtle)',
+            marginTop: 2,
+          }}
+        >
           Fixed — cannot be changed at provision time
         </p>
       </FormGroup>
@@ -215,11 +254,31 @@ function DynamicFieldInput({
         <FormGroup label={displayName || path} fieldId={fieldId}>
           <NumberInput
             id={fieldId}
-            value={typeof value === 'number' ? value : (typeof defaultValue === 'number' ? defaultValue : 0)}
+            value={
+              typeof value === 'number'
+                ? value
+                : typeof defaultValue === 'number'
+                  ? defaultValue
+                  : 0
+            }
             min={validation?.min}
             max={validation?.max}
-            onMinus={() => onChange(Math.max(validation?.min ?? -Infinity, (typeof value === 'number' ? value : 0) - (validation?.step ?? 1)))}
-            onPlus={() => onChange(Math.min(validation?.max ?? Infinity, (typeof value === 'number' ? value : 0) + (validation?.step ?? 1)))}
+            onMinus={() =>
+              onChange(
+                Math.max(
+                  validation?.min ?? -Infinity,
+                  (typeof value === 'number' ? value : 0) - (validation?.step ?? 1),
+                ),
+              )
+            }
+            onPlus={() =>
+              onChange(
+                Math.min(
+                  validation?.max ?? Infinity,
+                  (typeof value === 'number' ? value : 0) + (validation?.step ?? 1),
+                ),
+              )
+            }
             onChange={(e) => onChange(Number((e.target as HTMLInputElement).value))}
           />
         </FormGroup>
@@ -295,18 +354,33 @@ function DynamicFieldInput({
 // ---------------------------------------------------------------------------
 
 interface Step2Props {
-  name: string; setName: (v: string) => void
-  runStrategy: 'ALWAYS' | 'HALTED'; setRunStrategy: (v: 'ALWAYS' | 'HALTED') => void
-  labels: LabelPair[]; setLabels: (v: LabelPair[]) => void
-  sshKey: string; setSshKey: (v: string) => void; sshKeyError: string; onSshKeyBlur: () => void
-  userData: string; setUserData: (v: string) => void; userDataError: string
-  zone: string; setZone: (v: string) => void
-  image: string; setImage: (v: string) => void
-  vnet: string; setVnet: (v: string) => void
-  subnet: string; setSubnet: (v: string) => void
-  networkPolicy: string; setNetworkPolicy: (v: string) => void
-  topologyKey: string; setTopologyKey: (v: string) => void
-  fieldValues: Record<string, unknown>; setFieldValues: (v: Record<string, unknown>) => void
+  name: string
+  setName: (v: string) => void
+  runStrategy: 'ALWAYS' | 'HALTED'
+  setRunStrategy: (v: 'ALWAYS' | 'HALTED') => void
+  labels: LabelPair[]
+  setLabels: (v: LabelPair[]) => void
+  sshKey: string
+  setSshKey: (v: string) => void
+  sshKeyError: string
+  onSshKeyBlur: () => void
+  userData: string
+  setUserData: (v: string) => void
+  userDataError: string
+  zone: string
+  setZone: (v: string) => void
+  image: string
+  setImage: (v: string) => void
+  vnet: string
+  setVnet: (v: string) => void
+  subnet: string
+  setSubnet: (v: string) => void
+  networkPolicy: string
+  setNetworkPolicy: (v: string) => void
+  topologyKey: string
+  setTopologyKey: (v: string) => void
+  fieldValues: Record<string, unknown>
+  setFieldValues: (v: Record<string, unknown>) => void
   availableZones: string[]
   availableImages: Array<{ id: string; name: string }>
   fieldDefinitions: FieldDefinition[]
@@ -360,7 +434,13 @@ function Step2Configuration(p: Step2Props) {
       </FormGroup>
 
       <FormGroup label="Labels / Tags" fieldId="rbw-labels">
-        <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 8 }}>
+        <p
+          style={{
+            fontSize: '0.8125rem',
+            color: 'var(--pf-t--global--text--color--subtle)',
+            marginBottom: 8,
+          }}
+        >
           Kubernetes <code>metadata.labels</code>
         </p>
         <Stack hasGutter>
@@ -421,11 +501,14 @@ function Step2Configuration(p: Step2Props) {
       >
         <Stack hasGutter style={{ paddingTop: 8 }}>
           <StackItem>
-            <FormGroup
-              label="SSH public key"
-              fieldId="rbw-ssh"
-            >
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+            <FormGroup label="SSH public key" fieldId="rbw-ssh">
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 OpenSSH format (ssh-rsa, ssh-ed25519, ecdsa-sha2-*)
               </p>
               <TextArea
@@ -440,18 +523,27 @@ function Step2Configuration(p: Step2Props) {
                 validated={p.sshKeyError ? 'error' : 'default'}
               />
               {p.sshKeyError && (
-                <p style={{ color: 'var(--pf-t--global--danger-color--100)', fontSize: '0.875rem', marginTop: 4 }}>
+                <p
+                  style={{
+                    color: 'var(--pf-t--global--danger-color--100)',
+                    fontSize: '0.875rem',
+                    marginTop: 4,
+                  }}
+                >
                   {p.sshKeyError}
                 </p>
               )}
             </FormGroup>
           </StackItem>
           <StackItem>
-            <FormGroup
-              label="User data (cloud-init)"
-              fieldId="rbw-userdata"
-            >
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+            <FormGroup label="User data (cloud-init)" fieldId="rbw-userdata">
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 cloud-init YAML or shell script, max 64 KB
               </p>
               <TextArea
@@ -464,8 +556,17 @@ function Step2Configuration(p: Step2Props) {
                 resizeOrientation="vertical"
                 validated={p.userDataError ? 'error' : 'default'}
               />
-              <p style={{ fontSize: '0.75rem', color: p.userDataError ? 'var(--pf-t--global--danger-color--100)' : 'var(--pf-t--global--text--color--subtle)', marginTop: 2 }}>
-                {byteLength(p.userData).toLocaleString()} / {(MAX_USER_DATA_BYTES).toLocaleString()} bytes
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  color: p.userDataError
+                    ? 'var(--pf-t--global--danger-color--100)'
+                    : 'var(--pf-t--global--text--color--subtle)',
+                  marginTop: 2,
+                }}
+              >
+                {byteLength(p.userData).toLocaleString()} / {MAX_USER_DATA_BYTES.toLocaleString()}{' '}
+                bytes
                 {p.userDataError && ` — ${p.userDataError}`}
               </p>
             </FormGroup>
@@ -483,7 +584,13 @@ function Step2Configuration(p: Step2Props) {
         <Stack hasGutter style={{ paddingTop: 8 }}>
           <StackItem>
             <FormGroup label="Failure Domain (Zone)" fieldId="rbw-zone">
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 Availability zone
               </p>
               <FormSelect id="rbw-zone" value={p.zone} onChange={(_, v) => p.setZone(v)}>
@@ -496,7 +603,13 @@ function Step2Configuration(p: Step2Props) {
           </StackItem>
           <StackItem>
             <FormGroup label="Node Image" fieldId="rbw-image">
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 OS image applied to the bare metal host
               </p>
               <FormSelect id="rbw-image" value={p.image} onChange={(_, v) => p.setImage(v)}>
@@ -509,7 +622,13 @@ function Step2Configuration(p: Step2Props) {
           </StackItem>
           <StackItem>
             <FormGroup label="Cluster Network" fieldId="rbw-vnet">
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 Virtual network
               </p>
               <TextInput
@@ -522,7 +641,13 @@ function Step2Configuration(p: Step2Props) {
           </StackItem>
           <StackItem>
             <FormGroup label="Network Segment (Subnet)" fieldId="rbw-subnet">
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 Network subnet
               </p>
               <TextInput
@@ -535,7 +660,13 @@ function Step2Configuration(p: Step2Props) {
           </StackItem>
           <StackItem>
             <FormGroup label="Network Policy Group" fieldId="rbw-netpolicy">
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 Network policy / security group
               </p>
               <TextInput
@@ -559,7 +690,13 @@ function Step2Configuration(p: Step2Props) {
         <Stack hasGutter style={{ paddingTop: 8 }}>
           <StackItem>
             <FormGroup label="Topology Placement Key" fieldId="rbw-topology">
-              <p style={{ fontSize: '0.8125rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  marginBottom: 4,
+                }}
+              >
                 Node topology affinity rule
               </p>
               <TextInput
@@ -593,7 +730,9 @@ function Step2Configuration(p: Step2Props) {
             ))}
             {lockedFields.length > 0 && (
               <StackItem>
-                <ExpandableSection toggleText={`${lockedFields.length} fixed parameter${lockedFields.length > 1 ? 's' : ''}`}>
+                <ExpandableSection
+                  toggleText={`${lockedFields.length} fixed parameter${lockedFields.length > 1 ? 's' : ''}`}
+                >
                   {lockedFields.map((field) => (
                     <DynamicFieldInput
                       key={field.id}
@@ -617,10 +756,21 @@ function Step2Configuration(p: Step2Props) {
 // ---------------------------------------------------------------------------
 
 function Step3Review({
-  catalogItems, selectedCatalogItemId,
-  name, runStrategy, labels,
-  sshKey, userData, zone, image, vnet, subnet, networkPolicy, topologyKey,
-  fieldDefinitions, fieldValues,
+  catalogItems,
+  selectedCatalogItemId,
+  name,
+  runStrategy,
+  labels,
+  sshKey,
+  userData,
+  zone,
+  image,
+  vnet,
+  subnet,
+  networkPolicy,
+  topologyKey,
+  fieldDefinitions,
+  fieldValues,
   availableImages,
 }: {
   catalogItems: BareMetalWizardCatalogItem[]
@@ -648,7 +798,9 @@ function Step3Review({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h3" size="md">Review your request</Title>
+        <Title headingLevel="h3" size="md">
+          Review your request
+        </Title>
       </StackItem>
 
       <StackItem>
@@ -657,31 +809,46 @@ function Step3Review({
             <DescriptionListTerm>Hardware offering</DescriptionListTerm>
             <DescriptionListDescription>
               {selectedItem ? (
-                <span><Label color="orange" isCompact style={{ marginRight: 6 }}>Bare Metal</Label>{selectedItem.title}</span>
-              ) : '—'}
+                <span>
+                  <Label color="orange" isCompact style={{ marginRight: 6 }}>
+                    Bare Metal
+                  </Label>
+                  {selectedItem.title}
+                </span>
+              ) : (
+                '—'
+              )}
             </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
             <DescriptionListTerm>Instance name</DescriptionListTerm>
-            <DescriptionListDescription><code>{name || '—'}</code></DescriptionListDescription>
+            <DescriptionListDescription>
+              <code>{name || '—'}</code>
+            </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
             <DescriptionListTerm>Run strategy</DescriptionListTerm>
-            <DescriptionListDescription>{runStrategy === 'ALWAYS' ? 'Always on' : 'Halted'}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {runStrategy === 'ALWAYS' ? 'Always on' : 'Halted'}
+            </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
             <DescriptionListTerm>Labels</DescriptionListTerm>
             <DescriptionListDescription>
-              {validLabels.length ? validLabels.map((l) => `${l.key}=${l.value}`).join(', ') : 'None'}
+              {validLabels.length
+                ? validLabels.map((l) => `${l.key}=${l.value}`).join(', ')
+                : 'None'}
             </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
             <DescriptionListTerm>SSH key</DescriptionListTerm>
-            <DescriptionListDescription>{sshKey.trim() ? 'Provided' : 'None'}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {sshKey.trim() ? 'Provided' : 'None'}
+            </DescriptionListDescription>
           </DescriptionListGroup>
 
           <DescriptionListGroup>
@@ -738,23 +905,31 @@ function Step3Review({
       {/* Dynamic field values */}
       {fieldDefinitions.filter((f) => f.editable).length > 0 && (
         <StackItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 8 }}>Catalog parameters</Title>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 8 }}>
+            Catalog parameters
+          </Title>
           <DescriptionList isCompact>
-            {fieldDefinitions.filter((f) => f.editable).map((field) => {
-              const val = fieldValues[field.id] ?? field.defaultValue
-              return (
-                <DescriptionListGroup key={field.id}>
-                  <DescriptionListTerm>{field.displayName}</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {field.componentType === 'boolean'
-                      ? (val ? 'Yes' : 'No')
-                      : field.componentType === 'password'
-                      ? '••••••••'
-                      : String(val ?? '—')}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )
-            })}
+            {fieldDefinitions
+              .filter((f) => f.editable)
+              .map((field) => {
+                const val = fieldValues[field.id] ?? field.defaultValue
+                return (
+                  <DescriptionListGroup key={field.id}>
+                    <DescriptionListTerm>{field.displayName}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {field.componentType === 'boolean'
+                        ? val
+                          ? 'Yes'
+                          : 'No'
+                        : field.componentType === 'password'
+                          ? '••••••••'
+                          : val != null
+                            ? `${val as string | number | boolean}`
+                            : '—'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )
+              })}
           </DescriptionList>
         </StackItem>
       )}
@@ -851,7 +1026,10 @@ export function RequestBareMetalWizard({
       variant="large"
       aria-label="Request bare metal instance"
     >
-      <ModalHeader title="Request Bare Metal" description="Provision a bare metal instance from the catalog." />
+      <ModalHeader
+        title="Request Bare Metal"
+        description="Provision a bare metal instance from the catalog."
+      />
       <ModalBody style={{ minHeight: 560 }}>
         <Wizard onClose={onClose} height={520}>
           <WizardStep
@@ -878,19 +1056,33 @@ export function RequestBareMetalWizard({
             }}
           >
             <Step2Configuration
-              name={name} setName={setName}
-              runStrategy={runStrategy} setRunStrategy={setRunStrategy}
-              labels={labels} setLabels={setLabels}
-              sshKey={sshKey} setSshKey={setSshKey}
-              sshKeyError={sshKeyError} onSshKeyBlur={handleSshKeyBlur}
-              userData={userData} setUserData={setUserData} userDataError={userDataError}
-              zone={zone} setZone={setZone}
-              image={image} setImage={setImage}
-              vnet={vnet} setVnet={setVnet}
-              subnet={subnet} setSubnet={setSubnet}
-              networkPolicy={networkPolicy} setNetworkPolicy={setNetworkPolicy}
-              topologyKey={topologyKey} setTopologyKey={setTopologyKey}
-              fieldValues={fieldValues} setFieldValues={setFieldValues}
+              name={name}
+              setName={setName}
+              runStrategy={runStrategy}
+              setRunStrategy={setRunStrategy}
+              labels={labels}
+              setLabels={setLabels}
+              sshKey={sshKey}
+              setSshKey={setSshKey}
+              sshKeyError={sshKeyError}
+              onSshKeyBlur={handleSshKeyBlur}
+              userData={userData}
+              setUserData={setUserData}
+              userDataError={userDataError}
+              zone={zone}
+              setZone={setZone}
+              image={image}
+              setImage={setImage}
+              vnet={vnet}
+              setVnet={setVnet}
+              subnet={subnet}
+              setSubnet={setSubnet}
+              networkPolicy={networkPolicy}
+              setNetworkPolicy={setNetworkPolicy}
+              topologyKey={topologyKey}
+              setTopologyKey={setTopologyKey}
+              fieldValues={fieldValues}
+              setFieldValues={setFieldValues}
               availableZones={availableZones}
               availableImages={availableImages}
               fieldDefinitions={fieldDefinitions}
@@ -932,7 +1124,9 @@ export function RequestBareMetalWizard({
           <Button isDisabled={isSubmitting} onClick={() => onSubmit(buildPayload())}>
             {isSubmitting ? 'Provisioning…' : 'Provision server'}
           </Button>
-          <Button variant="link" onClick={onClose}>Cancel</Button>
+          <Button variant="link" onClick={onClose}>
+            Cancel
+          </Button>
         </ActionGroup>
       </ModalBody>
     </Modal>

@@ -192,7 +192,10 @@ export function AppShell() {
         <Route path="/resources/storage/storage-volumes/:id" element={<VolumeDetailPage />} />
         {/* Administration: providerAdmin */}
         <Route path="/provider/organizations" element={<OrganizationsPage />} />
-        <Route path="/provider/tenants" element={<Navigate to="/provider/organizations" replace />} />
+        <Route
+          path="/provider/tenants"
+          element={<Navigate to="/provider/organizations" replace />}
+        />
         <Route path="/provider/tenants/:id" element={<TenantDetailPage />} />
         {/* Administration: tenantAdmin */}
         <Route path="/admin/users" element={<UsersPage />} />

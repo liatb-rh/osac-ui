@@ -117,7 +117,10 @@ export function ProviderPublicIPPoolsPage() {
       render: (p) => (
         <ActionsColumn
           items={[
-            { title: 'View details', onClick: () => navigate(`/resources/network/public-ip/public-ip-pools/${p.id}`) },
+            {
+              title: 'View details',
+              onClick: () => navigate(`/resources/network/public-ip/public-ip-pools/${p.id}`),
+            },
             {
               title: 'Delete',
               isDisabled: poolAllocations(p).length > 0,

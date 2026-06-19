@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 import type { CSSProperties, ComponentType } from 'react'
 import { css } from '@emotion/css'
 import { Button, Card, CardBody, CardFooter, Label } from '@patternfly/react-core'

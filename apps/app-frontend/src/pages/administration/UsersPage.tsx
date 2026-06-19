@@ -23,10 +23,10 @@ import {
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import { UserPlusIcon } from '@patternfly/react-icons/dist/esm/icons/user-plus-icon'
-import { CustomTableLink, ObjectsTable, PageLayout } from '@osac/ui-components'
+import { ObjectsTable, PageLayout } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import { useSession } from '../../contexts/SessionContext'
-import { getOrg, type MockUser } from '../../mocks/organizations-store'
+import { type MockUser, getOrg } from '../../mocks/organizations-store'
 
 // ---------------------------------------------------------------------------
 // Invite user modal
@@ -67,12 +67,7 @@ function InviteUserModal({ isOpen, onClose, onInvite }: InviteUserModalProps) {
   const isDisabled = !email || !firstName || !lastName
 
   return (
-    <Modal
-      variant={ModalVariant.medium}
-      isOpen={isOpen}
-      onClose={onClose}
-      aria-label="Invite user"
-    >
+    <Modal variant={ModalVariant.medium} isOpen={isOpen} onClose={onClose} aria-label="Invite user">
       <ModalHeader
         title="Invite user"
         description="Send an invitation to join this tenant workspace."
@@ -120,9 +115,7 @@ function InviteUserModal({ isOpen, onClose, onInvite }: InviteUserModalProps) {
               }}
             >
               <SelectList>
-                <SelectOption value="tenantUser">
-                  tenantUser — operate VM workloads
-                </SelectOption>
+                <SelectOption value="tenantUser">tenantUser — operate VM workloads</SelectOption>
                 <SelectOption value="tenantAdmin">
                   tenantAdmin — manage users, quota, network
                 </SelectOption>
@@ -231,11 +224,7 @@ export function UsersPage() {
         title="Users & Access"
         description="Tenant-scoped identity and role bindings."
         actions={
-          <Button
-            variant="primary"
-            icon={<UserPlusIcon />}
-            onClick={() => setInviteOpen(true)}
-          >
+          <Button variant="primary" icon={<UserPlusIcon />} onClick={() => setInviteOpen(true)}>
             Invite user
           </Button>
         }

@@ -174,7 +174,11 @@ export function StorageTierDetailPage() {
       <Breadcrumb className={breadcrumbCss}>
         <BreadcrumbItem
           render={() => (
-            <Button variant="link" isInline onClick={() => navigate('/resources/storage/storage-tiers')}>
+            <Button
+              variant="link"
+              isInline
+              onClick={() => navigate('/resources/storage/storage-tiers')}
+            >
               Storage Tiers
             </Button>
           )}

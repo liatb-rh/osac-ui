@@ -4,17 +4,17 @@
  * route: /resources/storage/org-storage-status
  */
 import { css } from '@emotion/css'
-import {
-  ExpandableSection,
-  Label,
-  Skeleton,
-} from '@patternfly/react-core'
+import { ExpandableSection, Label, Skeleton } from '@patternfly/react-core'
 import { CheckCircleIcon } from '@patternfly/react-icons/dist/esm/icons/check-circle-icon'
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon'
 import { MinusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/minus-circle-icon'
 import { ObjectsTable, PageLayout } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
-import type { OrgStorageCondition, OrgStorageStatus, OrgStorageTierStatus } from '@osac/api-contracts'
+import type {
+  OrgStorageCondition,
+  OrgStorageStatus,
+  OrgStorageTierStatus,
+} from '@osac/api-contracts'
 import { useOrgStorageStatuses } from '../../../hooks/useAgents'
 
 // ── Styles ──────────────────────────────────────────────────────────────────
@@ -42,7 +42,6 @@ const orgNameCss = css`
   font-size: var(--pf-v5-global--FontSize--md);
   font-weight: var(--pf-v5-global--FontWeight--semi-bold);
 `
-
 
 const conditionListCss = css`
   list-style: none;
@@ -128,7 +127,10 @@ const TIER_COLUMNS: ObjectsTableColumn<OrgStorageTierStatus>[] = [
           {t.hubSecretReady === true ? (
             <CheckCircleIcon color="var(--pf-v5-global--success-color--100)" title="Secret ready" />
           ) : (
-            <ExclamationCircleIcon color="var(--pf-v5-global--danger-color--100)" title="Secret not ready" />
+            <ExclamationCircleIcon
+              color="var(--pf-v5-global--danger-color--100)"
+              title="Secret not ready"
+            />
           )}
         </span>
       ) : (
@@ -140,7 +142,12 @@ const TIER_COLUMNS: ObjectsTableColumn<OrgStorageTierStatus>[] = [
 function TierTable({ tiers }: { tiers: OrgStorageTierStatus[] }) {
   if (tiers.length === 0)
     return (
-      <p style={{ color: 'var(--pf-v5-global--Color--200)', fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
+      <p
+        style={{
+          color: 'var(--pf-v5-global--Color--200)',
+          fontSize: 'var(--pf-v5-global--FontSize--sm)',
+        }}
+      >
         No tiers configured.
       </p>
     )
@@ -167,7 +174,11 @@ function ConditionList({ conditions }: { conditions: OrgStorageCondition[] }) {
           >
             {c.status}
           </Label>
-          {c.reason && <span style={{ fontStyle: 'italic', color: 'var(--pf-v5-global--Color--200)' }}>{c.reason}</span>}
+          {c.reason && (
+            <span style={{ fontStyle: 'italic', color: 'var(--pf-v5-global--Color--200)' }}>
+              {c.reason}
+            </span>
+          )}
           {c.message && <span className={conditionMsgCss}>{c.message}</span>}
         </li>
       ))}

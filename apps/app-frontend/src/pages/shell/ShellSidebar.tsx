@@ -70,7 +70,9 @@ export function ShellSidebar({
                               const ChildIcon = child.icon
                               const isActive =
                                 pathname === child.path ||
-                                (!child.exactMatch && child.path !== '/' && pathname.startsWith(child.path + '/'))
+                                (!child.exactMatch &&
+                                  child.path !== '/' &&
+                                  pathname.startsWith(child.path + '/'))
                               return (
                                 <NavItem
                                   key={child.id}

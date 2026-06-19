@@ -117,7 +117,9 @@ export function StorageBackendDetailPage() {
     return (
       <PageLayout title="Backend not found">
         <EmptyState>
-          <Title headingLevel="h4" size="lg">Backend not found</Title>
+          <Title headingLevel="h4" size="lg">
+            Backend not found
+          </Title>
           <EmptyStateBody>No storage backend with ID &ldquo;{id}&rdquo; exists.</EmptyStateBody>
         </EmptyState>
       </PageLayout>
@@ -128,15 +130,24 @@ export function StorageBackendDetailPage() {
   const conditions = backend.status?.conditions ?? []
 
   const tierColumns: ObjectsTableColumn<StorageTier>[] = [
-    { label: 'Name',      dataLabel: 'Name',      render: (t) => t.name },
+    { label: 'Name', dataLabel: 'Name', render: (t) => t.name },
     {
-      label: 'Protocol', dataLabel: 'Protocol',
-      render: (t) => t.protocol ? <Label color="teal" isCompact>{t.protocol}</Label> : '—',
+      label: 'Protocol',
+      dataLabel: 'Protocol',
+      render: (t) =>
+        t.protocol ? (
+          <Label color="teal" isCompact>
+            {t.protocol}
+          </Label>
+        ) : (
+          '—'
+        ),
     },
     { label: 'QoS class', dataLabel: 'QoS class', render: (t) => t.qosClass ?? '—' },
-    { label: 'VIP pool',  dataLabel: 'VIP pool',  render: (t) => t.vipPool ?? '—' },
+    { label: 'VIP pool', dataLabel: 'VIP pool', render: (t) => t.vipPool ?? '—' },
     {
-      label: 'Available', dataLabel: 'Available',
+      label: 'Available',
+      dataLabel: 'Available',
       render: (t) => (
         <Label color={t.available ? 'green' : 'grey'} isCompact>
           {t.available ? 'yes' : 'no'}
@@ -163,137 +174,155 @@ export function StorageBackendDetailPage() {
         </Button>
       }
     >
-        <div className={breadcrumbCss}>
-          <Breadcrumb>
-            <BreadcrumbItem onClick={() => navigate('/resources/storage/storage-backends')} to="#">
-              Storage Backends
-            </BreadcrumbItem>
-            <BreadcrumbItem isActive>{backend.metadata.name}</BreadcrumbItem>
-          </Breadcrumb>
-        </div>
+      <div className={breadcrumbCss}>
+        <Breadcrumb>
+          <BreadcrumbItem onClick={() => navigate('/resources/storage/storage-backends')} to="#">
+            Storage Backends
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>{backend.metadata.name}</BreadcrumbItem>
+        </Breadcrumb>
+      </div>
 
-        <div className={gridCss}>
-          {/* Details card */}
-          <Card>
-            <CardTitle>Details</CardTitle>
-            <CardBody>
-              <DescriptionList isCompact>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Status</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label
-                      color={ready ? 'green' : 'red'}
-                      icon={ready ? <CheckCircleIcon /> : <ExclamationCircleIcon />}
-                      isCompact
-                    >
-                      {ready ? 'Ready' : 'Degraded'}
-                    </Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Provider</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Label color="blue" isCompact>{backend.provider}</Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Deployment model</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {backend.deploymentModel
-                      ? (DEPLOYMENT_LABELS[backend.deploymentModel] ?? backend.deploymentModel)
-                      : '—'}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Endpoint</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <code>{backend.endpoint}</code>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Credentials secret</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <code>{backend.credentialsSecretRef}</code>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>VIP pool</DescriptionListTerm>
-                  <DescriptionListDescription>{backend.vipPool}</DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Created</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {backend.metadata.createdAt ?? '—'}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
-            </CardBody>
-          </Card>
-
-          {/* Conditions card */}
-          <Card>
-            <CardTitle>Conditions</CardTitle>
-            <CardBody>
-              {conditions.length === 0 ? (
-                <p style={{ color: 'var(--pf-v5-global--Color--200)', fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
-                  No conditions reported.
-                </p>
-              ) : (
-                <div>
-                  {conditions.map((c, i) => (
-                    <div key={i} className={conditionRowCss}>
-                      <span className={conditionTypeCss}>{c.type}</span>
-                      <Label
-                        color={c.status === 'True' ? 'green' : c.status === 'False' ? 'red' : 'grey'}
-                        isCompact
-                      >
-                        {c.status}
-                      </Label>
-                      {c.reason && (
-                        <span style={{ fontStyle: 'italic', fontSize: 'var(--pf-v5-global--FontSize--sm)', color: 'var(--pf-v5-global--Color--200)' }}>
-                          {c.reason}
-                        </span>
-                      )}
-                      {c.message && <span className={conditionMsgCss}>{c.message}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* Linked tiers */}
-        <Card style={{ marginTop: 16 }}>
-          <CardTitle>Storage Tiers using this backend</CardTitle>
+      <div className={gridCss}>
+        {/* Details card */}
+        <Card>
+          <CardTitle>Details</CardTitle>
           <CardBody>
-            {linkedTiers.length === 0 ? (
-              <p style={{ color: 'var(--pf-v5-global--Color--200)', fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
-                No tiers reference this backend.
+            <DescriptionList isCompact>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Status</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Label
+                    color={ready ? 'green' : 'red'}
+                    icon={ready ? <CheckCircleIcon /> : <ExclamationCircleIcon />}
+                    isCompact
+                  >
+                    {ready ? 'Ready' : 'Degraded'}
+                  </Label>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Provider</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Label color="blue" isCompact>
+                    {backend.provider}
+                  </Label>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Deployment model</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {backend.deploymentModel
+                    ? (DEPLOYMENT_LABELS[backend.deploymentModel] ?? backend.deploymentModel)
+                    : '—'}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Endpoint</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <code>{backend.endpoint}</code>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Credentials secret</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <code>{backend.credentialsSecretRef}</code>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>VIP pool</DescriptionListTerm>
+                <DescriptionListDescription>{backend.vipPool}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Created</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {backend.metadata.createdAt ?? '—'}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+          </CardBody>
+        </Card>
+
+        {/* Conditions card */}
+        <Card>
+          <CardTitle>Conditions</CardTitle>
+          <CardBody>
+            {conditions.length === 0 ? (
+              <p
+                style={{
+                  color: 'var(--pf-v5-global--Color--200)',
+                  fontSize: 'var(--pf-v5-global--FontSize--sm)',
+                }}
+              >
+                No conditions reported.
               </p>
             ) : (
-              <ObjectsTable
-                ariaLabel="Linked tiers"
-                columns={tierColumns}
-                rows={linkedTiers}
-                getRowKey={(t) => t.id}
-              />
+              <div>
+                {conditions.map((c, i) => (
+                  <div key={i} className={conditionRowCss}>
+                    <span className={conditionTypeCss}>{c.type}</span>
+                    <Label
+                      color={c.status === 'True' ? 'green' : c.status === 'False' ? 'red' : 'grey'}
+                      isCompact
+                    >
+                      {c.status}
+                    </Label>
+                    {c.reason && (
+                      <span
+                        style={{
+                          fontStyle: 'italic',
+                          fontSize: 'var(--pf-v5-global--FontSize--sm)',
+                          color: 'var(--pf-v5-global--Color--200)',
+                        }}
+                      >
+                        {c.reason}
+                      </span>
+                    )}
+                    {c.message && <span className={conditionMsgCss}>{c.message}</span>}
+                  </div>
+                ))}
+              </div>
             )}
           </CardBody>
         </Card>
-        <ActionRow
-          tone="danger"
-          title="Deregister backend"
-          body={
-            linkedTiers.length > 0
-              ? `${linkedTiers.length} tier(s) reference this backend. Remove them first.`
-              : 'Permanently remove this storage backend from OSAC.'
-          }
-          cta="Deregister backend"
-          icon={<TrashIcon />}
-          disabled={linkedTiers.length > 0}
-          onClick={() => setDeleteOpen(true)}
-        />
+      </div>
+
+      {/* Linked tiers */}
+      <Card style={{ marginTop: 16 }}>
+        <CardTitle>Storage Tiers using this backend</CardTitle>
+        <CardBody>
+          {linkedTiers.length === 0 ? (
+            <p
+              style={{
+                color: 'var(--pf-v5-global--Color--200)',
+                fontSize: 'var(--pf-v5-global--FontSize--sm)',
+              }}
+            >
+              No tiers reference this backend.
+            </p>
+          ) : (
+            <ObjectsTable
+              ariaLabel="Linked tiers"
+              columns={tierColumns}
+              rows={linkedTiers}
+              getRowKey={(t) => t.id}
+            />
+          )}
+        </CardBody>
+      </Card>
+      <ActionRow
+        tone="danger"
+        title="Deregister backend"
+        body={
+          linkedTiers.length > 0
+            ? `${linkedTiers.length} tier(s) reference this backend. Remove them first.`
+            : 'Permanently remove this storage backend from OSAC.'
+        }
+        cta="Deregister backend"
+        icon={<TrashIcon />}
+        disabled={linkedTiers.length > 0}
+        onClick={() => setDeleteOpen(true)}
+      />
 
       {/* Edit modal */}
       <Modal
@@ -313,11 +342,7 @@ export function StorageBackendDetailPage() {
               />
             </FormGroup>
             <FormGroup label="VIP Pool" fieldId="be-vip">
-              <TextInput
-                id="be-vip"
-                value={editVipPool}
-                onChange={(_, v) => setEditVipPool(v)}
-              />
+              <TextInput id="be-vip" value={editVipPool} onChange={(_, v) => setEditVipPool(v)} />
             </FormGroup>
             <FormGroup label="Credentials secret ref" fieldId="be-creds">
               <TextInput
@@ -373,7 +398,9 @@ export function StorageBackendDetailPage() {
             isLoading={isDeleting}
             isDisabled={isDeleting}
             onClick={() =>
-              deleteBackend(id!, { onSuccess: () => navigate('/resources/storage/storage-backends') })
+              deleteBackend(id!, {
+                onSuccess: () => navigate('/resources/storage/storage-backends'),
+              })
             }
           >
             Deregister

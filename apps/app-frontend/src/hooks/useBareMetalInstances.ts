@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { BareMetalInstanceCatalogItem, FulfillmentBareMetalInstance } from '@osac/api-contracts'
+import type {
+  BareMetalInstanceCatalogItem,
+  FulfillmentBareMetalInstance,
+} from '@osac/api-contracts'
 import {
   createBareMetalInstance,
   listBareMetalCatalogItems,

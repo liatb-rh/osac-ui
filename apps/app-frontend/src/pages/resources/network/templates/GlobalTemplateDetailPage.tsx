@@ -87,7 +87,10 @@ export function GlobalTemplateDetailPage() {
     <>
       <PageBreadcrumb>
         <Breadcrumb>
-          <BreadcrumbItem component="button" onClick={() => navigate('/resources/network/global-templates')}>
+          <BreadcrumbItem
+            component="button"
+            onClick={() => navigate('/resources/network/global-templates')}
+          >
             Global Templates
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{template.name}</BreadcrumbItem>

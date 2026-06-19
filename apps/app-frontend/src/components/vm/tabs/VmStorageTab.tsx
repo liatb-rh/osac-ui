@@ -1,16 +1,24 @@
 import { useState } from 'react'
 import { css } from '@emotion/css'
-import { Button, EmptyState, EmptyStateBody, Label, Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant, TextInput, Title } from '@patternfly/react-core'
+import {
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
+  TextInput,
+  Title,
+} from '@patternfly/react-core'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import type { ComputeInstance, StorageVolume } from '@osac/api-contracts'
 import { formatVmStorageGiBLine } from '@osac/api-contracts'
 import { ObjectsTable } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
-import {
-  useMountVolume,
-  useStorageVolumes,
-  useUnmountVolume,
-} from '../../../hooks/useAgents'
+import { useMountVolume, useStorageVolumes, useUnmountVolume } from '../../../hooks/useAgents'
 
 interface Props {
   vm: ComputeInstance

@@ -80,7 +80,12 @@ export function scheduleClusterProgressing(clusterId: string): void {
             },
           })),
           volumeSnapshotClasses: [
-            { name: 'vast-snapshot', driver: 'csi.vastdata.com', deletionPolicy: 'Delete', isDefault: true },
+            {
+              name: 'vast-snapshot',
+              driver: 'csi.vastdata.com',
+              deletionPolicy: 'Delete',
+              isDefault: true,
+            },
           ],
         },
         network: {

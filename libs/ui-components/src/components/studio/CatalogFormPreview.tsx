@@ -23,7 +23,9 @@ function LockedHelper() {
   return (
     <FormHelperText>
       <HelperText>
-        <HelperTextItem icon={<LockIcon />}>Fixed — cannot be changed at provision time</HelperTextItem>
+        <HelperTextItem icon={<LockIcon />}>
+          Fixed — cannot be changed at provision time
+        </HelperTextItem>
       </HelperText>
     </FormHelperText>
   )
@@ -111,7 +113,11 @@ function FieldPreview({ field }: { field: FieldDefinition }) {
     <FormGroup
       label={displayName || field.path || '(unnamed field)'}
       fieldId={`preview-${field.id}`}
-      labelHelp={!editable ? <LockIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} /> : undefined}
+      labelHelp={
+        !editable ? (
+          <LockIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />
+        ) : undefined
+      }
     >
       {control}
       {helperText}

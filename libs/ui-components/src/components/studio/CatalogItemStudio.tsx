@@ -86,7 +86,12 @@ function TemplatePicker({
             </CardTitle>
             {tpl.description && (
               <CardBody>
-                <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.875rem' }}>
+                <span
+                  style={{
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   {tpl.description}
                 </span>
               </CardBody>
@@ -113,10 +118,11 @@ export function CatalogItemStudio({
   const [typeOpen, setTypeOpen] = useState(false)
 
   // Section 2 — Base Template
-  const defaultTemplate =
-    item?.templateRef
-      ? (availableTemplates.find((t) => t.name === item.templateRef)?.id ?? availableTemplates[0]?.id ?? '')
-      : (availableTemplates[0]?.id ?? '')
+  const defaultTemplate = item?.templateRef
+    ? (availableTemplates.find((t) => t.name === item.templateRef)?.id ??
+      availableTemplates[0]?.id ??
+      '')
+    : (availableTemplates[0]?.id ?? '')
   const [selectedTemplateId, setSelectedTemplateId] = useState(defaultTemplate)
 
   // Section 3 — Field Definitions
@@ -128,7 +134,10 @@ export function CatalogItemStudio({
   const selectedTemplate = availableTemplates.find((t) => t.id === selectedTemplateId)
 
   function handleSave() {
-    const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    const slug = title
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
     const saved: FullCatalogItem = {
       id: item?.id ?? `ci-${Date.now()}`,
       metadata: { name: item?.metadata.name ?? slug },
@@ -155,9 +164,16 @@ export function CatalogItemStudio({
         </Title>
 
         {/* Section 1 — Identity */}
-        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
+        <Card
+          style={{
+            marginBottom: 16,
+            border: '1px solid var(--pf-t--global--border--color--default)',
+          }}
+        >
           <CardTitle>
-            <Title headingLevel="h3" size="md">1. Identity</Title>
+            <Title headingLevel="h3" size="md">
+              1. Identity
+            </Title>
           </CardTitle>
           <CardBody>
             <Form>
@@ -214,9 +230,16 @@ export function CatalogItemStudio({
         </Card>
 
         {/* Section 2 — Base Template */}
-        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
+        <Card
+          style={{
+            marginBottom: 16,
+            border: '1px solid var(--pf-t--global--border--color--default)',
+          }}
+        >
           <CardTitle>
-            <Title headingLevel="h3" size="md">2. Base Template</Title>
+            <Title headingLevel="h3" size="md">
+              2. Base Template
+            </Title>
           </CardTitle>
           <CardBody>
             <TemplatePicker
@@ -228,26 +251,53 @@ export function CatalogItemStudio({
         </Card>
 
         {/* Section 3 — Field Definitions */}
-        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
+        <Card
+          style={{
+            marginBottom: 16,
+            border: '1px solid var(--pf-t--global--border--color--default)',
+          }}
+        >
           <CardTitle>
-            <Title headingLevel="h3" size="md">3. Field Definitions</Title>
+            <Title headingLevel="h3" size="md">
+              3. Field Definitions
+            </Title>
           </CardTitle>
           <CardBody>
-            <p style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 16, fontSize: '0.875rem' }}>
+            <p
+              style={{
+                color: 'var(--pf-t--global--text--color--subtle)',
+                marginBottom: 16,
+                fontSize: '0.875rem',
+              }}
+            >
               Define the parameters tenant users can configure when provisioning this catalog item.
-              Locked fields (editable = off) are shown read-only with their default value applied automatically.
+              Locked fields (editable = off) are shown read-only with their default value applied
+              automatically.
             </p>
             <FieldDefinitionBuilder fields={fields} onChange={setFields} />
           </CardBody>
         </Card>
 
         {/* Section 4 — Live Preview */}
-        <Card style={{ marginBottom: 16, border: '1px solid var(--pf-t--global--border--color--default)' }}>
+        <Card
+          style={{
+            marginBottom: 16,
+            border: '1px solid var(--pf-t--global--border--color--default)',
+          }}
+        >
           <CardTitle>
-            <Title headingLevel="h3" size="md">4. Live Preview</Title>
+            <Title headingLevel="h3" size="md">
+              4. Live Preview
+            </Title>
           </CardTitle>
           <CardBody>
-            <p style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 16, fontSize: '0.875rem' }}>
+            <p
+              style={{
+                color: 'var(--pf-t--global--text--color--subtle)',
+                marginBottom: 16,
+                fontSize: '0.875rem',
+              }}
+            >
               This is how the field definitions will appear to tenant users at provision time.
             </p>
             <CatalogFormPreview fields={fields} />

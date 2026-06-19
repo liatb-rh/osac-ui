@@ -8,12 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Button,
-  Label,
-  PageSection,
-  Switch,
-} from '@patternfly/react-core'
+import { Button, Label, PageSection, Switch } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon'
@@ -49,7 +44,13 @@ export function AdminCatalogItemsPage() {
       label: 'Title',
       render: (i) => (
         <button
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
           onClick={() => navigate(`/resources/network/catalog/admin-catalog-items/${i.id}`)}
         >
           <strong>{i.title}</strong>
@@ -78,9 +79,13 @@ export function AdminCatalogItemsPage() {
       label: 'Status',
       render: (i) =>
         i.published ? (
-          <Label color="green" isCompact>Published</Label>
+          <Label color="green" isCompact>
+            Published
+          </Label>
         ) : (
-          <Label color="orange" isCompact>Draft</Label>
+          <Label color="orange" isCompact>
+            Draft
+          </Label>
         ),
     },
     {

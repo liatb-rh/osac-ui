@@ -73,7 +73,9 @@ export function WelcomePage() {
       tone: 'provider',
       accentColor: '#E41578',
       desc: 'Govern sovereign infrastructure, tenant organizations, storage tiers and global templates.',
-      iconNode: <img src={tmobileLogo} alt="T-Mobile" style={{ height: '2rem', objectFit: 'contain' }} />,
+      iconNode: (
+        <img src={tmobileLogo} alt="T-Mobile" style={{ height: '2rem', objectFit: 'contain' }} />
+      ),
       onSelect: () => go(selectProviderAdmin),
     },
     {
@@ -84,7 +86,13 @@ export function WelcomePage() {
       tone: 'northstar',
       accentColor: '#1e7e34',
       desc: 'Administer users, quota, networks, and cluster offerings for a regulated institution.',
-      iconNode: <img src={serveRoboticsLogo} alt="Serve Robotics" style={{ height: '2rem', objectFit: 'contain' }} />,
+      iconNode: (
+        <img
+          src={serveRoboticsLogo}
+          alt="Serve Robotics"
+          style={{ height: '2rem', objectFit: 'contain' }}
+        />
+      ),
       onSelect: tenantEntry('northstar', 'tenantAdmin'),
     },
     {
@@ -95,7 +103,13 @@ export function WelcomePage() {
       tone: 'northstar',
       accentColor: '#003f87',
       desc: 'Provision VMs, manage workloads and provision OpenShift clusters as a workspace operator.',
-      iconNode: <img src={serveRoboticsLogo} alt="Serve Robotics" style={{ height: '2rem', objectFit: 'contain' }} />,
+      iconNode: (
+        <img
+          src={serveRoboticsLogo}
+          alt="Serve Robotics"
+          style={{ height: '2rem', objectFit: 'contain' }}
+        />
+      ),
       onSelect: tenantEntry('northstar', 'tenantUser'),
     },
     // {

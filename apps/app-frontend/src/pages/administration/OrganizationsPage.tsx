@@ -12,6 +12,7 @@ import {
   Form,
   FormGroup,
   Label,
+  MenuToggle,
   Modal,
   ModalBody,
   ModalFooter,
@@ -23,10 +24,9 @@ import {
   SelectOption,
   Switch,
   Tab,
-  Tabs,
   TabTitleText,
+  Tabs,
   TextInput,
-  MenuToggle,
 } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import { KeyIcon } from '@patternfly/react-icons/dist/esm/icons/key-icon'
@@ -35,11 +35,11 @@ import { ShieldAltIcon } from '@patternfly/react-icons/dist/esm/icons/shield-alt
 import { CustomTableLink, ObjectsTable, PageLayout } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import {
-  ORGANIZATIONS,
-  orgStateToStatus,
-  idpPhaseToStatus,
-  type OrgFixture,
   type IdpKind,
+  ORGANIZATIONS,
+  type OrgFixture,
+  idpPhaseToStatus,
+  orgStateToStatus,
 } from '../../mocks/organizations-store'
 
 // ---------------------------------------------------------------------------
@@ -146,13 +146,9 @@ function OrgsTable({ orgs }: { orgs: OrgFixture[] }) {
 function SovereignGatewayTab() {
   return (
     <div style={{ marginTop: 16, display: 'grid', gap: 16 }}>
-      <Alert
-        variant="info"
-        isInline
-        title="Sovereign Gateway Pattern is active"
-      >
-        Every API request is authenticated by Keycloak and authorized by Authorino through
-        Kuadrant policies at the cluster edge.
+      <Alert variant="info" isInline title="Sovereign Gateway Pattern is active">
+        Every API request is authenticated by Keycloak and authorized by Authorino through Kuadrant
+        policies at the cluster edge.
       </Alert>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div
@@ -166,7 +162,14 @@ function SovereignGatewayTab() {
             <KeyIcon />
             <strong>Keycloak — token issuance</strong>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--pf-t--global--text--color--subtle)', display: 'grid', gap: 4 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: 'var(--pf-t--global--text--color--subtle)',
+              display: 'grid',
+              gap: 4,
+            }}
+          >
             <div>
               Issuer: <code>{'https://auth.osac.internal/realms/<tenant>'}</code>
             </div>
@@ -185,10 +188,15 @@ function SovereignGatewayTab() {
             <ShieldAltIcon />
             <strong>Authorino — authorization</strong>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--pf-t--global--text--color--subtle)', display: 'grid', gap: 4 }}>
-            <div>
-              {ORGANIZATIONS.length * 3} AuthPolicies deployed across Kuadrant Gateways
-            </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: 'var(--pf-t--global--text--color--subtle)',
+              display: 'grid',
+              gap: 4,
+            }}
+          >
+            <div>{ORGANIZATIONS.length * 3} AuthPolicies deployed across Kuadrant Gateways</div>
             <div>Group-claim mapped to OSAC roles</div>
             <div>Deny-by-default · explicit allow per route</div>
           </div>
@@ -221,7 +229,8 @@ function IdpHealthTab({ orgs }: { orgs: OrgFixture[] }) {
           <div>
             <strong>{o.name}</strong>
             <span style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: 12 }}>
-              {' '}· {o.idp.kind} · {o.idp.host}
+              {' '}
+              · {o.idp.kind} · {o.idp.host}
             </span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--pf-t--global--text--color--subtle)' }}>
@@ -265,18 +274,10 @@ function NewOrgModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       <ModalBody>
         <Form>
           <FormGroup label="Organization name" isRequired fieldId="org-name">
-            <TextInput
-              id="org-name"
-              value={name}
-              onChange={(_, v) => setName(v)}
-            />
+            <TextInput id="org-name" value={name} onChange={(_, v) => setName(v)} />
           </FormGroup>
           <FormGroup label="Keycloak realm" isRequired fieldId="org-realm">
-            <TextInput
-              id="org-realm"
-              value={realm}
-              onChange={(_, v) => setRealm(v)}
-            />
+            <TextInput id="org-realm" value={realm} onChange={(_, v) => setRealm(v)} />
           </FormGroup>
           <FormGroup label="Identity provider" fieldId="org-idp">
             <Select
@@ -303,11 +304,7 @@ function NewOrgModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
             </Select>
           </FormGroup>
           <FormGroup label="IdP endpoint / host" fieldId="org-host">
-            <TextInput
-              id="org-host"
-              value={host}
-              onChange={(_, v) => setHost(v)}
-            />
+            <TextInput id="org-host" value={host} onChange={(_, v) => setHost(v)} />
           </FormGroup>
           <FormGroup fieldId="org-bg">
             <Switch
@@ -358,16 +355,11 @@ export function OrganizationsPage() {
         title="Organizations"
         description="Keycloak realms, external identity providers, and the Sovereign Gateway Pattern (Authorino + Kuadrant)."
         actions={
-          <Button
-            variant="primary"
-            icon={<PlusCircleIcon />}
-            onClick={() => setCreateOpen(true)}
-          >
+          <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setCreateOpen(true)}>
             New organization
           </Button>
         }
       >
-
         <div style={{ marginTop: 24 }}>
           <Tabs
             activeKey={activeTab}

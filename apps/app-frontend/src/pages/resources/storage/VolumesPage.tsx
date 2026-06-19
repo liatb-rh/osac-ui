@@ -21,7 +21,11 @@ import {
 } from '@patternfly/react-core'
 import { CustomTableLink, ObjectsTable, PageLayout } from '@osac/ui-components'
 import type { Cluster, StorageVolume, VolumeAccessMode } from '@osac/api-contracts'
-import { useCreateStorageVolume, useStorageTiers, useStorageVolumes } from '../../../hooks/useAgents'
+import {
+  useCreateStorageVolume,
+  useStorageTiers,
+  useStorageVolumes,
+} from '../../../hooks/useAgents'
 import { useClustersList } from '../../../hooks/useClustersList'
 
 const STATE_COLOR: Record<string, 'green' | 'blue' | 'grey' | 'red' | 'orange'> = {
@@ -58,10 +62,7 @@ function CreateVolumeWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const orgId = (selectedCluster?.metadata?.labels?.['osac.io/org-id'] ?? clusterRef) || ''
 
   function handleCreate() {
-    createVolume(
-      { name, orgId, sizeGiB, tierId, accessMode },
-      { onSuccess: onClose },
-    )
+    createVolume({ name, orgId, sizeGiB, tierId, accessMode }, { onSuccess: onClose })
   }
 
   return (
@@ -76,11 +77,7 @@ function CreateVolumeWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         description="Provisions a PersistentVolumeClaim (PVC) on the selected cluster using the chosen StorageClass."
       />
       <ModalBody>
-        <Wizard
-          height={500}
-          onClose={onClose}
-          onSave={handleCreate}
-        >
+        <Wizard height={500} onClose={onClose} onSave={handleCreate}>
           <WizardStep name="Identity" id="vol-id">
             <Form>
               <FormGroup label="Volume name" fieldId="vn-name" isRequired>
@@ -92,11 +89,7 @@ function CreateVolumeWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                   placeholder="my-data-volume"
                 />
               </FormGroup>
-              <FormGroup
-                label="Target cluster"
-                fieldId="vn-cluster"
-                isRequired
-              >
+              <FormGroup label="Target cluster" fieldId="vn-cluster" isRequired>
                 <FormSelect
                   id="vn-cluster"
                   value={clusterRef}
@@ -112,11 +105,7 @@ function CreateVolumeWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                   ))}
                 </FormSelect>
               </FormGroup>
-              <FormGroup
-                label="Storage tier"
-                fieldId="vn-tier"
-                isRequired
-              >
+              <FormGroup label="Storage tier" fieldId="vn-tier" isRequired>
                 <FormSelect id="vn-tier" value={tierId} onChange={(_, v) => setTierId(v)}>
                   <FormSelectOption value="" label="— Select tier —" />
                   {(tiers ?? []).map((t) => (
@@ -134,8 +123,14 @@ function CreateVolumeWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                   value={accessMode}
                   onChange={(_, v) => setAccessMode(v as VolumeAccessMode)}
                 >
-                  <FormSelectOption value="ReadWriteOnce" label="ReadWriteOnce (RWO) — single node, block storage" />
-                  <FormSelectOption value="ReadWriteMany" label="ReadWriteMany (RWX) — multi-node, NFS / shared storage" />
+                  <FormSelectOption
+                    value="ReadWriteOnce"
+                    label="ReadWriteOnce (RWO) — single node, block storage"
+                  />
+                  <FormSelectOption
+                    value="ReadWriteMany"
+                    label="ReadWriteMany (RWX) — multi-node, NFS / shared storage"
+                  />
                 </FormSelect>
               </FormGroup>
             </Form>
@@ -165,23 +160,37 @@ function CreateVolumeWizard({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             }}
           >
             <div style={{ display: 'grid', gap: 8 }}>
-              <p><strong>Name:</strong> {name || '—'}</p>
-              <p><strong>Cluster:</strong> {selectedCluster?.metadata.name ?? (clusterRef || '—')}</p>
-              <p><strong>Tier:</strong> {(selectedTier?.name ?? tierId) || '—'}</p>
+              <p>
+                <strong>Name:</strong> {name || '—'}
+              </p>
+              <p>
+                <strong>Cluster:</strong> {selectedCluster?.metadata.name ?? (clusterRef || '—')}
+              </p>
+              <p>
+                <strong>Tier:</strong> {(selectedTier?.name ?? tierId) || '—'}
+              </p>
               <p>
                 <strong>StorageClass:</strong>{' '}
-                {selectedTier?.storageClassName
-                  ? <code>{selectedTier.storageClassName}</code>
-                  : <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>}
+                {selectedTier?.storageClassName ? (
+                  <code>{selectedTier.storageClassName}</code>
+                ) : (
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>
+                )}
               </p>
               <p>
                 <strong>VolumeSnapshotClass:</strong>{' '}
-                {selectedTier?.storageClassName
-                  ? <code>{selectedTier.storageClassName}-snap</code>
-                  : <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>}
+                {selectedTier?.storageClassName ? (
+                  <code>{selectedTier.storageClassName}-snap</code>
+                ) : (
+                  <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>
+                )}
               </p>
-              <p><strong>Access mode:</strong> {accessMode}</p>
-              <p><strong>Size:</strong> {sizeGiB} GiB</p>
+              <p>
+                <strong>Access mode:</strong> {accessMode}
+              </p>
+              <p>
+                <strong>Size:</strong> {sizeGiB} GiB
+              </p>
             </div>
           </WizardStep>
         </Wizard>
@@ -216,9 +225,11 @@ export function VolumesPage() {
       label: 'StorageClass',
       dataLabel: 'StorageClass',
       render: (v: StorageVolume) =>
-        v.storageClassName
-          ? <code>{v.storageClassName}</code>
-          : <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>,
+        v.storageClassName ? (
+          <code>{v.storageClassName}</code>
+        ) : (
+          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>
+        ),
     },
     {
       label: 'Access mode',
@@ -250,7 +261,7 @@ export function VolumesPage() {
     {
       label: 'Cluster',
       dataLabel: 'Cluster',
-      render: (v: StorageVolume) => v.clusterRef ? <code>{v.clusterRef}</code> : v.orgId,
+      render: (v: StorageVolume) => (v.clusterRef ? <code>{v.clusterRef}</code> : v.orgId),
     },
     {
       label: 'Mounted on',

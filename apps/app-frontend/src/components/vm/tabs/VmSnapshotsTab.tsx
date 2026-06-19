@@ -52,12 +52,7 @@ const STATE_COLOR: Record<string, 'green' | 'orange' | 'red' | 'grey'> = {
   restoring: 'orange',
 }
 
-function SnapshotsForVolume({
-  volumeId,
-}: {
-  volumeId: string
-  vmId?: string
-}) {
+function SnapshotsForVolume({ volumeId }: { volumeId: string; vmId?: string }) {
   const { data: snapshots, isLoading } = useVolumeSnapshots(volumeId)
   const { mutate: createSnap, isPending: isCreating } = useCreateVolumeSnapshot()
   const { mutate: deleteSnap } = useDeleteVolumeSnapshot()

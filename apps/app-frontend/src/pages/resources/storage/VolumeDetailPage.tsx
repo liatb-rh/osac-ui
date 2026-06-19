@@ -30,7 +30,13 @@ import {
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import { CheckCircleIcon } from '@patternfly/react-icons/dist/esm/icons/check-circle-icon'
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon'
-import { ActionRow, CustomTableLink, KpiHeader, ObjectsTable, PageLayout } from '@osac/ui-components'
+import {
+  ActionRow,
+  CustomTableLink,
+  KpiHeader,
+  ObjectsTable,
+  PageLayout,
+} from '@osac/ui-components'
 import type { VolumeAttachment, VolumeSnapshot } from '@osac/api-contracts'
 import {
   useCreateVolumeSnapshot,
@@ -49,7 +55,6 @@ import {
 const breadcrumbCss = css`
   margin-bottom: 12px;
 `
-
 
 const tabContentCss = css`
   padding-top: 16px;
@@ -294,7 +299,9 @@ function RestoreSnapshotModal({
           variant="primary"
           isLoading={isPending}
           isDisabled={isPending || !newName}
-          onClick={() => restore({ id: snapshotId, volumeId, newVolumeName: newName }, { onSuccess: onClose })}
+          onClick={() =>
+            restore({ id: snapshotId, volumeId, newVolumeName: newName }, { onSuccess: onClose })
+          }
         >
           Restore
         </Button>
@@ -341,9 +348,13 @@ function SnapshotsTab({ volumeId }: { volumeId: string }) {
       dataLabel: 'Ready',
       render: (s: VolumeSnapshot) =>
         s.readyToUse ? (
-          <Label color="green" isCompact><CheckCircleIcon /> Ready</Label>
+          <Label color="green" isCompact>
+            <CheckCircleIcon /> Ready
+          </Label>
         ) : (
-          <Label color="orange" isCompact>Not ready</Label>
+          <Label color="orange" isCompact>
+            Not ready
+          </Label>
         ),
     },
     {
@@ -438,9 +449,7 @@ export function VolumeDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (isLoading) {
-    return (
-      <PageLayout title="Volume" isLoading loadingLabel="Loading volume" />
-    )
+    return <PageLayout title="Volume" isLoading loadingLabel="Loading volume" />
   }
 
   if (!volume) {
@@ -468,7 +477,7 @@ export function VolumeDetailPage() {
     {
       label: 'Device',
       dataLabel: 'Device',
-      render: (a: VolumeAttachment) => a.device ? <code>{a.device}</code> : '—',
+      render: (a: VolumeAttachment) => (a.device ? <code>{a.device}</code> : '—'),
     },
     {
       screenReaderText: 'Unmount',
@@ -489,9 +498,12 @@ export function VolumeDetailPage() {
     <PageLayout
       title={
         <>
-          {volume.metadata.name}
-          {' '}
-          <Label color={PHASE_COLOR[volume.phase] ?? 'grey'} isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>
+          {volume.metadata.name}{' '}
+          <Label
+            color={PHASE_COLOR[volume.phase] ?? 'grey'}
+            isCompact
+            style={{ marginLeft: 8, verticalAlign: 'middle' }}
+          >
             {volume.phase}
           </Label>
         </>
@@ -500,9 +512,12 @@ export function VolumeDetailPage() {
         <span>
           {volume.orgId} · Tier: {volume.tierId}
           {volume.storageClassName && (
-            <> · StorageClass: <code>{volume.storageClassName}</code></>
-          )}
-          {' '}· {volume.accessMode}
+            <>
+              {' '}
+              · StorageClass: <code>{volume.storageClassName}</code>
+            </>
+          )}{' '}
+          · {volume.accessMode}
         </span>
       }
       actions={

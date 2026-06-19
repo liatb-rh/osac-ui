@@ -151,7 +151,9 @@ export function useUpdateStorageBackend() {
       patch,
     }: {
       id: string
-      patch: Partial<Pick<StorageBackend, 'endpoint' | 'credentialsSecretRef' | 'vipPool' | 'deploymentModel'>>
+      patch: Partial<
+        Pick<StorageBackend, 'endpoint' | 'credentialsSecretRef' | 'vipPool' | 'deploymentModel'>
+      >
     }) => updateStorageBackend(id, patch),
     onSuccess: async (_data, { id }) => {
       await qc.refetchQueries({ queryKey: storageBackendQueryKeys.detail(id) })

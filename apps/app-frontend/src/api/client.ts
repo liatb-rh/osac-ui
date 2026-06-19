@@ -228,7 +228,8 @@ function normalizeBareMetalInstance(raw: unknown): FulfillmentBareMetalInstance 
       runStrategy: spec.run_strategy as BareMetalInstanceRunStrategy | undefined,
     },
     status: {
-      state: ((status.state as string) ?? 'BARE_METAL_INSTANCE_STATE_UNSPECIFIED') as FulfillmentBareMetalInstance['status']['state'],
+      state: ((status.state as string) ??
+        'BARE_METAL_INSTANCE_STATE_UNSPECIFIED') as FulfillmentBareMetalInstance['status']['state'],
       message: status.message as string | undefined,
     },
   }
@@ -246,7 +247,9 @@ function normalizeBareMetalCatalogItem(raw: unknown): BareMetalInstanceCatalogIt
   }
 }
 
-export async function listBareMetalInstances(params: { filter?: string; limit?: number } = {}): Promise<PageOfT<FulfillmentBareMetalInstance>> {
+export async function listBareMetalInstances(
+  params: { filter?: string; limit?: number } = {},
+): Promise<PageOfT<FulfillmentBareMetalInstance>> {
   const q = new URLSearchParams()
   if (params.filter) q.set('filter', params.filter)
   if (params.limit) q.set('limit', String(params.limit))
@@ -282,7 +285,9 @@ export async function createBareMetalInstance(
   return normalizeBareMetalInstance(unwrapped)
 }
 
-export async function listBareMetalCatalogItems(params: { includeUnpublished?: boolean } = {}): Promise<PageOfT<BareMetalInstanceCatalogItem>> {
+export async function listBareMetalCatalogItems(
+  params: { includeUnpublished?: boolean } = {},
+): Promise<PageOfT<BareMetalInstanceCatalogItem>> {
   const q = new URLSearchParams()
   if (params.includeUnpublished) q.set('include_unpublished', 'true')
   const raw = await request<{ items?: unknown[]; size?: number; total?: number }>(

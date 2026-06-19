@@ -73,7 +73,10 @@ export function ProviderPublicIPPoolDetailPage() {
         <p>
           Pool not found: <code>{id}</code>
         </p>
-        <Button variant="link" onClick={() => navigate('/resources/network/public-ip/public-ip-pools')}>
+        <Button
+          variant="link"
+          onClick={() => navigate('/resources/network/public-ip/public-ip-pools')}
+        >
           Back to Public IP Pools
         </Button>
       </PageSection>
@@ -96,7 +99,10 @@ export function ProviderPublicIPPoolDetailPage() {
     <>
       <PageBreadcrumb>
         <Breadcrumb>
-          <BreadcrumbItem component="button" onClick={() => navigate('/resources/network/public-ip/public-ip-pools')}>
+          <BreadcrumbItem
+            component="button"
+            onClick={() => navigate('/resources/network/public-ip/public-ip-pools')}
+          >
             Public IP Pools
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{pool.metadata.name}</BreadcrumbItem>

@@ -25,13 +25,7 @@ export interface CatalogItemFixedDefaults {
 // Used by CatalogItemStudio and CatalogFormPreview.
 // ---------------------------------------------------------------------------
 
-export type FieldComponentType =
-  | 'text'
-  | 'number'
-  | 'boolean'
-  | 'select'
-  | 'textarea'
-  | 'password'
+export type FieldComponentType = 'text' | 'number' | 'boolean' | 'select' | 'textarea' | 'password'
 
 export interface FieldDefinitionValidation {
   /** For number fields */

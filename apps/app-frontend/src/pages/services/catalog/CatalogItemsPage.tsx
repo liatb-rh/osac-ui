@@ -9,12 +9,7 @@
 import { css } from '@emotion/css'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  SearchInput,
-} from '@patternfly/react-core'
+import { Button, EmptyState, EmptyStateBody, SearchInput } from '@patternfly/react-core'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { CatalogItemType, FullCatalogItem, WorkloadProfile } from '@osac/ui-components'
 import { FullCatalogItemCard, PageLayout } from '@osac/ui-components'

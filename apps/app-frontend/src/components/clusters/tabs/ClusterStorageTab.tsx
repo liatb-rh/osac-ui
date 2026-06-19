@@ -257,7 +257,9 @@ export function ClusterStorageTab({ cluster }: ClusterStorageTabProps) {
                     </ClipboardCopy>
                     {sc.parameters?.['csiDriver'] && (
                       <>
-                        <div className={fieldLabelCss} style={{ marginTop: 8 }}>CSI Driver</div>
+                        <div className={fieldLabelCss} style={{ marginTop: 8 }}>
+                          CSI Driver
+                        </div>
                         <code style={{ fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
                           {sc.parameters['csiDriver']}
                         </code>

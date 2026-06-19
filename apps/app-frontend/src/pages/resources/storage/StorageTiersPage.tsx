@@ -27,7 +27,12 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import type { StorageTier } from '@osac/api-contracts'
 import { CustomTableLink, PageLayout } from '@osac/ui-components'
-import { useCreateStorageTier, usePatchStorageTier, useStorageBackends, useStorageTiers } from '../../../hooks/useAgents'
+import {
+  useCreateStorageTier,
+  usePatchStorageTier,
+  useStorageBackends,
+  useStorageTiers,
+} from '../../../hooks/useAgents'
 
 // ── Mock enrichment ────────────────────────────────────────────────────────────
 import { tierMeta } from './storageTierUtils'

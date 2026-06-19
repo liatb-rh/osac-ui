@@ -250,7 +250,9 @@ export async function createStorageBackend(
 
 export async function updateStorageBackend(
   id: string,
-  patch: Partial<Pick<StorageBackend, 'endpoint' | 'credentialsSecretRef' | 'vipPool' | 'deploymentModel'>>,
+  patch: Partial<
+    Pick<StorageBackend, 'endpoint' | 'credentialsSecretRef' | 'vipPool' | 'deploymentModel'>
+  >,
 ): Promise<StorageBackend> {
   const raw = await request<unknown>(`/storage_backends/${encodeURIComponent(id)}`, {
     method: 'PATCH',
@@ -362,7 +364,8 @@ export async function unmountVolumeFromVm(
   volumeId: string,
 ): Promise<ComputeInstance> {
   const current = await request<ComputeInstance>(`/compute_instances/${encodeURIComponent(vmId)}`)
-  const existingDisks = (current as { spec?: { disks?: Array<{ pvc_ref?: string }> } }).spec?.disks ?? []
+  const existingDisks =
+    (current as { spec?: { disks?: Array<{ pvc_ref?: string }> } }).spec?.disks ?? []
   const raw = await request<unknown>(`/compute_instances/${encodeURIComponent(vmId)}`, {
     method: 'PATCH',
     body: JSON.stringify({

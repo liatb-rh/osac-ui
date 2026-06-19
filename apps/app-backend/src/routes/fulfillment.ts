@@ -452,7 +452,10 @@ export async function registerFulfillmentRoutes(
     const id = `backend-${Date.now()}`
     const newBackend: StorageBackend = {
       id,
-      metadata: { name: (body.metadata?.name as string) ?? id, createdAt: new Date().toISOString() },
+      metadata: {
+        name: (body.metadata?.name as string) ?? id,
+        createdAt: new Date().toISOString(),
+      },
       provider: body.provider ?? 'vast',
       deploymentModel: body.deploymentModel,
       endpoint: body.endpoint ?? '',
@@ -475,7 +478,9 @@ export async function registerFulfillmentRoutes(
   // ---------------------------------------------------------------------------
 
   const bffVolumeStore = new Map<string, StorageVolume>(DEMO_STORAGE_VOLUMES.map((v) => [v.id, v]))
-  const bffSnapshotStore = new Map<string, VolumeSnapshot>(DEMO_VOLUME_SNAPSHOTS.map((s) => [s.id, s]))
+  const bffSnapshotStore = new Map<string, VolumeSnapshot>(
+    DEMO_VOLUME_SNAPSHOTS.map((s) => [s.id, s]),
+  )
   let bffVolIdCounter = 100
   function nextVolId(pfx: string): string {
     return `${pfx}-${++bffVolIdCounter}`
@@ -494,7 +499,9 @@ export async function registerFulfillmentRoutes(
     const id = nextVolId('vol')
     const tierId = String(body.tier_id ?? body.tierId ?? '')
     const tier = storageTierStore.get(tierId)
-    const accessMode = (String(body.access_mode ?? body.accessMode ?? 'ReadWriteOnce')) as 'ReadWriteOnce' | 'ReadWriteMany'
+    const accessMode = String(body.access_mode ?? body.accessMode ?? 'ReadWriteOnce') as
+      | 'ReadWriteOnce'
+      | 'ReadWriteMany'
     const newVol: StorageVolume = {
       id,
       metadata: { name: String(meta.name ?? id), createdAt: new Date().toISOString() },
@@ -528,7 +535,10 @@ export async function registerFulfillmentRoutes(
     const vol = bffVolumeStore.get(id)
     if (!vol) return reply.status(404).send({ error: 'Not found' })
     const body = req.body as Record<string, unknown>
-    const updated: StorageVolume = { ...vol, sizeGiB: Number(body.size_gi_b ?? body.sizeGiB ?? vol.sizeGiB) }
+    const updated: StorageVolume = {
+      ...vol,
+      sizeGiB: Number(body.size_gi_b ?? body.sizeGiB ?? vol.sizeGiB),
+    }
     bffVolumeStore.set(id, updated)
     return updated
   })
@@ -562,7 +572,9 @@ export async function registerFulfillmentRoutes(
       volumeId,
       volumeName: vol.metadata.name,
       sizeGiB: vol.sizeGiB,
-      snapshotClassName: String(body.snapshot_class_name ?? body.snapshotClassName ?? 'vast-snapshot'),
+      snapshotClassName: String(
+        body.snapshot_class_name ?? body.snapshotClassName ?? 'vast-snapshot',
+      ),
       readyToUse: false,
       restoreSize: vol.sizeGiB,
       status: { state: 'creating' },

@@ -87,7 +87,13 @@ function StepHeader({ title, description }: { title: string; description: string
       <Title headingLevel="h2" size="xl">
         {title}
       </Title>
-      <p style={{ marginTop: 4, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.9rem' }}>
+      <p
+        style={{
+          marginTop: 4,
+          color: 'var(--pf-t--global--text--color--subtle)',
+          fontSize: '0.9rem',
+        }}
+      >
         {description}
       </p>
     </div>
@@ -105,7 +111,8 @@ function ResourceTypeStep({
     {
       value: 'vm',
       label: 'Virtual Machine',
-      description: 'Provision an individual compute instance with custom OS, CPU, memory and storage.',
+      description:
+        'Provision an individual compute instance with custom OS, CPU, memory and storage.',
     },
     {
       value: 'cluster',
@@ -122,10 +129,7 @@ function ResourceTypeStep({
   return (
     <Stack hasGutter>
       <StackItem>
-        <StepHeader
-          title="Choose resource type"
-          description="Select what you want to provision."
-        />
+        <StepHeader title="Choose resource type" description="Select what you want to provision." />
       </StackItem>
       <StackItem>
         <div style={{ display: 'flex', gap: 16 }}>
@@ -136,7 +140,9 @@ function ResourceTypeStep({
               onClick={() => onSelect(t.value)}
             >
               <div style={{ fontWeight: 700, fontSize: '1rem' }}>{t.label}</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              <div
+                style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}
+              >
                 {t.description}
               </div>
             </div>

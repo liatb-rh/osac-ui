@@ -104,7 +104,10 @@ export function PublicIpPoolDetailsPage() {
     <>
       <PageBreadcrumb>
         <Breadcrumb>
-          <BreadcrumbItem component="button" onClick={() => navigate('/resources/network/catalog/public-ips')}>
+          <BreadcrumbItem
+            component="button"
+            onClick={() => navigate('/resources/network/catalog/public-ips')}
+          >
             Public IP Pools
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{pool.metadata.name}</BreadcrumbItem>

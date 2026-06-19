@@ -5,11 +5,11 @@ import {
   Button,
   DataList,
   DataListCell,
+  DataListContent,
   DataListItem,
   DataListItemCells,
   DataListItemRow,
   DataListToggle,
-  DataListContent,
   Divider,
   FormGroup,
   FormHelperText,
@@ -144,7 +144,9 @@ function FieldRow({
                 />
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem>{field.editable ? 'User can override' : 'Locked default'}</HelperTextItem>
+                    <HelperTextItem>
+                      {field.editable ? 'User can override' : 'Locked default'}
+                    </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
               </FormGroup>
@@ -156,9 +158,25 @@ function FieldRow({
                     value={typeof field.defaultValue === 'number' ? field.defaultValue : 0}
                     min={field.validation?.min}
                     max={field.validation?.max}
-                    onMinus={() => onUpdate({ defaultValue: Math.max((field.validation?.min ?? -Infinity), (typeof field.defaultValue === 'number' ? field.defaultValue : 0) - 1) })}
-                    onPlus={() => onUpdate({ defaultValue: Math.min((field.validation?.max ?? Infinity), (typeof field.defaultValue === 'number' ? field.defaultValue : 0) + 1) })}
-                    onChange={(e) => onUpdate({ defaultValue: Number((e.target as HTMLInputElement).value) })}
+                    onMinus={() =>
+                      onUpdate({
+                        defaultValue: Math.max(
+                          field.validation?.min ?? -Infinity,
+                          (typeof field.defaultValue === 'number' ? field.defaultValue : 0) - 1,
+                        ),
+                      })
+                    }
+                    onPlus={() =>
+                      onUpdate({
+                        defaultValue: Math.min(
+                          field.validation?.max ?? Infinity,
+                          (typeof field.defaultValue === 'number' ? field.defaultValue : 0) + 1,
+                        ),
+                      })
+                    }
+                    onChange={(e) =>
+                      onUpdate({ defaultValue: Number((e.target as HTMLInputElement).value) })
+                    }
                   />
                 ) : field.componentType === 'boolean' ? (
                   <Switch
@@ -201,12 +219,7 @@ function FieldRow({
                   </Button>
                 </ActionListItem>
                 <ActionListItem>
-                  <Button
-                    variant="plain"
-                    aria-label="Remove field"
-                    isDanger
-                    onClick={onRemove}
-                  >
+                  <Button variant="plain" aria-label="Remove field" isDanger onClick={onRemove}>
                     <TrashIcon />
                   </Button>
                 </ActionListItem>
@@ -229,9 +242,24 @@ function FieldRow({
                 <FormGroup label="Min" fieldId={`${rowId}-min`}>
                   <NumberInput
                     value={field.validation?.min ?? 0}
-                    onMinus={() => onUpdate({ validation: { ...field.validation, min: (field.validation?.min ?? 0) - 1 } })}
-                    onPlus={() => onUpdate({ validation: { ...field.validation, min: (field.validation?.min ?? 0) + 1 } })}
-                    onChange={(e) => onUpdate({ validation: { ...field.validation, min: Number((e.target as HTMLInputElement).value) } })}
+                    onMinus={() =>
+                      onUpdate({
+                        validation: { ...field.validation, min: (field.validation?.min ?? 0) - 1 },
+                      })
+                    }
+                    onPlus={() =>
+                      onUpdate({
+                        validation: { ...field.validation, min: (field.validation?.min ?? 0) + 1 },
+                      })
+                    }
+                    onChange={(e) =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          min: Number((e.target as HTMLInputElement).value),
+                        },
+                      })
+                    }
                   />
                 </FormGroup>
               </SplitItem>
@@ -239,9 +267,30 @@ function FieldRow({
                 <FormGroup label="Max" fieldId={`${rowId}-max`}>
                   <NumberInput
                     value={field.validation?.max ?? 100}
-                    onMinus={() => onUpdate({ validation: { ...field.validation, max: (field.validation?.max ?? 100) - 1 } })}
-                    onPlus={() => onUpdate({ validation: { ...field.validation, max: (field.validation?.max ?? 100) + 1 } })}
-                    onChange={(e) => onUpdate({ validation: { ...field.validation, max: Number((e.target as HTMLInputElement).value) } })}
+                    onMinus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          max: (field.validation?.max ?? 100) - 1,
+                        },
+                      })
+                    }
+                    onPlus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          max: (field.validation?.max ?? 100) + 1,
+                        },
+                      })
+                    }
+                    onChange={(e) =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          max: Number((e.target as HTMLInputElement).value),
+                        },
+                      })
+                    }
                   />
                 </FormGroup>
               </SplitItem>
@@ -250,9 +299,30 @@ function FieldRow({
                   <NumberInput
                     value={field.validation?.step ?? 1}
                     min={1}
-                    onMinus={() => onUpdate({ validation: { ...field.validation, step: Math.max(1, (field.validation?.step ?? 1) - 1) } })}
-                    onPlus={() => onUpdate({ validation: { ...field.validation, step: (field.validation?.step ?? 1) + 1 } })}
-                    onChange={(e) => onUpdate({ validation: { ...field.validation, step: Math.max(1, Number((e.target as HTMLInputElement).value)) } })}
+                    onMinus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          step: Math.max(1, (field.validation?.step ?? 1) - 1),
+                        },
+                      })
+                    }
+                    onPlus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          step: (field.validation?.step ?? 1) + 1,
+                        },
+                      })
+                    }
+                    onChange={(e) =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          step: Math.max(1, Number((e.target as HTMLInputElement).value)),
+                        },
+                      })
+                    }
                   />
                 </FormGroup>
               </SplitItem>
@@ -260,16 +330,39 @@ function FieldRow({
           )}
 
           {/* Text / textarea / password validation */}
-          {(field.componentType === 'text' || field.componentType === 'textarea' || field.componentType === 'password') && (
+          {(field.componentType === 'text' ||
+            field.componentType === 'textarea' ||
+            field.componentType === 'password') && (
             <Split hasGutter>
               <SplitItem>
                 <FormGroup label="Min length" fieldId={`${rowId}-minlen`}>
                   <NumberInput
                     value={field.validation?.minLength ?? 0}
                     min={0}
-                    onMinus={() => onUpdate({ validation: { ...field.validation, minLength: Math.max(0, (field.validation?.minLength ?? 0) - 1) } })}
-                    onPlus={() => onUpdate({ validation: { ...field.validation, minLength: (field.validation?.minLength ?? 0) + 1 } })}
-                    onChange={(e) => onUpdate({ validation: { ...field.validation, minLength: Math.max(0, Number((e.target as HTMLInputElement).value)) } })}
+                    onMinus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          minLength: Math.max(0, (field.validation?.minLength ?? 0) - 1),
+                        },
+                      })
+                    }
+                    onPlus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          minLength: (field.validation?.minLength ?? 0) + 1,
+                        },
+                      })
+                    }
+                    onChange={(e) =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          minLength: Math.max(0, Number((e.target as HTMLInputElement).value)),
+                        },
+                      })
+                    }
                   />
                 </FormGroup>
               </SplitItem>
@@ -278,9 +371,30 @@ function FieldRow({
                   <NumberInput
                     value={field.validation?.maxLength ?? 255}
                     min={1}
-                    onMinus={() => onUpdate({ validation: { ...field.validation, maxLength: Math.max(1, (field.validation?.maxLength ?? 255) - 1) } })}
-                    onPlus={() => onUpdate({ validation: { ...field.validation, maxLength: (field.validation?.maxLength ?? 255) + 1 } })}
-                    onChange={(e) => onUpdate({ validation: { ...field.validation, maxLength: Math.max(1, Number((e.target as HTMLInputElement).value)) } })}
+                    onMinus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          maxLength: Math.max(1, (field.validation?.maxLength ?? 255) - 1),
+                        },
+                      })
+                    }
+                    onPlus={() =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          maxLength: (field.validation?.maxLength ?? 255) + 1,
+                        },
+                      })
+                    }
+                    onChange={(e) =>
+                      onUpdate({
+                        validation: {
+                          ...field.validation,
+                          maxLength: Math.max(1, Number((e.target as HTMLInputElement).value)),
+                        },
+                      })
+                    }
                   />
                 </FormGroup>
               </SplitItem>
@@ -290,7 +404,9 @@ function FieldRow({
                     <TextInput
                       id={`${rowId}-pattern`}
                       value={field.validation?.pattern ?? ''}
-                      onChange={(_, v) => onUpdate({ validation: { ...field.validation, pattern: v || undefined } })}
+                      onChange={(_, v) =>
+                        onUpdate({ validation: { ...field.validation, pattern: v || undefined } })
+                      }
                       placeholder="e.g. ^[a-z0-9-]+$"
                     />
                   </FormGroup>
@@ -303,9 +419,33 @@ function FieldRow({
                       value={field.validation?.rows ?? 3}
                       min={1}
                       max={20}
-                      onMinus={() => onUpdate({ validation: { ...field.validation, rows: Math.max(1, (field.validation?.rows ?? 3) - 1) } })}
-                      onPlus={() => onUpdate({ validation: { ...field.validation, rows: Math.min(20, (field.validation?.rows ?? 3) + 1) } })}
-                      onChange={(e) => onUpdate({ validation: { ...field.validation, rows: Math.min(20, Math.max(1, Number((e.target as HTMLInputElement).value))) } })}
+                      onMinus={() =>
+                        onUpdate({
+                          validation: {
+                            ...field.validation,
+                            rows: Math.max(1, (field.validation?.rows ?? 3) - 1),
+                          },
+                        })
+                      }
+                      onPlus={() =>
+                        onUpdate({
+                          validation: {
+                            ...field.validation,
+                            rows: Math.min(20, (field.validation?.rows ?? 3) + 1),
+                          },
+                        })
+                      }
+                      onChange={(e) =>
+                        onUpdate({
+                          validation: {
+                            ...field.validation,
+                            rows: Math.min(
+                              20,
+                              Math.max(1, Number((e.target as HTMLInputElement).value)),
+                            ),
+                          },
+                        })
+                      }
                     />
                   </FormGroup>
                 </SplitItem>
@@ -316,12 +456,30 @@ function FieldRow({
           {/* Select options */}
           {field.componentType === 'select' && (
             <div>
-              <Title headingLevel="h6" size="md" style={{ marginBottom: 8 }}>Options</Title>
+              <Title headingLevel="h6" size="md" style={{ marginBottom: 8 }}>
+                Options
+              </Title>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                 {(field.options ?? []).map((opt) => (
-                  <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pf-t--global--background--color--secondary--default)', borderRadius: 4, padding: '2px 8px' }}>
+                  <div
+                    key={opt}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                      borderRadius: 4,
+                      padding: '2px 8px',
+                    }}
+                  >
                     <span>{opt}</span>
-                    <Button variant="plain" isDanger aria-label={`Remove option ${opt}`} onClick={() => removeOption(opt)} style={{ padding: '0 2px' }}>
+                    <Button
+                      variant="plain"
+                      isDanger
+                      aria-label={`Remove option ${opt}`}
+                      onClick={() => removeOption(opt)}
+                      style={{ padding: '0 2px' }}
+                    >
                       ×
                     </Button>
                   </div>
@@ -333,7 +491,12 @@ function FieldRow({
                     value={newOption}
                     onChange={(_, v) => setNewOption(v)}
                     placeholder="Add option…"
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addOption() } }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addOption()
+                      }
+                    }}
                     aria-label="New option value"
                   />
                 </SplitItem>
@@ -375,7 +538,11 @@ export function FieldDefinitionBuilder({ fields, onChange }: FieldDefinitionBuil
 
   function removeField(id: string) {
     onChange(fields.filter((f) => f.id !== id))
-    setExpandedIds((prev) => { const next = new Set(prev); next.delete(id); return next })
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
   function moveField(index: number, direction: -1 | 1) {

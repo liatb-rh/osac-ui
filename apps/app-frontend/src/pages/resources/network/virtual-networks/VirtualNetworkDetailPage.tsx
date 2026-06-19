@@ -23,7 +23,11 @@ import {
 } from '@patternfly/react-core'
 import { ActionsColumn, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { PageHeader } from '@osac/ui-components'
-import { useAllSubnets, useSecurityGroups, useVirtualNetworks } from '../../../../hooks/useNetworking'
+import {
+  useAllSubnets,
+  useSecurityGroups,
+  useVirtualNetworks,
+} from '../../../../hooks/useNetworking'
 import { VnStateLabel } from './VnStateLabel'
 import { SubnetStateLabel } from '../subnets/SubnetStateLabel'
 import { SgStateLabel } from '../security-groups/SgStateLabel'

@@ -89,7 +89,9 @@ function RegisterBackendWizard({ isOpen, onClose }: { isOpen: boolean; onClose: 
         <Wizard
           height={460}
           onClose={onClose}
-          onSave={() => { void handleSave() }}
+          onSave={() => {
+            void handleSave()
+          }}
         >
           <WizardStep name="Connection" id="sb-conn">
             <Form>
@@ -121,11 +123,7 @@ function RegisterBackendWizard({ isOpen, onClose }: { isOpen: boolean; onClose: 
                   placeholder="https://vast-vms.infra.example.com"
                 />
               </FormGroup>
-              <FormGroup
-                label="Credentials secret name"
-                fieldId="sb-secret"
-                isRequired
-              >
+              <FormGroup label="Credentials secret name" fieldId="sb-secret" isRequired>
                 <TextInput
                   id="sb-secret"
                   value={state.credentialsSecretRef}
@@ -149,12 +147,15 @@ function RegisterBackendWizard({ isOpen, onClose }: { isOpen: boolean; onClose: 
             </Form>
           </WizardStep>
 
-          <WizardStep
-            name="Review"
-            id="sb-review"
-            footer={{ nextButtonText: 'Register backend' }}
-          >
-            <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '8px 16px', fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
+          <WizardStep name="Review" id="sb-review" footer={{ nextButtonText: 'Register backend' }}>
+            <dl
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '160px 1fr',
+                gap: '8px 16px',
+                fontSize: 'var(--pf-v5-global--FontSize--sm)',
+              }}
+            >
               <dt style={{ fontWeight: 'bold' }}>Name</dt>
               <dd>{state.name || '—'}</dd>
               <dt style={{ fontWeight: 'bold' }}>Deployment model</dt>
@@ -237,11 +238,7 @@ export function StorageBackendsPage() {
       loadingLabel="Loading storage backends"
       error={isError ? 'Failed to load storage backends.' : null}
       actions={
-        <Button
-          variant="primary"
-          icon={<PlusCircleIcon />}
-          onClick={() => setWizardOpen(true)}
-        >
+        <Button variant="primary" icon={<PlusCircleIcon />} onClick={() => setWizardOpen(true)}>
           Register backend
         </Button>
       }

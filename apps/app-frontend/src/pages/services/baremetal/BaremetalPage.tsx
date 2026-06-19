@@ -8,13 +8,7 @@
 import { css } from '@emotion/css'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  Button,
-  Label,
-  SearchInput,
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@patternfly/react-core'
+import { Button, Label, SearchInput, ToggleGroup, ToggleGroupItem } from '@patternfly/react-core'
 import { ActionsColumn } from '@patternfly/react-table'
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon'
 import { BARE_METAL_INSTANCES, BM_IMAGES } from '@osac/api-contracts'
@@ -25,7 +19,11 @@ import {
   PageLayout,
   RequestBareMetalWizard,
 } from '@osac/ui-components'
-import type { BareMetalWizardCatalogItem, BareMetalWizardCreatePayload, ObjectsTableColumn } from '@osac/ui-components'
+import type {
+  BareMetalWizardCatalogItem,
+  BareMetalWizardCreatePayload,
+  ObjectsTableColumn,
+} from '@osac/ui-components'
 import { catalogItemsStore } from '../catalog/catalogItemsStore'
 
 // ---------------------------------------------------------------------------
@@ -38,14 +36,34 @@ type InstanceFilter = 'all' | 'running' | 'inprogress'
 function BmStateLabel({ state }: { state: string }) {
   const s = state.replace('BARE_METAL_INSTANCE_STATE_', '')
   if (s === 'RUNNING' || s === 'active')
-    return <Label color="green" isCompact>Running</Label>
+    return (
+      <Label color="green" isCompact>
+        Running
+      </Label>
+    )
   if (s === 'PROVISIONING' || s === 'installing' || s === 'configuring' || s === 'queued')
-    return <Label color="blue" isCompact>Provisioning</Label>
+    return (
+      <Label color="blue" isCompact>
+        Provisioning
+      </Label>
+    )
   if (s === 'FAILED' || s === 'failed')
-    return <Label color="red" isCompact>Failed</Label>
+    return (
+      <Label color="red" isCompact>
+        Failed
+      </Label>
+    )
   if (s === 'DELETING' || s === 'releasing')
-    return <Label color="orange" isCompact>Deleting</Label>
-  return <Label color="grey" isCompact>{s}</Label>
+    return (
+      <Label color="orange" isCompact>
+        Deleting
+      </Label>
+    )
+  return (
+    <Label color="grey" isCompact>
+      {s}
+    </Label>
+  )
 }
 
 function formatAge(createdAt: string): string {
@@ -106,7 +124,11 @@ export function BaremetalPage() {
   const filtered = instances.filter((i) => {
     const s = i.provisioningState
     if (filter === 'running' && s !== 'active') return false
-    if (filter === 'inprogress' && !['installing', 'configuring', 'queued', 'BARE_METAL_INSTANCE_STATE_PROVISIONING'].includes(s)) return false
+    if (
+      filter === 'inprogress' &&
+      !['installing', 'configuring', 'queued', 'BARE_METAL_INSTANCE_STATE_PROVISIONING'].includes(s)
+    )
+      return false
     if (search.trim() && !i.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
@@ -129,7 +151,8 @@ export function BaremetalPage() {
         secureBoot: false,
         ipmiUrl: 'https://10.0.200.22/redfish/v1',
         ip: '10.10.1.99',
-        provisioningState: 'BARE_METAL_INSTANCE_STATE_PROVISIONING' as BareMetalInstance['provisioningState'],
+        provisioningState:
+          'BARE_METAL_INSTANCE_STATE_PROVISIONING' as BareMetalInstance['provisioningState'],
         createdAt: new Date().toISOString(),
         createdBy: 'current-user@example.com',
       }
@@ -146,9 +169,7 @@ export function BaremetalPage() {
     {
       label: 'Name',
       render: (i) => (
-        <CustomTableLink onClick={() => navigate(`/baremetal/${i.id}`)}>
-          {i.name}
-        </CustomTableLink>
+        <CustomTableLink onClick={() => navigate(`/baremetal/${i.id}`)}>{i.name}</CustomTableLink>
       ),
     },
     {
@@ -157,9 +178,7 @@ export function BaremetalPage() {
     },
     {
       label: 'Catalog Item',
-      render: (i) => (
-        <span>{catalogItemMap.get(i.flavor) ?? <code>{i.flavor}</code>}</span>
-      ),
+      render: (i) => <span>{catalogItemMap.get(i.flavor) ?? <code>{i.flavor}</code>}</span>,
     },
     {
       label: 'Image',
@@ -186,9 +205,7 @@ export function BaremetalPage() {
         <ActionsColumn
           items={[
             {
-              title: i.provisioningState === 'active'
-                ? 'Power off'
-                : 'Power on',
+              title: i.provisioningState === 'active' ? 'Power off' : 'Power on',
               onClick: () => {},
             },
             { title: 'Reboot', onClick: () => {} },

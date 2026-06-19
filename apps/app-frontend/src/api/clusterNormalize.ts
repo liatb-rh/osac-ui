@@ -356,7 +356,9 @@ export function normalizeStorageBackend(wire: unknown): StorageBackend {
       createdAt: str(meta.creation_timestamp ?? meta.createdAt),
     },
     provider: (str(w.provider) ?? 'vast') as StorageBackend['provider'],
-    deploymentModel: str(w.deployment_model ?? w.deploymentModel) as StorageBackend['deploymentModel'],
+    deploymentModel: str(
+      w.deployment_model ?? w.deploymentModel,
+    ) as StorageBackend['deploymentModel'],
     endpoint: str(w.endpoint) ?? '',
     credentialsSecretRef: str(w.credentials_secret_ref ?? w.credentialsSecretRef) ?? '',
     vipPool: str(w.vip_pool ?? w.vipPool) ?? '',
@@ -388,10 +390,13 @@ export function normalizeStorageVolume(wire: unknown): StorageVolume {
       createdAt: str(meta.creation_timestamp ?? meta.createdAt),
     },
     orgId: str(w.org_id ?? w.orgId) ?? '',
-    sizeGiB: typeof w.size_gi_b === 'number' ? w.size_gi_b : typeof w.sizeGiB === 'number' ? w.sizeGiB : 0,
+    sizeGiB:
+      typeof w.size_gi_b === 'number' ? w.size_gi_b : typeof w.sizeGiB === 'number' ? w.sizeGiB : 0,
     tierId: str(w.tier_id ?? w.tierId) ?? '',
     storageClassName: str(w.storage_class_name ?? w.storageClassName),
-    accessMode: (str(w.access_mode ?? w.accessMode) ?? 'ReadWriteOnce') as 'ReadWriteOnce' | 'ReadWriteMany',
+    accessMode: (str(w.access_mode ?? w.accessMode) ?? 'ReadWriteOnce') as
+      | 'ReadWriteOnce'
+      | 'ReadWriteMany',
     clusterRef: str(w.cluster_ref ?? w.clusterRef),
     phase: (str(w.phase) ?? 'Pending') as 'Pending' | 'Bound' | 'Released' | 'Failed',
     attachments: arr(w.attachments, normalizeVolumeAttachment),
@@ -418,10 +423,21 @@ export function normalizeVolumeSnapshot(wire: unknown): VolumeSnapshot {
     },
     volumeId: str(w.volume_id ?? w.volumeId) ?? '',
     volumeName: str(w.volume_name ?? w.volumeName) ?? '',
-    sizeGiB: typeof w.size_gi_b === 'number' ? w.size_gi_b : typeof w.sizeGiB === 'number' ? w.sizeGiB : 0,
+    sizeGiB:
+      typeof w.size_gi_b === 'number' ? w.size_gi_b : typeof w.sizeGiB === 'number' ? w.sizeGiB : 0,
     snapshotClassName: str(w.snapshot_class_name ?? w.snapshotClassName),
-    readyToUse: typeof w.ready_to_use === 'boolean' ? w.ready_to_use : typeof w.readyToUse === 'boolean' ? w.readyToUse : false,
-    restoreSize: typeof w.restore_size === 'number' ? w.restore_size : typeof w.restoreSize === 'number' ? w.restoreSize : 0,
+    readyToUse:
+      typeof w.ready_to_use === 'boolean'
+        ? w.ready_to_use
+        : typeof w.readyToUse === 'boolean'
+          ? w.readyToUse
+          : false,
+    restoreSize:
+      typeof w.restore_size === 'number'
+        ? w.restore_size
+        : typeof w.restoreSize === 'number'
+          ? w.restoreSize
+          : 0,
     status: {
       state: (str(status.state) ?? 'ready') as SnapshotState,
       message: str(status.message),
