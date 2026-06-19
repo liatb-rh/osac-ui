@@ -243,14 +243,7 @@ function PermissionsModal({ role, onClose }: PermissionsModalProps) {
             return (
               <ExpandableSection
                 key={cat.label}
-                toggleText={
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {cat.label}
-                    <Badge isRead>
-                      {visible.filter((p) => granted.has(p)).length} / {visible.length}
-                    </Badge>
-                  </span>
-                }
+                toggleText={`${cat.label} (${visible.filter((p) => granted.has(p)).length} / ${visible.length})`}
                 isExpanded={expanded.has(cat.label)}
                 onToggle={() =>
                   setExpanded((prev) => {
