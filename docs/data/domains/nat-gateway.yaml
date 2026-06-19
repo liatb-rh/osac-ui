@@ -1,0 +1,246 @@
+# OSAC Domain Spec — NAT Gateway
+# Sources:
+#   OSAC-1008 (Netris Backend — External Network API work area)
+#   OSAC-1029 (Networking API)
+# Status: NEW resource introduced by Netris backend implementation
+
+domain: nat-gateway
+title: NAT Gateway
+status: draft
+owner: ""
+
+overview: >
+  NATGateway provides OUTBOUND NAT (SNAT) for a VirtualNetwork, enabling tenant resources
+  to reach external networks using a public IP as the source address.
+
+  IMPORTANT CLARIFICATION (enhancements/unified-networking/README.md OSAC-1029):
+  - NATGateway = SNAT ONLY (outbound traffic from VN → internet)
+  - ExternalIPAttachment = DNAT ONLY (inbound traffic from internet → a specific resource)
+  These two resources are strictly separated — NATGateway is NOT used for inbound routing.
+
+  Constraints:
+  - ONE NATGateway per VirtualNetwork (at most one)
+  - Optional — VirtualNetworks without a NATGateway have no outbound internet access
+  - The ExternalIP assigned to NATGateway is reserved and cannot be used in ExternalIPAttachment
+
+  Backend implementations:
+  - udn-net: NATGateway implemented via OVN EgressIP (enhancements/networking/README.md MGMT-22637)
+  - netris: NATGateway implemented via Netris SoftGate SNAT (OSAC-1008)
+
+  Note on naming: enhancements/unified-networking (OSAC-1029) uses ExternalIP (renamed from PublicIP).
+  The current proto still uses PublicIP/public_ip. This spec uses the proposed ExternalIP name
+  where discussing unified-networking design, and PublicIP where referencing current proto.
+
+backend_implementations:
+  udn_net:
+    mechanism: OVN EgressIP
+    description: >
+      NATGateway on udn-net regions is implemented via OVN-Kubernetes EgressIP.
+      The ExternalIP is programmed as the OVN EgressIP source for outbound traffic from the VN.
+    source: enhancements/networking/README.md (MGMT-22637)
+
+  netris:
+    mechanism: Netris SoftGate SNAT
+    component: Netris SoftGate
+    description: >
+      NATGateway on Netris regions uses SoftGate for outbound SNAT.
+      The Netris SoftGate rewrites the source IP of outbound traffic to the ExternalIP address.
+    source: OSAC-1008 (Netris Backend — External Network API work area)
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1    # TODO: confirm proto exists
+    key_messages:
+      - NATGateway                   # TODO: confirm proto message name
+      - NATGatewaySpec
+      - NATGatewayStatus
+    api_base: /api/fulfillment/v1/nat_gateways    # TODO: confirm endpoint
+    operations:
+      - GET    /nat_gateways              # List
+      - GET    /nat_gateways/{id}         # Get
+      - POST   /nat_gateways              # Create
+      - PUT    /nat_gateways/{id}         # Update (rules may be mutable)
+      - DELETE /nat_gateways/{id}         # Delete
+    proto_source: "TODO: proto/public/osac/public/v1/nat_gateway_type.proto (if exists)"
+    notes: >
+      It is not yet confirmed whether NATGateway has a dedicated proto message or
+      is expressed as an extension of PublicIPAttachment for Netris networks.
+      This spec assumes a dedicated NATGateway resource. Verify with OSAC-1008 implementation.
+
+  osac_operator:
+    crd_kind: NATGateway    # TODO: confirm
+    crd_group: osac.redhat.com
+    crd_version: v1alpha1
+    managed_by: osac-operator (Netris backend)
+    notes: >
+      The operator's Netris backend creates and configures SoftGate NAT rules
+      via the Netris controller API when a NATGateway CR is created.
+
+  osac_installer:
+    notes: >
+      Netris installer requirements include SoftGate configuration.
+      The NATGateway resource requires a pre-configured Netris SoftGate node.
+      See OSAC-1008 work area 3: "Netris operator integration and installer requirements".
+
+  osac_ui:
+    ui_flow: "TODO: specs/osac/ui-flows/manage-public-ips.yaml (or a new flow)"
+    notes: >
+      NATGateway provisioning may be surfaced in the public IP management UI
+      as part of the "attach public IP" flow for Netris networks.
+      May require a new UI flow or extension of manage-public-ips.yaml.
+
+data_model:
+  spec_fields:
+    - name: virtual_network
+      proto_field: spec.virtual_network    # TODO: confirm
+      ui_prop: spec.virtualNetwork
+      type: string (VirtualNetwork ID)
+      mutable: false
+      notes: >
+        Parent VirtualNetwork must use network_class = "netris".
+        NATGateway is scoped to the VirtualNetwork's Netris VPC/VRF.
+
+    - name: public_ip
+      proto_field: spec.public_ip    # TODO: confirm
+      ui_prop: spec.publicIp
+      type: string (PublicIP ID)
+      mutable: false
+      notes: >
+        The PublicIP whose address will be used for NAT. Must be in ALLOCATED state.
+        This is the external IP visible to the internet.
+
+    # nat_type field: NOT needed — NATGateway is SNAT only by definition.
+    # DNAT is handled exclusively by ExternalIPAttachment.
+
+    - name: target
+      proto_field: spec.target (oneof)    # TODO: confirm structure
+      ui_prop: spec.target
+      type: "oneof: { compute_instance: string } or { cluster: string }"
+      mutable: false
+      notes: >
+        The internal resource to route traffic to/from.
+        Follows the same oneof pattern as PublicIPAttachment.
+        Future: may support Cluster and BareMetalInstance targets.
+
+    - name: dnat_rules
+      proto_field: spec.dnat_rules    # TODO: confirm if per-port rules are needed
+      ui_prop: spec.dnatRules
+      type: "array of {public_port: int, internal_ip: string, internal_port: int, protocol: TCP|UDP|ALL}"
+      mutable: true    # TODO: confirm mutability
+      notes: >
+        DNAT port forwarding rules. If empty, all ports are forwarded (full DNAT).
+        May not be required if the model is a simple 1:1 IP assignment via SoftGate.
+        TODO: confirm whether per-port DNAT is part of the initial implementation.
+
+  status_fields:
+    - name: state
+      proto_field: status.state    # TODO: confirm enum values
+      ui_prop: status.state
+      type: enum
+      values:
+        - NAT_GATEWAY_STATE_UNSPECIFIED → unknown
+        - NAT_GATEWAY_STATE_PENDING → SoftGate NAT rule being configured
+        - NAT_GATEWAY_STATE_READY → NAT active; traffic routing functional
+        - NAT_GATEWAY_STATE_FAILED → configuration error
+        - NAT_GATEWAY_STATE_DELETING → NAT rule being removed
+
+    - name: public_ip_address
+      proto_field: status.public_ip_address    # TODO: confirm
+      ui_prop: status.publicIpAddress
+      type: string (IP address)
+      notes: The allocated public IP address being NATted. Populated when state = READY.
+
+    - name: message
+      proto_field: status.message    # TODO: confirm
+      type: string
+      notes: Error detail or progress info.
+
+lifecycle:
+  transitions:
+    - UNSPECIFIED → PENDING: NATGateway created; SoftGate NAT rule being configured
+    - PENDING → READY: Netris SoftGate NAT rule active; traffic routing functional
+    - PENDING → FAILED: SoftGate configuration error
+    - READY → DELETING: NATGateway deleted; NAT rule being removed
+  dependency: >
+    Requires the parent VirtualNetwork to be in READY state with network_class = "netris".
+    Requires the referenced PublicIP to be in ALLOCATED state.
+    Requires the referenced ComputeInstance/Cluster to exist.
+
+relationship_to_external_ip_attachment:
+  description: >
+    CONFIRMED SEPARATION (enhancements/unified-networking OSAC-1029):
+    NATGateway and ExternalIPAttachment are strictly different resources with different roles.
+
+  table:
+    - resource: ExternalIPAttachment (renamed from PublicIPAttachment)
+      direction: INBOUND (DNAT only)
+      purpose: Routes internet → specific internal resource (compute instance, cluster, BM)
+      mechanism: Backend-specific DNAT (MetalLB for udn-net, Netris SoftGate for netris)
+      api_path: /api/fulfillment/v1/public_ip_attachments (current proto name)
+
+    - resource: NATGateway
+      direction: OUTBOUND (SNAT only)
+      purpose: Routes internal VirtualNetwork → internet using ExternalIP as source
+      mechanism: OVN EgressIP (udn-net) or Netris SoftGate SNAT (netris)
+      constraint: ONE per VirtualNetwork
+      api_path: /api/fulfillment/v1/nat_gateways    # TODO: confirm
+
+  one_per_vn_constraint: >
+    Only one NATGateway is allowed per VirtualNetwork at a time.
+    All subnets within the VN use the same NATGateway for outbound traffic.
+    Per-subnet NAT is a future enhancement.
+
+  external_ip_exclusivity: >
+    An ExternalIP assigned to a NATGateway cannot simultaneously be used
+    in an ExternalIPAttachment. One consumer per ExternalIP at a time.
+
+workflows:
+  create: |
+    ## Create NAT Gateway Workflow (Netris)
+
+    Pre-conditions: VirtualNetwork (network_class=netris) is READY; PublicIP is ALLOCATED.
+
+    1. **osac-ui** — User selects a READY VirtualNetwork, an ALLOCATED PublicIP,
+       and a target ComputeInstance or Cluster
+    2. **fulfillment-service** — POST /nat_gateways: validates prerequisites, creates NATGateway resource
+    3. **osac-operator** (Netris backend) — NATGateway CR reconciler:
+       - Calls Netris controller API to create SoftGate DNAT/SNAT rule
+       - Links the public IP (from Netris IPAM) to the target resource's internal IP
+    4. **Netris SoftGate** — Applies NAT rule; traffic begins routing
+    5. **osac-operator** — Updates NATGateway: state=READY, status.public_ip_address=<IP>
+    6. **fulfillment-service** — NATGateway ready; ComputeInstance/Cluster reachable via public IP
+
+  delete: |
+    ## Delete NAT Gateway Workflow (Netris)
+
+    1. **osac-ui** — User confirms deletion
+    2. **fulfillment-service** — DELETE /nat_gateways/{id}
+    3. **osac-operator** (Netris backend) — Calls Netris controller API to remove SoftGate NAT rule
+    4. **Netris SoftGate** — NAT rule removed; public IP no longer routes to resource
+    5. **fulfillment-service** — NATGateway removed from API
+    6. PublicIP returns to ALLOCATED state (not attached); can be reused or deallocated
+
+cross_layer_gaps:
+  - gap: >
+      NATGateway may not yet have a proto message. The OSAC-1008 implementation will need
+      to define the proto contract before this spec can be finalized.
+
+  - gap: >
+      Whether NATGateway is a standalone resource or an extension of PublicIPAttachment
+      (with backend-conditional behavior) is TBD. This affects the API endpoint design
+      and UI flow for public IP attachment on Netris networks.
+
+  - gap: >
+      The Netris SoftGate installer requirements (OSAC-1008 work area 3) must be completed
+      before NATGateway resources can be provisioned. The installer must pre-configure
+      the SoftGate node and its connectivity to the Netris controller.
+
+open_questions:
+  - Is NATGateway a separate resource or does PublicIPAttachment handle Netris via backend dispatch?
+  - What is the NATGateway proto message name and field structure?
+  - Does the Netris SoftGate support per-port DNAT or only full IP 1:1 NAT?
+  - Can multiple NATGateways share one PublicIP (e.g. different ports)?
+  - How does SNAT for outbound traffic work — is there a separate SoftGate SNAT rule or is it automatic?
+  - What Netris installer steps are required for SoftGate (OSAC-1008 work area 3)?
+  - What is the CaaS integration for NATGateway (OSAC-1136 / OSAC-1137)?
+  - Does NATGateway update ComputeInstance.status.publicIPAddress like PublicIPAttachment does?

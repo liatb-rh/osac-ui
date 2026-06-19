@@ -1,0 +1,407 @@
+# OSAC Domain Spec — Public IPs, Pools, and Attachments
+# Sources:
+#   proto/public/osac/public/v1/public_ip_type.proto
+#   proto/public/osac/public/v1/public_ip_pool_type.proto
+#   proto/public/osac/public/v1/public_ip_attachment_type.proto
+#   Projects/osac-backends/osac-operator/api/v1alpha1/publicip_types.go
+#   Projects/osac-backends/osac-operator/api/v1alpha1/publicippool_types.go
+#   Projects/osac-backends/osac-operator/api/v1alpha1/publicipattachment_types.go
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §12–14
+#   specs/osac/ui-flows/manage-public-ips.yaml
+#   specs/ignore-specs/public-ip-spec.md
+#   OSAC-1008 (Netris Backend — External Network API), OSAC-1029 (Networking API)
+
+domain: public-ips
+title: Public IPs, Public IP Pools, and Public IP Attachments
+status: draft
+owner: ""
+
+api_rename_in_progress:
+  description: >
+    IMPORTANT (enhancements/unified-networking/README.md OSAC-1029):
+    The unified-networking enhancement renames these resources to clarify semantics.
+    "Public" is misleading — these IPs are "external to the VirtualNetwork", not necessarily
+    internet-routable. The rename reflects that.
+  rename_table:
+    - current_name: PublicIPPool       → proposed_name: ExternalIPPool
+    - current_name: PublicIP           → proposed_name: ExternalIP
+    - current_name: PublicIPAttachment → proposed_name: ExternalIPAttachment
+  api_paths:
+    - current: /api/fulfillment/v1/public_ip_pools → proposed: /api/fulfillment/v1/external_ip_pools
+    - current: /api/fulfillment/v1/public_ips → proposed: /api/fulfillment/v1/external_ips
+    - current: /api/fulfillment/v1/public_ip_attachments → proposed: /api/fulfillment/v1/external_ip_attachments
+  proto_status: Current proto still uses PublicIP* names. Rename is a breaking API change (OSAC is pre-GA).
+  ui_note: >
+    Frontend code references PublicIP* throughout. When the rename is applied,
+    all component names, store keys, route paths, and API calls must be updated.
+
+dnat_snat_separation:
+  description: >
+    CLARIFIED (enhancements/unified-networking OSAC-1029):
+    ExternalIPAttachment = INBOUND routing (DNAT) ONLY.
+    NATGateway (domains/nat-gateway.yaml) = OUTBOUND traffic (SNAT) ONLY.
+    These are strictly separate resources with non-overlapping responsibilities.
+    An ExternalIP cannot be simultaneously used by both an ExternalIPAttachment and a NATGateway.
+
+netris_backend_note: >
+  When the region's NetworkClass uses fabricManager=netris, ExternalIPPool and ExternalIP
+  are backed by Netris IPAM. Netris manages IP allocation from its IPAM database rather than MetalLB.
+  ExternalIPAttachment on Netris uses SoftGate DNAT (not MetalLB LB Service movement).
+  NATGateway on Netris uses SoftGate SNAT.
+  Related: OSAC-1008 External Network API work area.
+
+external_ip_attachment_multi_target:
+  description: >
+    CONFIRMED (enhancements/unified-networking OSAC-1029):
+    ExternalIPAttachment supports all three OSAC service types as targets.
+  targets:
+    - compute_instance: string (ComputeInstance ID) — routes ExternalIP → VM internal IP
+    - cluster: string (Cluster ID) — routes ExternalIP → cluster API or ingress endpoint
+      endpoint_field: target_endpoint enum (API | INGRESS)
+      notes: >
+        CaaS flow: CaaS template provisions MetalLB VIPs → writes api_endpoint/ingress_endpoint
+        to ClusterOrder CR → feedback controller syncs to Cluster → ExternalIPAttachment
+        reads VIP and creates DNAT. Attachments created before cluster can stay Pending
+        until VIPs are available.
+    - baremetal_instance: string (BareMetalInstance ID) — future support
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: PublicIPPool (provider-managed)
+# ──────────────────────────────────────────────────────────────────
+
+public_ip_pool:
+  description: >
+    Administrator-managed pools of public IP addresses. Tenants can list available pools
+    and select one when allocating a PublicIP. The public API only surfaces pools that are
+    READY and have available capacity.
+
+  layers:
+    fulfillment_service:
+      proto_message: osac.public.v1.PublicIPPool
+      api_base: /api/fulfillment/v1/public_ip_pools
+      operations:
+        - GET  /public_ip_pools        # List (tenant view — only READY pools with capacity)
+        - GET  /public_ip_pools/{id}   # Get
+        # Create/Delete are provider-admin only (private API)
+      proto_source: proto/public/osac/public/v1/public_ip_pool_type.proto
+      private_api: proto/private/osac/private/v1/public_ip_pools_service.proto
+
+    osac_operator:
+      crd_kind: PublicIPPool    # TODO: confirm
+      source: Projects/osac-backends/osac-operator/api/v1alpha1/publicippool_types.go
+
+    osac_aap:
+      playbooks:
+        - playbook_osac_create_public_ip_pool.yml
+        - playbook_osac_delete_public_ip_pool.yml
+      notes: Pools are created by provider admins, not tenants.
+
+    osac_ui:
+      ui_flow: specs/osac/ui-flows/manage-public-ips.yaml
+      notes: >
+        Tenant users see a list of available pools when allocating a PublicIP.
+        Provider admins can create/delete pools.
+
+  spec_fields:
+    - name: cidrs
+      proto_field: spec.cidrs (repeated string)
+      type: array of CIDR strings
+      mutable: false
+      notes: IMMUTABLE. CIDR ranges for this pool.
+
+    - name: ip_family
+      proto_field: spec.ip_family (IPFamily enum — IPv4 | IPv6)
+      type: enum
+      mutable: false
+      notes: IMMUTABLE.
+
+  status_fields:
+    - name: available
+      proto_field: status.available (int64)
+      type: int64
+      notes: Number of IP addresses available for new allocations. Dynamically computed.
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: PublicIP
+# ──────────────────────────────────────────────────────────────────
+
+public_ip:
+  description: >
+    A floating public IP address allocated from a parent PublicIPPool's CIDR ranges.
+    Allocation and attachment are separate lifecycles — allocation reserves the address,
+    attachment binds it to a target resource (e.g. ComputeInstance).
+
+  layers:
+    fulfillment_service:
+      proto_message: osac.public.v1.PublicIP
+      api_base: /api/fulfillment/v1/public_ips
+      operations:
+        - GET    /public_ips              # List
+        - GET    /public_ips/{id}         # Get
+        - POST   /public_ips              # Create (allocate from pool)
+        - DELETE /public_ips/{id}         # Delete (deallocate; must detach first)
+      proto_source: proto/public/osac/public/v1/public_ip_type.proto
+
+    osac_operator:
+      crd_kind: PublicIP    # TODO: confirm
+      source: Projects/osac-backends/osac-operator/api/v1alpha1/publicip_types.go
+      notes: >
+        The operator provisions a MetalLB LoadBalancer Service to obtain the actual IP address
+        from the pool's CIDR range. On deletion, it removes the LB Service and returns the
+        address to the pool.
+
+    osac_aap:
+      playbooks:
+        - playbook_osac_create_public_ip.yml
+        - playbook_osac_delete_public_ip.yml
+
+    osac_ui:
+      ui_flow: specs/osac/ui-flows/manage-public-ips.yaml
+      notes: >
+        Tenant users allocate a PublicIP by selecting a pool. After allocation reaches
+        ALLOCATED state, they can attach it to a ComputeInstance via a PublicIPAttachment.
+        UI should show status.address and status.attached.
+
+  spec_fields:
+    - name: pool
+      proto_field: spec.pool
+      operator_field: ""    # TODO
+      ui_prop: spec.pool
+      type: string (PublicIPPool ID)
+      mutable: false
+      notes: REQUIRED and IMMUTABLE. Pool must be in READY state with available capacity.
+
+  status_fields:
+    - name: state
+      proto_field: status.state (PublicIPState enum)
+      operator_field: ""    # TODO
+      ui_prop: status.state
+      type: enum
+      values:
+        - PUBLIC_IP_STATE_UNSPECIFIED → unknown
+        - PUBLIC_IP_STATE_PENDING → MetalLB LB Service being created; address not yet assigned
+        - PUBLIC_IP_STATE_ALLOCATED → IP address assigned; can now be attached
+        - PUBLIC_IP_STATE_FAILED → provisioning failed (terminal; can retry via admin Signal RPC)
+        - PUBLIC_IP_STATE_DELETING → LB Service being removed; address being returned to pool
+
+    - name: address
+      proto_field: status.address
+      operator_field: ""    # TODO
+      ui_prop: status.address
+      type: string (IP address)
+      notes: Populated when state = ALLOCATED. Stable for the lifetime of the PublicIP.
+
+    - name: pool (status)
+      proto_field: status.pool
+      operator_field: ""    # TODO
+      ui_prop: status.pool
+      type: string (PublicIPPool ID)
+      notes: Mirrors spec.pool for convenience in status queries.
+
+    - name: attached
+      proto_field: status.attached (bool)
+      operator_field: ""    # TODO
+      ui_prop: status.attached
+      type: boolean
+      notes: >
+        True when a PublicIPAttachment referencing this IP reaches READY state.
+        A PublicIP with attached=true CANNOT be deleted — detach first.
+
+  lifecycle:
+    transitions:
+      - UNSPECIFIED → PENDING: IP created
+      - PENDING → ALLOCATED: MetalLB LB Service created and IP assigned
+      - PENDING → FAILED: provisioning failed
+      - ALLOCATED → DELETING: user calls DELETE (only if attached=false)
+    delete_precondition: status.attached must be false
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: PublicIPAttachment
+# ──────────────────────────────────────────────────────────────────
+
+public_ip_attachment:
+  description: >
+    Manages the attach/detach lifecycle between a PublicIP and a target resource.
+    Creating an attachment triggers the attach workflow; deleting triggers detach.
+    The binding (public_ip + target) is immutable — to change the target, delete and recreate.
+    Only ComputeInstance is supported as target currently; Cluster and BareMetalServer are future.
+
+  layers:
+    fulfillment_service:
+      proto_message: osac.public.v1.PublicIPAttachment
+      api_base: /api/fulfillment/v1/public_ip_attachments
+      operations:
+        - GET    /public_ip_attachments              # List
+        - GET    /public_ip_attachments/{id}         # Get
+        - POST   /public_ip_attachments              # Create (attach)
+        - DELETE /public_ip_attachments/{id}         # Delete (detach)
+      proto_source: proto/public/osac/public/v1/public_ip_attachment_type.proto
+
+    osac_operator:
+      crd_kind: PublicIPAttachment    # TODO: confirm
+      source: Projects/osac-backends/osac-operator/api/v1alpha1/publicipattachment_types.go
+      notes: >
+        The operator moves the MetalLB LB Service from a "parking" namespace to the
+        ComputeInstance's tenant namespace on attach; reverses on detach.
+
+    osac_aap:
+      playbooks:
+        - playbook_osac_attach_public_ip.yml
+        - playbook_osac_detach_public_ip.yml
+
+    osac_ui:
+      ui_flow: specs/osac/ui-flows/manage-public-ips.yaml
+      notes: >
+        Attach flow: user selects an ALLOCATED PublicIP and a RUNNING ComputeInstance.
+        Detach: user deletes the PublicIPAttachment resource.
+        The ComputeInstance detail view shows status.publicIpAddress when attached.
+
+  spec_fields:
+    - name: public_ip
+      proto_field: spec.public_ip
+      operator_field: ""    # TODO
+      ui_prop: spec.publicIp
+      type: string (PublicIP ID)
+      mutable: false
+      notes: >
+        REQUIRED and IMMUTABLE. PublicIP must be in ALLOCATED state and not already attached
+        (status.attached == false). Only one PublicIPAttachment per PublicIP.
+
+    - name: compute_instance (target)
+      proto_field: spec.target.compute_instance (oneof target)
+      operator_field: ""    # TODO
+      ui_prop: spec.computeInstance
+      type: string (ComputeInstance ID)
+      mutable: false
+      notes: >
+        REQUIRED and IMMUTABLE. ComputeInstance must be in RUNNING state.
+        Only one PublicIPAttachment per ComputeInstance.
+        Future: spec.target.cluster and spec.target.baremetal_instance will be added.
+
+  status_fields:
+    - name: state
+      proto_field: status.state (PublicIPAttachmentState enum)
+      operator_field: ""    # TODO
+      ui_prop: status.state
+      type: enum
+      values:
+        - PUBLIC_IP_ATTACHMENT_STATE_UNSPECIFIED → unknown
+        - PUBLIC_IP_ATTACHMENT_STATE_PENDING → attach workflow in progress
+        - PUBLIC_IP_ATTACHMENT_STATE_READY → attached; traffic routing active
+        - PUBLIC_IP_ATTACHMENT_STATE_FAILED → failed (auto-retries with exponential backoff)
+        - PUBLIC_IP_ATTACHMENT_STATE_DELETING → detach workflow in progress
+
+    - name: public_ip_address (status)
+      proto_field: status.public_ip_address
+      operator_field: ""    # TODO
+      ui_prop: status.publicIpAddress
+      type: string (IP address)
+      notes: >
+        Mirrors the allocated address from PublicIP.status.address for convenience.
+        Populated when state = READY.
+
+    - name: message
+      proto_field: status.message (optional string)
+      operator_field: ""    # TODO
+      ui_prop: status.message
+      type: string
+      notes: Progress info (PENDING) or error details (FAILED).
+
+  lifecycle:
+    transitions:
+      - UNSPECIFIED → PENDING: attachment created
+      - PENDING → READY: MetalLB LB Service moved to tenant namespace; traffic routing active
+      - PENDING → FAILED: error; auto-retries with exponential backoff
+      - READY → DELETING: user deletes PublicIPAttachment resource
+      - FAILED → PENDING: auto-retry (exponential backoff)
+
+workflows:
+  allocate_and_attach: |
+    ## Full Allocate + Attach Workflow
+
+    1. **osac-ui** — User allocates a PublicIP: selects pool, clicks "Allocate"
+    2. **fulfillment-service** — POST /public_ips: creates PublicIP resource
+    3. **osac-operator** — PublicIP reconciler:
+       - Creates MetalLB LoadBalancer Service in "parking" namespace
+       - Waits for MetalLB to assign an address from the pool CIDR
+       - Updates PublicIP: state=ALLOCATED, status.address=<assigned IP>
+    4. **osac-ui** — User sees ALLOCATED state with address displayed
+    5. **osac-ui** — User attaches to a VM: selects RUNNING ComputeInstance, clicks "Attach"
+    6. **fulfillment-service** — POST /public_ip_attachments: creates attachment resource
+    7. **osac-operator** — PublicIPAttachment reconciler:
+       - Moves MetalLB LB Service from parking namespace to ComputeInstance tenant namespace
+       - Configures routing rules to forward traffic to ComputeInstance internal IP
+       - Updates PublicIPAttachment: state=READY, status.public_ip_address=<IP>
+       - Updates PublicIP: status.attached=true
+       - Updates ComputeInstance: status.publicIPAddress=<IP>
+    8. **fulfillment-service** — All three resources reflect READY/ALLOCATED/attached state
+
+  detach_and_deallocate: |
+    ## Detach + Deallocate Workflow
+
+    1. **osac-ui** — User clicks "Detach"
+    2. **fulfillment-service** — DELETE /public_ip_attachments/{id}
+    3. **osac-operator** — Finalizer moves MetalLB LB Service back to parking namespace;
+       updates PublicIP: status.attached=false; updates ComputeInstance: clears publicIPAddress
+    4. **osac-ui** — PublicIP is now in ALLOCATED state (not attached); can be attached to another VM
+       or deallocated
+    5. (optional) **osac-ui** — User clicks "Deallocate"
+    6. **fulfillment-service** — DELETE /public_ips/{id} (only allowed if attached=false)
+    7. **osac-operator** — Removes MetalLB LB Service; returns IP to pool
+    8. **fulfillment-service** — PublicIP removed from API
+
+backend_mapping:
+  metallb:
+    applies_to: non-Netris backends (udn-net, phys-net)
+    mechanism: MetalLB LoadBalancer Service
+    description: >
+      PublicIP allocation creates a MetalLB LB Service. Attachment moves the LB Service
+      from a "parking" namespace to the ComputeInstance tenant namespace.
+
+  netris:
+    applies_to: network_class = "netris"
+    mechanism: Netris IPAM + SoftGate
+    description: >
+      PublicIPPool maps to a Netris IPAM allocation pool.
+      PublicIP allocation is handled by Netris IPAM (not MetalLB).
+      Attachment/routing is handled by the NATGateway resource (SoftGate DNAT/SNAT)
+      rather than by moving a MetalLB Service.
+    jira: OSAC-1008 (External Network API work area)
+    new_resource: >
+      Netris introduces the NATGateway resource for routing public IPs.
+      See domains/nat-gateway.yaml for the full NATGateway domain spec.
+    notes: >
+      The attach workflow for Netris differs significantly from the MetalLB-based workflow.
+      PublicIPAttachment may need a backend-aware implementation, or NATGateway may replace
+      PublicIPAttachment for Netris networks.
+      TODO: confirm whether PublicIPAttachment still applies for Netris, or NATGateway is used instead.
+
+cross_layer_gaps:
+  - gap: >
+      The "parking namespace" mechanism for MetalLB LB Services applies to non-Netris backends.
+      For Netris, this mechanism does not exist — Netris IPAM manages the IP directly.
+      The operator must have backend-conditional logic for PublicIP provisioning.
+
+  - gap: >
+      PublicIPPool operator CRD types (publicippool_types.go), PublicIP (publicip_types.go),
+      and PublicIPAttachment (publicipattachment_types.go) field names need verification.
+
+  - gap: >
+      The ComputeInstance.status.publicIPAddress is populated by the operator watching
+      PublicIP CRs. This cross-resource status mirroring is not explicit in the proto spec.
+
+  - gap: >
+      For Netris: whether PublicIPAttachment or NATGateway is the correct abstraction for
+      routing a public IP to a ComputeInstance needs to be clarified (OSAC-1008).
+
+open_questions:
+  - What is the "parking namespace" for MetalLB LB Services? How is it configured?
+  - Can a PublicIP be moved between ComputeInstances without deallocation?
+  - Is there a quota on PublicIPs per tenant?
+  - How does the attach workflow work for ComputeInstances with multiple NICs?
+  - Which NIC does the public IP attach to when there are multiple network attachments?
+  - Will PublicIPAttachment support Cluster targets? When?
+  - What is the admin Signal RPC for retrying failed PublicIPs?
+  - For Netris: does PublicIPAttachment still apply, or is NATGateway the attach mechanism?
+  - For Netris: how does Netris IPAM pool integrate with the PublicIPPool CIDR spec?
+  - For Netris: does PublicIPPool use a distinct NetworkClass or inherit from VirtualNetwork's network_class?

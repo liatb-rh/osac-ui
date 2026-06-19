@@ -1,0 +1,114 @@
+# OSAC RBAC Model
+# Sources:
+#   proto/public/osac/public/v1/role_type.proto
+#   proto/public/osac/public/v1/role_binding_type.proto
+#   specs/osac/rbac.yaml
+
+rbac_model:
+  description: >
+    OSAC uses a Role / RoleBinding model. Roles are predefined named entities managed
+    by the system. RoleBindings assign a role to a group (of users) within a scoping context
+    (organization or tenant). The fulfillment-service synchronizes roles/bindings with an
+    underlying authorization system (Kessel / project-kessel).
+
+  proto_packages:
+    public: osac.public.v1
+    private: osac.private.v1
+
+predefined_roles:
+  source: enhancements/organizations/README.md
+
+  system_level:
+    scope: System Organization only (Cloud Provider infrastructure)
+    roles:
+      - id: cloud-provider-admin
+        title: Cloud Provider Administrator
+        description: Full access to all provider-level resources (host types, templates, NetworkClasses, ExternalIPPools, etc.)
+
+      - id: cloud-provider-reader
+        title: Cloud Provider Reader
+        description: Read-only access to provider-level resources
+
+  organization_level:
+    scope: Per-Organization
+    roles:
+      - id: tenant-admin
+        title: Tenant Administrator
+        description: >
+          Full access to all resources within the organization. Can configure IdP, manage Projects,
+          assign roles to groups, create org-specific catalog items.
+
+      - id: tenant-reader
+        title: Tenant Reader
+        description: Read-only access to all resources within the organization.
+
+      - id: tenant-user
+        title: Tenant User
+        description: >
+          Standard user. Can create and manage own resources within permitted Projects.
+          Resource-level permissions (CREATE_COMPUTE_INSTANCE, etc.) controlled per Project.
+
+  break_glass:
+    scope: Per-Organization (one account per org)
+    roles:
+      - id: idp-manager
+        title: IdP Manager (Break-Glass)
+        description: >
+          Emergency break-glass role. Limited access: can manage IdP configuration and assign roles.
+          Stored in Keycloak built-in storage (not in external IdP).
+          Initial password returned once at org creation — cannot be retrieved later.
+          Access emergency console via Keycloak Admin REST API.
+
+role_resource:
+  proto_message: osac.public.v1.Role
+  source: proto/public/osac/public/v1/role_type.proto
+  api_endpoint: /api/fulfillment/v1/roles
+  operations: [List, Get]
+  fields:
+    id: string (UUID)
+    metadata: Metadata
+    spec.title: string — display name
+    spec.description: string — Markdown description
+    status.state: RoleState (PENDING | READY | FAILED)
+    status.message: string (optional)
+  notes: Roles are system-managed; tenants cannot create custom roles.
+
+role_binding_resource:
+  proto_message: osac.public.v1.RoleBinding
+  source: proto/public/osac/public/v1/role_binding_type.proto
+  api_endpoint: /api/fulfillment/v1/role_bindings
+  operations: [List, Get, Create, Delete]
+  fields:
+    # TODO: read proto for full field list
+    id: string (UUID)
+    metadata: Metadata
+    spec.role: string — Role ID
+    spec.subject: string — group or user identifier
+    spec.scope: string — organization ID or tenant ID
+  notes: >
+    Creating a RoleBinding assigns a role to a subject within a scope.
+    Delete removes the assignment. No Update operation (immutable binding).
+
+scoping:
+  organization:
+    description: Top-level grouping for tenants and resources.
+    proto_message: osac.public.v1.Organization
+  project:
+    description: Sub-grouping within an organization (future use).
+    proto_message: osac.public.v1.Project
+  tenant:
+    description: >
+      Isolated namespace for resources (compute instances, networks, etc.).
+      Maps to a Kubernetes namespace in the operator layer.
+
+ui_rbac_flow:
+  reference: specs/osac/rbac.yaml
+  notes: >
+    The UI reads the current user's roles via the capabilities endpoint and
+    conditionally renders admin-only controls. See specs/osac/rbac.yaml for
+    per-persona permission matrix.
+
+open_questions:
+  - What is the exact subject format for RoleBinding (email, group ID, OIDC sub)?
+  - Is there a project-level scope or only org/tenant?
+  - How does Kessel integration affect role sync latency?

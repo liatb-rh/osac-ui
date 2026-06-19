@@ -1,0 +1,149 @@
+# OSAC Domain Spec — Identity Providers
+# Sources:
+#   proto/public/osac/public/v1/identity_provider_type.proto
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §20
+#   specs/osac/ui-flows/institutional-sign-in.yaml
+#   specs/osac/ui-flows/welcome-and-role-selection.yaml
+
+domain: identity-providers
+title: Identity Providers (OIDC)
+status: draft
+owner: ""
+
+overview: >
+  Identity Providers (IdPs) define OIDC authentication sources for OSAC users.
+  Provider admins configure IdPs to allow users from external identity systems
+  (e.g. institutional SSO, GitHub, Google) to log in.
+  The IdP resource uses `name` as its primary key (URL-safe string) instead of a UUID `id`.
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - IdentityProvider
+      - IdentityProviderSpec
+      - IdentityProviderStatus
+    api_base: /api/fulfillment/v1/identity_providers
+    operations:
+      - GET    /identity_providers            # List
+      - GET    /identity_providers/{name}     # Get (by name, not UUID)
+      - POST   /identity_providers            # Create
+      - PUT    /identity_providers/{name}     # Update
+      - DELETE /identity_providers/{name}     # Delete
+    proto_source: proto/public/osac/public/v1/identity_provider_type.proto
+    key_exception: >
+      This resource uses `name` as its primary key (URL-safe string), unlike all other
+      OSAC resources that use `id` (UUID). This is an intentional API design choice.
+
+  osac_ui:
+    ui_flows:
+      - specs/osac/ui-flows/institutional-sign-in.yaml
+      - specs/osac/ui-flows/welcome-and-role-selection.yaml
+      - specs/osac/ui-flows/application-shell-session.yaml  # session management
+    notes: >
+      The welcome/login flow lists available IdPs and lets the user select one.
+      Institutional sign-in (institutionalBranding.ts) customizes the login UI
+      per identity provider branding.
+
+data_model:
+  primary_key: name (string, URL-safe)    # NOT id/UUID
+  fields:
+    # TODO: read identity_provider_type.proto to populate exact fields
+    - name: name
+      proto_field: name
+      type: string (URL-safe identifier)
+      mutable: false    # primary key — immutable
+      notes: >
+        URL-safe string. Used in API path instead of UUID.
+        Example: "redhat-sso", "github-org-xyz"
+
+    - name: metadata
+      proto_field: metadata (Metadata)
+      type: Metadata
+      notes: Standard metadata but WITHOUT a UUID id field.
+
+    - name: spec.display_name
+      proto_field: spec.display_name    # TODO: confirm field name
+      type: string
+      mutable: true
+      notes: Human-friendly name shown in login UI.
+
+    - name: spec.issuer
+      proto_field: spec.issuer    # TODO: confirm
+      type: string (OIDC issuer URL)
+      mutable: true
+      notes: OIDC discovery URL (e.g. https://sso.example.com/auth/realms/osac)
+
+    - name: spec.client_id
+      proto_field: spec.client_id    # TODO: confirm
+      type: string
+      mutable: true
+      notes: OIDC client ID registered with this IdP.
+
+    - name: spec.client_secret
+      proto_field: spec.client_secret    # TODO: confirm
+      type: string (write-only)
+      mutable: true
+      notes: OIDC client secret. Write-only — redacted in GET responses.
+
+    - name: spec.scopes
+      proto_field: spec.scopes    # TODO: confirm
+      type: array of string
+      mutable: true
+      notes: OIDC scopes to request (e.g. openid, email, profile, groups).
+
+    - name: status.state
+      proto_field: status.state    # TODO: confirm enum values
+      type: enum
+      notes: "TODO: PENDING | READY | FAILED?"
+
+ui_branding:
+  source: Projects/osac-ui/apps/app-frontend/src/components/login/institutionalBranding.ts
+  description: >
+    The UI applies per-IdP branding (logo, colors, label) in the login flow.
+    The institutionalBranding.ts file maps IdP names to visual branding configurations.
+  notes: >
+    When adding a new IdP, both the fulfillment-service IdP resource AND the
+    institutionalBranding.ts configuration may need to be updated if the IdP
+    requires custom branding on the login page.
+
+workflows:
+  configure_idp: |
+    ## Configure Identity Provider (Provider Admin)
+
+    1. **osac-ui (provider admin)** — Admin fills IdP configuration (issuer, client ID, secret, scopes)
+    2. **fulfillment-service** — POST /identity_providers: validates OIDC issuer reachability
+    3. **fulfillment-service / Keycloak** — Registers OIDC client in the auth system
+    4. IdP becomes available in the login flow for users
+
+  user_login_flow: |
+    ## User Login Flow with IdP
+
+    1. **osac-ui** — Welcome page lists available IdPs (GET /identity_providers)
+    2. **osac-ui** — User selects an IdP and is redirected to OIDC authorization endpoint
+    3. **IdP** — User authenticates (SSO, username/password, etc.)
+    4. **IdP** — Redirects back with authorization code
+    5. **fulfillment-service** — Exchanges code for tokens; maps OIDC claims to OSAC user
+    6. **osac-ui** — User is authenticated; role selection screen shown
+       (see welcome-and-role-selection.yaml for multi-tenant role selection)
+
+cross_layer_gaps:
+  - gap: >
+      Identity provider proto fields (identity_provider_type.proto) not yet fully read.
+      The exact spec fields (issuer, client_id, scopes, etc.) need confirmation.
+
+  - gap: >
+      The UI institutional branding (institutionalBranding.ts) is a client-side configuration
+      not sourced from the fulfillment-service API. Adding a new IdP requires updating both
+      the API resource AND the frontend branding config.
+
+  - gap: >
+      How OIDC tokens are validated and how OSAC user identity maps to fulfillment-service
+      users/groups for RBAC (via Kessel/project-kessel) is not fully documented here.
+
+open_questions:
+  - What is the full IdentityProvider proto spec (all fields)?
+  - Does the fulfillment-service integrate directly with Keycloak, or via Kessel?
+  - What OIDC claims are used to assign OSAC roles (groups claim, custom claim)?
+  - Is multi-IdP login supported per tenant or only per provider?
+  - How is IdP deletion handled — what happens to existing user sessions?

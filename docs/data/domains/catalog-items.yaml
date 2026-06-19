@@ -1,0 +1,553 @@
+# OSAC Domain Spec — Catalog Items & Templates
+# Sources:
+#   proto/public/osac/public/v1/compute_instance_catalog_item_type.proto
+#   proto/public/osac/public/v1/cluster_catalog_item_type.proto
+#   proto/public/osac/public/v1/baremetal_instance_catalog_item_type.proto
+#   proto/public/osac/public/v1/field_definition_type.proto
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §7–8
+#   specs/osac/ui-flows/manage-catalog-items.yaml
+#   specs/osac/ui-flows/tenant-catalog.yaml
+#   Projects/osac-backends/enhancement-proposals/enhancements/catalog-items/README.md
+#   Projects/osac-backends/enhancement-proposals/enhancements/baremetal-instance-api/README.md
+#   https://github.com/osac-project/osac-aap (live analysis 2026-06-18):
+#     collections/ansible_collections/osac/templates/roles/*/meta/osac.yaml
+#     collections/ansible_collections/osac/templates/roles/*/meta/argument_specs.yaml
+#     collections/ansible_collections/osac/service/plugins/filter/find_template_roles.py
+#     collections/ansible_collections/osac/templates/plugins/filter/template_validate.py
+#     collections/ansible_collections/osac/service/roles/publish_templates/
+
+domain: catalog-items
+title: Catalog Items & Templates (Compute, Cluster, Bare Metal)
+status: draft
+owner: ""
+
+overview: >
+  Catalog Items are pre-configured resource definitions that simplify provisioning by
+  hiding template complexity from tenant users. They define a curated set of parameters
+  with fixed values and user-visible fields. There are three catalog item types:
+  - ComputeInstanceCatalogItem: for VM provisioning
+  - ClusterCatalogItem: for hosted cluster provisioning
+  - BareMetalInstanceCatalogItem: for bare metal provisioning
+
+  Provider admins manage catalog items (create/update/delete via private API or provider admin UI).
+  Tenant users browse and select catalog items to provision resources.
+
+  Catalog items are the preferred way to create resources (vs. raw template + parameters).
+  They use a FieldDefinition system to specify which parameters are fixed vs. user-configurable.
+
+  Templates (ComputeInstanceTemplate, ClusterTemplate) are the layer BELOW catalog items.
+  They are Ansible roles in osac-aap that AAP auto-discovers and publishes to the fulfillment
+  service via a scheduled job. A single template can back multiple catalog items.
+
+  BareMetalInstanceCatalogItem is the ONLY provisioning path for BareMetalInstance — there
+  is no direct template path for bare metal.
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - ComputeInstanceCatalogItem
+      - ClusterCatalogItem
+      - BareMetalInstanceCatalogItem
+      - FieldDefinition (shared)
+      - ComputeInstanceTemplate
+      - ClusterTemplate
+    api_endpoints:
+      # Public (tenant read-only)
+      compute_catalog_items: /api/fulfillment/v1/compute_instance_catalog_items
+      cluster_catalog_items: /api/fulfillment/v1/cluster_catalog_items
+      baremetal_catalog_items: /api/fulfillment/v1/baremetal_instance_catalog_items
+      compute_templates: /api/fulfillment/v1/compute_instance_templates
+      cluster_templates: /api/fulfillment/v1/cluster_templates
+      # Private (admin only)
+      private_compute_catalog: /api/private/v1/compute_instance_catalog_items
+      private_cluster_catalog: /api/private/v1/cluster_catalog_items
+      private_baremetal_catalog: /api/private/v1/baremetal_instance_catalog_items
+      private_compute_templates: /api/private/v1/compute_instance_templates
+      private_cluster_templates: /api/private/v1/cluster_templates
+    public_api_operations:
+      - GET  /<type>_catalog_items        # List — filtered to published=true and caller's tenant
+      - GET  /<type>_catalog_items/{id}   # Get
+      - GET  /<type>_templates            # List templates (tenant users: read-only discovery)
+    private_api_operations:
+      - POST/PATCH/DELETE /<type>_catalog_items   # Provider/Tenant Admins
+      - POST/PATCH/DELETE /<type>_templates        # AAP publish job only
+    proto_sources:
+      - proto/public/osac/public/v1/compute_instance_catalog_item_type.proto
+      - proto/public/osac/public/v1/cluster_catalog_item_type.proto
+      - proto/public/osac/public/v1/baremetal_instance_catalog_item_type.proto
+      - proto/public/osac/public/v1/field_definition_type.proto
+    private_api:
+      - proto/private/osac/private/v1/compute_instance_catalog_items_service.proto
+      - proto/private/osac/private/v1/cluster_catalog_items_service.proto
+      - proto/private/osac/private/v1/baremetal_instance_catalog_items_service.proto
+    tenancy:
+      public_api: >
+        Read access filtered by published=true AND caller's tenant. Tenant Admins have full
+        CRUD scoped to their tenant. Tenant Users have read-only access to published items.
+      private_api: >
+        Full CRUD with no published/tenant filtering. Used by AAP publish job and provider admin.
+
+  osac_aap:
+    purpose: >
+      osac-aap publishes Templates to the fulfillment service private API via a scheduled
+      AAP job (publish_templates.yaml). Templates are Ansible roles; discovery is automatic.
+      Catalog items are NOT defined in osac-aap — they are created by admins via the API.
+    collection: osac.templates
+    playbook: collections/ansible_collections/osac/service/playbooks/publish_templates.yaml
+    template_discovery: >
+      The osac.service.find_template_roles filter (find_template_roles.py) scans installed
+      Ansible collections for roles with meta/osac.yaml. It yields ComputeInstanceTemplate,
+      ClusterTemplate, or NetworkClass objects depending on template_type in osac.yaml.
+    template_id_format: "{collection_namespace}.{collection_name}.{role_name}"
+    example: "osac.templates.ocp_virt_vm"
+    template_types:
+      - compute_instance    # → /api/private/v1/compute_instance_templates
+      - cluster             # → /api/private/v1/cluster_templates
+      - network             # → /api/private/v1/network_classes
+      - storage_provider    # not published via this path (dispatched separately)
+    osac_yaml_schema:
+      description: >
+        Every template role must have meta/osac.yaml. This is the authoritative source
+        for template metadata published to the fulfillment service.
+      fields:
+        title: {type: str, required: true, notes: "Display name in the catalog"}
+        description: {type: str, required: false, notes: "Markdown description"}
+        template_type: {type: str, required: true, values: [compute_instance, cluster, network, storage_provider]}
+        spec_defaults: {type: dict, required: false, notes: "Compute instance only — overrides default spec field values"}
+        default_node_request: {type: list, required: false, notes: "Cluster templates only — default bare metal node requests"}
+        allowed_resource_classes: {type: list, required: false, notes: "Cluster templates only — empty = any resource class allowed"}
+        parameters: {type: list, required: false, notes: "User-facing parameter definitions (alternative to argument_specs.yaml)"}
+        implementation_strategy: {type: str, required: false, notes: "Network templates only (cudn, metallb, netris, openstack)"}
+        is_default: {type: bool, required: false, notes: "Network templates only"}
+        capabilities: {type: dict, required: false, notes: "Network templates only — supports_ipv4, supports_ipv6, supports_dual_stack"}
+    spec_defaults_fields:
+      notes: >
+        spec_defaults in osac.yaml set default values for ComputeInstance spec fields.
+        snake_case keys in osac.yaml are converted to camelCase for the fulfillment API.
+      fields:
+        cores: {type: int, example: 2}
+        memory_gib: {type: int, serialized_as: memoryGiB, example: 2}
+        boot_disk.size_gib: {type: int, serialized_as: bootDisk.sizeGiB, example: 10}
+        image.source_type: {type: str, serialized_as: image.sourceType, values: [registry], example: "registry"}
+        image.source_ref: {type: str, serialized_as: image.sourceRef, example: "quay.io/containerdisks/fedora:latest"}
+        run_strategy: {type: str, serialized_as: runStrategy, values: [Always, RerunOnFailure, Manual, Halted], example: "Always"}
+    argument_specs_to_protobuf_type_mapping:
+      notes: >
+        When a role defines template_parameters via argument_specs.yaml (rather than osac.yaml
+        parameters), the Ansible argument type is mapped to a protobuf @type string.
+        The FieldDefinition.default is serialized as { "@type": "...", "value": <scalar> }.
+      mapping:
+        str: "type.googleapis.com/google.protobuf.StringValue"
+        string: "type.googleapis.com/google.protobuf.StringValue"
+        path: "type.googleapis.com/google.protobuf.StringValue"
+        json: "type.googleapis.com/google.protobuf.StringValue"
+        bool: "type.googleapis.com/google.protobuf.BoolValue"
+        int: "type.googleapis.com/google.protobuf.Int64Value"
+        float: "type.googleapis.com/google.protobuf.DoubleValue"
+        list: "type.googleapis.com/google.protobuf.Value"
+        dict: "type.googleapis.com/google.protobuf.Value"
+        bytes: "type.googleapis.com/google.protobuf.BytesValue"
+
+  osac_ui:
+    ui_flows:
+      - Projects/osac-ui/docs/specs/ui-flows/manage-catalog-items.yaml   # tenant admin view
+      - Projects/osac-ui/docs/specs/ui-flows/tenant-catalog.yaml         # tenant user view
+    notes: >
+      Tenant catalog view shows available catalog items per resource type.
+      The Create VM/Cluster/BM wizard dynamically renders form fields from field_definitions.
+      Fixed fields (user_configurable=false) are not shown in the wizard.
+      VM card click navigates to /vms?catalogItem=<id>; wizard auto-opens.
+      Cluster/BM card click opens LaunchInstanceWizard modal.
+
+field_definition:
+  description: >
+    FieldDefinitions describe the user-facing parameters of a catalog item — their names, types,
+    whether they are user-configurable, and their fixed or default values.
+    The UI renders a dynamic form based on field_definitions.
+    In osac-aap, FieldDefinition maps to TemplateParameter (the model sent to the fulfillment API).
+    The path field uses dot-notation to reference template parameters (e.g. template_parameters.cpu_count).
+  proto_message: osac.public.v1.FieldDefinition
+  source: proto/public/osac/public/v1/field_definition_type.proto
+  aap_model: TemplateParameter (collections/ansible_collections/osac/service/plugins/filter/find_template_roles.py)
+  fields:
+    - name: name
+      notes: >
+        Parameter name. Uses dot-notation to address template_parameters keys.
+        Example: "template_parameters.cpu_count" or just "exposed_ports".
+    - name: title
+      aap_alias: title / short_description
+      notes: Human-friendly label for the form field
+    - name: description
+      notes: Help text for the form field
+    - name: required
+      type: bool
+      notes: Whether the user must provide this value (no default will be applied)
+    - name: type
+      notes: >
+        Protobuf well-known type URL. Maps Ansible/Python scalar types:
+        str/string/path/json → "type.googleapis.com/google.protobuf.StringValue"
+        bool                 → "type.googleapis.com/google.protobuf.BoolValue"
+        int                  → "type.googleapis.com/google.protobuf.Int64Value"
+        float                → "type.googleapis.com/google.protobuf.DoubleValue"
+        list/dict            → "type.googleapis.com/google.protobuf.Value"  (opaque Any)
+        bytes                → "type.googleapis.com/google.protobuf.BytesValue"
+    - name: default
+      notes: >
+        Default value serialized as protobuf Any: { "@type": "<ProtobufType>", "value": <scalar> }.
+        Only scalar types (str, bool, int, float) are supported as defaults. List/dict defaults
+        are not supported and will cause a validation error at template publish time.
+    - name: user_configurable
+      aap_equivalent: editable (bool in FieldDefinition.path enhancement)
+      notes: >
+        If false, value is fixed by the catalog item and not shown in the UI form.
+        If true, rendered as a form field in the wizard.
+    - name: validation
+      type: dict
+      notes: >
+        Validation rules applied at template publish time and at provisioning time.
+        Currently supports: { pattern: "<regex>" } for string parameters.
+        Uses regex matching (Python re.match). Invalid values raise an error at apply time.
+    - name: allowed_values
+      notes: >
+        Enumeration of valid choices (maps to Ansible `choices` in argument_specs).
+        Rendered as a dropdown in the wizard form.
+
+compute_instance_catalog_item:
+  proto_message: osac.public.v1.ComputeInstanceCatalogItem
+  source: proto/public/osac/public/v1/compute_instance_catalog_item_type.proto
+  fields:
+    - name: id
+    - name: metadata
+    - name: spec.title
+      notes: Display name shown in catalog
+    - name: spec.description
+      notes: Markdown description
+    - name: spec.template
+      notes: >
+        Underlying ComputeInstanceTemplate ID (format: osac.templates.<role_name>).
+        The template defines the Ansible role and its spec_defaults.
+    - name: spec.published
+      type: bool
+      notes: >
+        Controls tenant visibility. Public API only returns published=true items.
+        Private API has no filter (full CRUD regardless of published state).
+    - name: spec.tenant
+      notes: >
+        Tenant scoping. Defaults to all tenants (global). Tenant Admin creates
+        are auto-scoped to their tenant. Public API filters by caller's tenant.
+    - name: spec.field_definitions
+      type: "list[FieldDefinition]"
+      notes: >
+        List of FieldDefinition objects describing parameters.
+        user_configurable=false: value is fixed by admin, hidden in wizard.
+        user_configurable=true: rendered as a form field in the wizard.
+    - name: spec.image
+      notes: Fixed image override (overrides template spec_defaults.image if set)
+    - name: spec.cores
+      notes: Fixed CPU count override (overrides template spec_defaults.cores if set)
+    - name: spec.memory_gib
+      notes: Fixed memory override (overrides template spec_defaults.memory_gib if set)
+    - name: spec.boot_disk
+      notes: Fixed boot disk override (overrides template spec_defaults.boot_disk if set)
+
+cluster_catalog_item:
+  proto_message: osac.public.v1.ClusterCatalogItem
+  source: proto/public/osac/public/v1/cluster_catalog_item_type.proto
+  fields:
+    - name: id
+    - name: metadata
+    - name: spec.title
+    - name: spec.description
+    - name: spec.template
+      notes: Underlying ClusterTemplate ID (format: osac.templates.<role_name>)
+    - name: spec.published
+      type: bool
+      notes: Controls tenant visibility (same semantics as ComputeInstanceCatalogItem)
+    - name: spec.tenant
+      notes: Tenant scoping (same semantics as ComputeInstanceCatalogItem)
+    - name: spec.field_definitions
+      type: "list[FieldDefinition]"
+    - name: spec.node_sets
+      notes: >
+        Default node set configuration. Maps to ClusterTemplate default_node_request.
+        Each entry: { host_type: str, size: int } (API) /
+        { resourceClass: str, numberOfNodes: int } (AAP).
+
+baremetal_instance_catalog_item:
+  proto_message: osac.public.v1.BareMetalInstanceCatalogItem
+  source: proto/public/osac/public/v1/baremetal_instance_catalog_item_type.proto
+  notes: >
+    BareMetalInstanceCatalogItem is the ONLY provisioning path for BareMetalInstance.
+    There is no direct template path — all bare metal provisioning goes through a catalog item.
+  fields:
+    - name: id
+    - name: metadata
+    - name: spec.title
+    - name: spec.description
+    - name: spec.host_type
+      notes: Hardware profile (maps to HostType resource — hardware class e.g. fc430, h100, dgx)
+    - name: spec.published
+      type: bool
+      notes: Controls tenant visibility
+    - name: spec.tenant
+      notes: Tenant scoping
+    - name: spec.field_definitions
+      type: "list[FieldDefinition]"
+    - name: spec.image
+      notes: OS image to provision (fixed — tenants cannot override image at provision time)
+
+compute_instance_template:
+  description: >
+    ComputeInstanceTemplate is an Ansible role in osac-aap automatically discovered and
+    published to the fulfillment service private API by the publish_templates AAP job.
+    It backs one or more ComputeInstanceCatalogItems.
+  fulfillment_api: /api/private/v1/compute_instance_templates
+  id_format: "{collection_namespace}.{collection_name}.{role_name}"
+  fields:
+    - name: id
+      example: "osac.templates.ocp_virt_vm"
+    - name: title
+      source: meta/osac.yaml → title
+    - name: description
+      source: meta/osac.yaml → description
+    - name: parameters
+      type: "list[TemplateParameter]"
+      notes: >
+        Derived from meta/osac.yaml → parameters[] OR meta/argument_specs.yaml
+        → argument_specs.main.options.template_parameters. Each becomes a TemplateParameter
+        with name, title, description, required, type (protobuf URL), and default (protobuf Any).
+    - name: spec_defaults
+      type: dict
+      source: meta/osac.yaml → spec_defaults
+      notes: >
+        Default values for ComputeInstance spec fields. Serialized to camelCase.
+        Fields: cores, memoryGiB, bootDisk.sizeGiB, image.sourceType, image.sourceRef, runStrategy.
+  known_templates:
+    - id: osac.templates.ocp_virt_vm
+      title: "Virtual Machine Template (Linux and Windows)"
+      description: >
+        VM template for OpenShift Virtualization. Supports Linux (default) and Windows guests.
+        Linux uses cloud-init/SSH; Windows uses sysprep, Hyper-V domain spec.
+      spec_defaults:
+        cores: 2
+        memoryGiB: 2
+        bootDisk:
+          sizeGiB: 10
+        image:
+          sourceType: registry
+          sourceRef: "quay.io/containerdisks/fedora:latest"
+        runStrategy: Always
+      parameters:
+        - name: exposed_ports
+          title: "Exposed Ports"
+          type: "type.googleapis.com/google.protobuf.StringValue"
+          required: false
+          default: {type: StringValue, value: "22/tcp"}
+          validation: {pattern: '^([0-9]+/(tcp|udp))(,[0-9]+/(tcp|udp))*$'}
+          notes: "Comma-separated <port>/<protocol> pairs. Windows default: 3389/tcp"
+        - name: guest_os_family
+          title: "Guest OS Family"
+          type: "type.googleapis.com/google.protobuf.StringValue"
+          required: false
+          default: {type: StringValue, value: "linux"}
+          validation: {pattern: '^(linux|windows)$'}
+      role_level_vars:
+        notes: "These defaults/main.yaml vars are internal to the role — not template parameters"
+        vars:
+          vm_enable_sysprep: {default: true, notes: "Windows: create sysprep disk for fresh install"}
+          vm_sysprep_timezone: {default: "Eastern Standard Time"}
+          vm_sysprep_admin_password: {default: ""}
+          vm_sysprep_autologon_enabled: {default: true}
+          vm_sysprep_input_locale: {default: "en-US"}
+          vm_sysprep_system_locale: {default: "en-US"}
+          vm_sysprep_ui_language: {default: "en-US"}
+          vm_sysprep_user_locale: {default: "en-US"}
+          default_vm_internal_network: {default: "hypershift"}
+          default_vm_storage_class: {default: "nfs-client"}
+      role_argument_spec_inputs:
+        notes: "These are Ansible role inputs passed by the operator — not user template parameters"
+        compute_instance: {type: dict, required: true, notes: "Full ComputeInstance CR"}
+        guest_os_family: {type: str, required: false}
+        gpu_devices:
+          type: list
+          required: false
+          default: []
+          element_fields:
+            pci_device_selector: {type: str, required: true, example: "10DE:1DB6"}
+            resource_name: {type: str, required: true, example: "nvidia.com/GV100GL_Tesla_V100"}
+        template_parameters: {type: dict, required: false}
+
+cluster_template:
+  description: >
+    ClusterTemplate is an Ansible role in osac-aap discovered and published to the fulfillment
+    service private API. It backs one or more ClusterCatalogItems.
+  fulfillment_api: /api/private/v1/cluster_templates
+  id_format: "{collection_namespace}.{collection_name}.{role_name}"
+  fields:
+    - name: id
+    - name: title
+      source: meta/osac.yaml → title
+    - name: description
+      source: meta/osac.yaml → description
+    - name: parameters
+      type: "list[TemplateParameter]"
+      notes: >
+        Derived from meta/argument_specs.yaml → argument_specs.main.options.template_parameters.
+        Common across all cluster templates: pull_secret (required), ssh_public_key (optional).
+    - name: default_node_request
+      source: meta/osac.yaml → default_node_request
+      type: "list[{resourceClass: str, numberOfNodes: int}]"
+    - name: allowed_resource_classes
+      source: meta/osac.yaml → allowed_resource_classes
+      notes: "Empty list = any resource class allowed in ClusterOrder"
+  known_templates:
+    - id: osac.templates.ocp_4_17_small
+      title: "Simple OpenShift 4.17 Cluster"
+      description: "Minimally configured OpenShift 4.17 cluster."
+      default_node_request: [{resourceClass: fc430, numberOfNodes: 2}]
+      allowed_resource_classes: []
+      template_parameters:
+        - {name: pull_secret, type: StringValue, required: true}
+        - {name: ssh_public_key, type: StringValue, required: false}
+
+    - id: osac.templates.ocp_4_17_small_github
+      title: "Simple OpenShift 4.17 Cluster (GitHub OAuth)"
+      description: "OCP 4.17 with GitHub OAuth identity provider."
+      default_node_request: [{resourceClass: fc430, numberOfNodes: 2}]
+      template_parameters:
+        - {name: github_client_id, type: StringValue, required: true}
+        - {name: github_client_secret, type: StringValue, required: true}
+        - {name: github_teams, type: Value, required: false, notes: "list of str"}
+        - {name: github_organizations, type: Value, required: false, notes: "list of str"}
+        - {name: github_mapping_method, type: StringValue, required: false, default: "claim", choices: [claim, lookup, add]}
+
+    - id: osac.templates.ocp_4_20_small_nico
+      title: "OpenShift 4.20 Cluster on NICo Bare Metal"
+      description: "OCP 4.20 on NVIDIA NICo (Bare Metal Manager). Requires NETWORK_STEPS_COLLECTION=nico.steps."
+      default_node_request: [{resourceClass: dgx, numberOfNodes: 2}]
+      allowed_resource_classes: []
+      template_parameters:
+        - {name: pull_secret, type: StringValue, required: true}
+        - {name: ssh_public_key, type: StringValue, required: false}
+        - {name: ip_block_id, type: StringValue, required: true, notes: "NICo IP block ID for VPC prefix allocation"}
+        - {name: vpc_id, type: StringValue, required: false, notes: "Use existing VPC"}
+        - {name: vpc_prefix_id, type: StringValue, required: false, notes: "Use existing VPC prefix"}
+        - {name: ssh_key_group_id, type: StringValue, required: false, notes: "Override SSH key group"}
+
+    - id: osac.templates.ocp_ci_small
+      title: "CI OpenShift Cluster"
+      description: "OCP 4.17 for CI testing. Uses ci.steps network backend. 1 worker of class ci-worker."
+      default_node_request: [{resourceClass: ci-worker, numberOfNodes: 1}]
+      allowed_resource_classes: []
+      template_parameters:
+        - {name: pull_secret, type: StringValue, required: true}
+        - {name: ssh_public_key, type: StringValue, required: false}
+
+workflows:
+  aap_template_publish: |
+    ## AAP Template Discovery and Publishing Pipeline
+
+    1. **osac-aap (scheduled job)** — publish_templates.yaml runs on a schedule or trigger
+    2. **osac.service.enumerate_templates** — calls find_template_roles filter on configured
+       collections (osac_template_collections variable)
+    3. **find_template_roles.py** — for each collection, scans installed roles for meta/osac.yaml;
+       builds ComputeInstanceTemplate / ClusterTemplate / NetworkClass from:
+         a. meta/osac.yaml → title, description, template_type, spec_defaults,
+            default_node_request, allowed_resource_classes, parameters (if defined)
+         b. meta/argument_specs.yaml → argument_specs.main.options.template_parameters
+            (used if osac.yaml does not define parameters[])
+    4. **template_id** computed as "{collection_namespace}.{collection_name}.{role_name}"
+    5. **osac.service.publish_templates** — upserts each template via private API:
+         GET  /api/private/v1/compute_instance_templates      → check existing IDs
+         PATCH .../compute_instance_templates/{id}            → update if exists
+         POST  .../compute_instance_templates                 → create if new
+       (same pattern for cluster_templates and network_classes)
+
+  tenant_provision_from_catalog: |
+    ## Provision Resource from Catalog Item (Tenant)
+
+    1. **osac-ui** — Tenant browses catalog at /catalog-items (published items filtered by tenant)
+    2. **osac-ui** — Selects a catalog item card; wizard opens
+    3. **osac-ui** — Wizard renders form fields from spec.field_definitions
+       (only user_configurable=true fields are shown; fixed fields are silently applied by backend)
+    4. **osac-ui** — Tenant fills in configurable values, submits:
+         POST /api/fulfillment/v1/compute_instances
+           { spec: { catalog_item: "<id>", template_parameters: { <user_inputs> } } }
+    5. **fulfillment-service** — On create validation:
+         a. Fetch the referenced CatalogItem; verify published == true
+         b. Apply FieldDefinitions: override non-editable fields with catalog fixed values;
+            validate editable fields (required check, pattern validation)
+         c. Merge: catalog fixed values + user-provided editable values → effective spec
+         d. Store resulting ComputeInstance / Cluster / BareMetalInstance resource
+    6. **osac-operator** — Detects new CR, reconciles, calls AAP playbook
+
+  provider_manage_catalog: |
+    ## Provider Admin Manages Catalog Items
+
+    1. **osac-ui (admin)** — Admin creates/edits CatalogItem in manage-catalog-items UI
+       (CatalogItemStudio: left = FieldDefinitionBuilder form, right = CatalogFormPreview)
+    2. **fulfillment-service (private API)** — POST/PATCH /api/private/v1/compute_instance_catalog_items
+       Validation at CatalogItem creation: FieldDefinition.path must reference valid template parameters
+    3. Admin toggles published=true → item appears in tenant catalog view
+    4. Admin can set published=false to hide from tenants (existing resources are unaffected)
+    5. Admin can delete catalog items; tenants with existing resources are unaffected
+
+  template_parameter_validation: |
+    ## Template Parameter Validation at Provisioning Time (AAP side)
+
+    The template_validate.py filter (osac.templates collection) is called by each role:
+
+      {{ (template_parameters | default({})) | osac.templates.template_validate_params(role_path) }}
+
+    Steps:
+    1. Load meta/osac.yaml from role_path
+    2. Build defaults dict from parameters[].default
+    3. Merge: defaults ← user-provided template_parameters
+    4. Validate: required parameters present; pattern validation for string fields
+    5. Return merged+validated dict → role uses this for VM/cluster provisioning
+
+cross_layer_gaps:
+  - gap: >
+      FieldDefinition proto schema (field_definition_type.proto) has not been read directly.
+      The osac.yaml/argument_specs schema from osac-aap is documented above and maps to what
+      the fulfillment service stores, but the exact proto field names need verification against
+      the proto file. In particular: is user_configurable called `editable` in the proto?
+
+  - gap: >
+      The fulfillment-service merge logic (step 5b in tenant_provision_from_catalog workflow)
+      is documented at the conceptual level from the enhancement proposal. The exact Go code
+      in fulfillment-service that applies FieldDefinitions has not been read.
+
+  - gap: >
+      ClusterCatalogItem spec.node_sets field name and type not confirmed from proto.
+      osac-aap uses default_node_request with resourceClass/numberOfNodes; the fulfillment
+      API may use different field names (host_type/size per the existing spec).
+
+  - gap: >
+      The CLI flag --template was replaced with --catalog-item per the enhancement proposal
+      but this has not been verified in the current fulfillment-service or CLI implementation.
+
+open_questions:
+  - >
+    RESOLVED: FieldDefinition type is a protobuf well-known type URL (see argument_specs_to_protobuf_type_mapping above).
+  - >
+    RESOLVED: Catalog item visibility is controlled by published (bool), not DRAFT/PUBLISHED states.
+    Public API filters to published=true and the caller's tenant. No separate status enum.
+  - >
+    RESOLVED: Tenants only see published items scoped to their tenant OR global items (tenant defaults to all).
+    Tenant Admins can create tenant-scoped catalog items.
+  - >
+    PARTIALLY RESOLVED: Catalog items can be updated (PATCH). Impact on existing instances is not
+    documented — the enhancement says "tenants with existing resources are unaffected" but the
+    mechanism (snapshot of field_definitions at create time vs. live reference) is unknown.
+  - >
+    RESOLVED: Yes — per-tenant catalog item scoping exists via spec.tenant field. Tenant Admins
+    can create organization-specific catalog items. Provider Admins create global items.
+  - >
+    OPEN: How are template parameter values for non-editable fields validated at catalog item
+    creation time? The enhancement says "require path validation at CatalogItem creation" but
+    the exact rules are not documented.
+  - >
+    OPEN: What happens to ClusterCatalogItem provisioning now that Cluster references a
+    ClusterCatalogItem instead of a ClusterTemplate? Is the --catalog-item flag live in the CLI?

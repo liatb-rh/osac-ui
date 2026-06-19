@@ -1,0 +1,439 @@
+# OSAC Domain Spec — Organizations, Projects, Tenants
+# Sources:
+#   proto/public/osac/public/v1/organization_type.proto
+#   proto/public/osac/public/v1/project_type.proto
+#   Projects/osac-backends/osac-operator/api/v1alpha1/tenant_types.go
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §17–18
+#   specs/osac/rbac.yaml
+#   Projects/osac-backends/enhancement-proposals/enhancements/organizations/README.md
+
+domain: organizations
+title: Organizations, Projects, and Tenants
+status: review
+owner: ""
+
+overview: >
+  OSAC has a three-level hierarchy for resource scoping and multi-tenancy:
+
+  1. Organization — top-level grouping for a customer or business unit.
+     Managed by provider admins. Groups tenants.
+  2. Project — sub-grouping within an Organization (currently limited functionality;
+     reserved for future use in the proto).
+  3. Tenant — the primary isolation unit. All user resources (VMs, networks, etc.)
+     are scoped to a tenant. Maps to a Kubernetes namespace in the operator.
+
+  RoleBindings can be scoped to either an Organization (granting access across all its
+  tenants) or a specific Tenant.
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: Organization
+# ──────────────────────────────────────────────────────────────────
+
+organization:
+  proto_message: osac.public.v1.Organization
+  source: proto/public/osac/public/v1/organization_type.proto
+  api_base: /api/fulfillment/v1/organizations
+  operations:
+    - GET    /organizations              # List
+    - GET    /organizations/{id}         # Get
+    - POST   /organizations              # Create (provider admin)
+    - DELETE /organizations/{id}         # Delete
+  fields:
+    - name: id
+      type: string (UUID)
+    - name: metadata
+      type: Metadata
+    - name: spec
+      type: OrganizationSpec
+      notes: "Currently reserved for future fields — OrganizationSpec is empty."
+  notes: >
+    Organization has minimal spec in the current proto. It is essentially a named
+    container for tenants with RBAC scoping. Future fields will be added as needed.
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: Project
+# ──────────────────────────────────────────────────────────────────
+
+project:
+  proto_message: osac.public.v1.Project
+  source: proto/public/osac/public/v1/project_type.proto
+  api_base: /api/fulfillment/v1/projects
+  operations:
+    # TODO: confirm available operations
+    - GET    /projects              # List
+    - GET    /projects/{id}         # Get
+  fields:
+    # TODO: read project_type.proto to populate
+    - name: id
+    - name: metadata
+    - name: spec
+      notes: "TODO: what does ProjectSpec contain?"
+  notes: >
+    Project is currently a limited resource. Its role in the hierarchy and relationship
+    to Organization and Tenant needs confirmation from the team.
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: Tenant (operator-level)
+# ──────────────────────────────────────────────────────────────────
+
+tenant:
+  description: >
+    Tenant is the primary isolation unit in OSAC. It represents a customer namespace
+    in the Kubernetes cluster. All user-facing resources (ComputeInstances, VirtualNetworks,
+    etc.) are scoped to a tenant via metadata.tenant field in the fulfillment-service API.
+  operator_crd:
+    kind: Tenant
+    group: osac.openshift.io    # NOTE: was incorrectly listed as osac.redhat.com — confirmed from tenant_types.go
+    version: v1alpha1
+    source: Projects/osac-backends/osac-operator/api/v1alpha1/tenant_types.go
+    status_fields:
+      Phase: "Progressing | Ready | Failed | Deleting"
+      Namespace: string
+      StorageClasses: "[]ResolvedStorageClass {name, tier}"
+      Conditions: "[]metav1.Condition"
+      Jobs: "[]JobStatus"
+    notes: >
+      The Tenant CR in the operator represents the namespace/isolation boundary.
+      When a tenant is created, the operator provisions the tenant namespace and
+      associated RBAC, network policies, and storage.
+
+  fulfillment_api:
+    notes: >
+      Tenant is exposed indirectly via the metadata.tenant field on all resources.
+      There may be a /tenants API endpoint in the private API for admin management.
+      TODO: confirm if there is a public /tenants endpoint.
+
+  aap_playbooks:
+    - playbook_osac_config_as_code.yml    # tenant-level configuration
+    notes: "TODO: identify tenant-specific provisioning playbooks"
+
+  fields:
+    # TODO: read tenant_types.go to populate
+    - name: name
+      notes: Tenant name (maps to Kubernetes namespace name)
+    - name: organization_ref
+      notes: Parent organization reference
+
+data_model_relationships:
+  hierarchy:
+    - "Organization 1:N Tenant"
+    - "Organization 1:N Project (future)"
+    - "Tenant contains: ComputeInstances, VirtualNetworks, Subnets, SecurityGroups, PublicIPs, etc."
+
+  rbac_scoping:
+    - "RoleBinding scoped to Organization: grants access to all tenants in the org"
+    - "RoleBinding scoped to Tenant: grants access to resources in that tenant only"
+
+  metadata_tenant_field: >
+    Every resource's metadata.tenant field identifies which tenant owns it.
+    The fulfillment-service enforces tenant isolation — users can only see/modify
+    resources in tenants they have access to (via RoleBindings).
+
+  operator_namespace_mapping: >
+    In the operator, each tenant maps to a Kubernetes namespace (or set of namespaces).
+    The tenant-namespace for a ComputeInstance is determined by its primary subnet's
+    subnet-namespace annotation — not directly by the tenant ID. This means a tenant
+    may have resources spread across multiple namespaces.
+
+workflows:
+  tenant_onboarding: |
+    ## Tenant Onboarding Workflow
+
+    1. **Provider admin** creates Tenant via admin UI or private API
+    2. **osac-operator** — Tenant CR reconciler:
+       - Creates tenant namespace in the hub cluster
+       - Configures namespace-level RBAC and network policies
+       - Sets up default storage (playbook_osac_configure_tenant_storage.yml if applicable)
+       - Runs playbook_osac_config_as_code.yml for tenant configuration
+    3. **fulfillment-service** — Tenant available; users can be assigned roles via RoleBindings
+    4. **osac-ui** — Tenant admin can now log in and create resources
+
+  user_access: |
+    ## User Access to a Tenant
+
+    1. User authenticates via OIDC (identity provider)
+    2. fulfillment-service checks user's RoleBindings (org-scoped or tenant-scoped)
+    3. User sees only tenants they have access to
+    4. Resources are filtered server-side by metadata.tenant
+
+authentication_architecture:
+  description: >
+    From enhancements/organizations/README.md.
+    Built on: Gateway API (Envoy Proxy), Keycloak (user-managed), Kuadrant (Authorino + Limitador),
+    OpenShift Projects for namespace isolation.
+
+  keycloak:
+    description: One Keycloak realm per Organization.
+    external_idp: Each organization MUST configure an external IdP (LDAP/AD/OIDC/SAML).
+    break_glass: Break-glass accounts stored in Keycloak built-in storage (idp-manager role).
+    protocol_mappers: Normalize upstream IdP claims into OSAC Token schema.
+    authorization_services: Keycloak Authorization Services for Project-level permissions.
+
+  kuadrant:
+    authorino:
+      description: Validates Keycloak-issued tokens; enforces authorization policies at Gateway layer.
+      supports: OPA, SpiceDB, external auth services
+      injects_headers:
+        - X-Remote-User
+        - X-Organization
+        - X-Roles
+    limitador: Rate limiting capabilities.
+
+  authentication_flow:
+    steps:
+      - "User visits console → redirect to Keycloak → authenticates at corporate IdP"
+      - "Keycloak issues tokens; protocol mappers normalize claims"
+      - "User calls OSAC APIs with token"
+      - "Kuadrant intercepts at Gateway; Authorino validates token, extracts claims, enforces policies"
+      - "Authorino injects X-Remote-User, X-Organization, X-Roles headers"
+      - "Fulfillment Service receives clean request with verified context"
+
+role_model:
+  source: enhancements/organizations/README.md
+  system_level:
+    - name: cloud-provider-admin
+      scope: System Organization only
+      description: Full provider-level access
+    - name: cloud-provider-reader
+      scope: System Organization only
+      description: Read-only provider access
+
+  organization_level:
+    - name: tenant-admin
+      scope: Organization
+      description: Full access to organization resources; can manage IdP, Projects, roles
+    - name: tenant-reader
+      scope: Organization
+      description: Read-only access
+    - name: tenant-user
+      scope: Organization
+      description: Standard user; can create/manage own resources within permitted Projects
+
+  break_glass:
+    - name: idp-manager
+      scope: Per-organization
+      description: >
+        Limited role for emergency IdP management. Can manage IdP configuration and assign roles.
+        One break-glass account per organization; stored in Keycloak built-in storage.
+        Initial password returned in organization creation response (not retrievable later).
+        Emergency access via Keycloak Console directly.
+
+project_permissions:
+  source: Keycloak Authorization Services (per Project = Keycloak Authorization Resource)
+  cascading_permissions:
+    - MANAGE_PROJECT: cascades to child projects
+    - VIEW_PROJECT: cascades to child projects
+  non_cascading_permissions:
+    - CREATE_COMPUTE_INSTANCE
+    - DELETE_COMPUTE_INSTANCE
+    # Additional resource-type scopes follow same pattern
+
+  nested_projects:
+    description: Projects support nesting. Parent project deletion blocked if it has child projects.
+    permission_note: Resource-level permissions (CREATE_COMPUTE_INSTANCE) do NOT cascade.
+
+deletion_lifecycle:
+  project_deletion:
+    default: Blocks if project contains resources (409 Conflict)
+    cascade_option: cascade=true parameter for cascade deletion
+  organization_deletion:
+    requires: All Projects deleted first
+    blocks: If any Projects remain
+
+storage_classes_per_tenant:
+  description: >
+    From enhancements/tenant-specific-storageclasses and tenant-storage-tiers enhancements.
+    StorageClasses are labeled to identify which tenant they belong to and their storage tier.
+    See domains/storage.yaml for full StorageClass labeling specification.
+  summary:
+    tenant_label: "osac.openshift.io/tenant: <tenant-id>"
+    tier_label: "osac.openshift.io/storage-tier: <tier-name>"
+    tenant_crd_status: status.storageClasses (list of {name, tier})
+
+# ──────────────────────────────────────────────────────────────────
+# IAM Models (osac.iam.v1) — confirmed from fulfillment-service protos
+# ──────────────────────────────────────────────────────────────────
+
+iam_models:
+  IdentityProvider:
+    description: >
+      External identity provider federated into a Keycloak realm.
+      Keyed by name (string), NOT UUID. Each Organization has one IdP.
+    proto: proto/public/osac/public/v1/identity_provider_type.proto
+    api: /api/fulfillment/v1/identity_providers
+    operations:
+      - POST   /identity_providers            # Create
+      - GET    /identity_providers            # List
+      - GET    /identity_providers:list-available
+      - GET    /identity_providers/{name}     # Get — keyed by name
+      - PUT    /identity_providers/{name}     # Update
+      - DELETE /identity_providers/{name}     # Delete
+      - POST   /identity_providers/{name}:assign
+      - POST   /identity_providers/{name}:unassign
+    fields:
+      - name: name
+        type: string
+        notes: Primary key — NOT a UUID. e.g. "northstar-corp-ldap"
+      - name: metadata
+        type: Metadata
+      - name: spec.config
+        type: oneof (oidc | ldap)
+      - name: spec.config.oidc
+        type: OidcConfig
+        fields: [issuer, authorization_url, token_url, jwks_url, logout_url, client_id, client_secret]
+      - name: spec.config.ldap
+        type: LdapConfig
+        fields: [connection_url, bind_dn, bind_credential, users_dn, username_ldap_attribute, vendor]
+      - name: status.phase
+        type: IdentityProviderPhase enum
+        values: [READY, ERROR, UNKNOWN]
+    private_api:
+      notes: Private type adds IdentityProviderCondition on status.
+
+  AuthnCapabilities:
+    description: >
+      Authn discovery resource exposing the list of trusted Keycloak token issuers
+      for the current tenant. Issuers are validated by Authorino at the gateway.
+    proto: proto/public/osac/public/v1/authn_capabilities_type.proto
+    api: GET /api/fulfillment/v1/capabilities
+    fields:
+      - name: trusted_token_issuers
+        type: repeated string
+        notes: Keycloak realm issuer URLs (e.g. https://auth.osac.internal/realms/northstar.osac)
+
+  BreakGlassCredentials:
+    description: >
+      Emergency local Keycloak accounts independent of the external IdP.
+      Password is write-only — returned once in OrganizationStatus on create (private API).
+      Every use is audited as an Event of type BREAK_GLASS_USED.
+    proto: proto/public/osac/public/v1/break_glass_credentials_type.proto
+    fields:
+      - name: username
+        type: string
+      - name: password
+        type: string
+        notes: Write-only. Returned once on Organization create via private API. Not retrievable later.
+    notes: >
+      Stored in OrganizationStatus (private API only). Managed by the idp-manager Keycloak role.
+      One break-glass account per organization per the enhancement spec.
+
+  User:
+    description: IdP-managed user synced into fulfillment-service. Scoped to an Organization.
+    proto: proto/public/osac/public/v1/user_type.proto
+    api: /api/fulfillment/v1/users
+    operations:
+      - GET    /users       # List
+      - GET    /users/{id}  # Get
+      - POST   /users       # Create
+      - PATCH  /users/{id}  # Update
+      - DELETE /users/{id}  # Delete
+    fields:
+      - name: id
+        type: string (UUID)
+      - name: metadata
+        type: Metadata
+      - name: spec.username
+        type: string
+      - name: spec.email
+        type: string
+      - name: spec.email_verified
+        type: bool
+      - name: spec.enabled
+        type: bool
+      - name: spec.first_name
+        type: string
+      - name: spec.last_name
+        type: string
+      - name: spec.organization
+        type: string
+        notes: Organization name reference
+      - name: spec.credentials.password
+        type: string (optional)
+      - name: spec.credentials.temporary_password
+        type: bool
+
+  OrganizationStatus:
+    description: >
+      Private-API-only status block on Organization. Includes break-glass credentials
+      (returned once on creation) and Keycloak sync state.
+    proto: proto/private/osac/private/v1/organization_type.proto
+    api: /api/private/v1/organizations (private only)
+    fields:
+      - name: state
+        type: OrganizationState enum
+        values: [PENDING, SYNCED, FAILED]
+        notes: Maps to UI StatusDot — SYNCED=running, PENDING=progressing, FAILED=failed
+      - name: break_glass_credentials
+        type: BreakGlassCredentials
+      - name: idp_organization_name
+        type: string
+      - name: break_glass_user_id
+        type: string
+      - name: message
+        type: string (optional)
+
+ui_field_mapping:
+  organizations_list_page:
+    role: providerAdmin
+    route: /provider/organizations
+    columns:
+      - field: Organization.metadata.name
+        ui: Organization column — CustomTableLink → /provider/tenants/:id
+      - field: fixture realm (Keycloak realm slug)
+        ui: Keycloak realm column
+      - field: IdentityProvider.spec.config oneof kind
+        ui: IdP badge (OIDC/LDAP/SAML/AD)
+      - field: IdentityProvider.spec.oidc.issuer | ldap.connection_url
+        ui: IdP host
+      - field: OrganizationStatus.state
+        ui: Status StatusDot (SYNCED=running, PENDING=progressing, FAILED=failed)
+      - field: User count (aggregate)
+        ui: Users column
+      - field: BreakGlassCredentials count
+        ui: Break-glass column
+
+  users_list_page:
+    role: tenantAdmin
+    route: /admin/users
+    columns:
+      - field: User.spec.first_name + last_name
+        ui: Name column
+      - field: User.spec.email
+        ui: Email column
+      - field: RoleBinding.spec.role
+        ui: Role label (blue=tenantAdmin, grey=tenantUser)
+      - field: User.spec.email_verified (proxy for MFA)
+        ui: MFA label (green=Enrolled, orange=Pending)
+
+# ──────────────────────────────────────────────────────────────────
+cross_layer_gaps:
+  - gap: >
+      OrganizationSpec is currently empty in the proto. The Organization resource is
+      a minimal container — its full business logic (billing, org-level policies) is TBD.
+
+  - gap: >
+      The relationship between Project and Organization/Tenant is not fully defined in the
+      current proto. ProjectSpec fields need to be confirmed.
+      From organizations enhancement: Projects can be nested; one OpenShift Project per OSAC Project
+      per managed cluster (on-demand creation).
+
+  - gap: >
+      The Tenant CRD in the operator (tenant_types.go) needs to be read to confirm
+      spec/status fields. The enhancement confirms status.storageClasses (list) replaces
+      the old singular status.storageClass field (tenant-storage-tiers enhancement).
+
+  - gap: >
+      The mapping between fulfillment-service "tenant ID" (from metadata.tenant) and
+      the Kubernetes namespace is not 1:1. A tenant may have resources in multiple
+      namespaces (e.g. one per subnet). The operator manages this mapping internally.
+
+open_questions:
+  - RESOLVED: Tenant CRD spec confirmed — TenantSpec is empty; TenantStatus has Phase/Namespace/StorageClasses/Conditions/Jobs
+  - RESOLVED: No public /tenants API endpoint — tenancy is via metadata.tenant string ID + operator CRD
+  - RESOLVED: IdentityProvider keyed by name (not UUID); supports OIDC and LDAP oneof config
+  - RESOLVED: Break-glass password write-only; returned once on org create via private API (/api/private/v1/organizations)
+  - RESOLVED: Tenant CRD group is osac.openshift.io/v1alpha1 (not osac.redhat.com)
+  - OPEN: How are org-scoped roles different from project-scoped roles in practice?
+  - OPEN: What triggers tenant namespace cleanup when a tenant is deleted?
+  - OPEN: Does each OSAC Tenant map to one OpenShift namespace or multiple?
+  - OPEN: What OIDC claims from Keycloak are used to populate X-Roles header (groups claim, custom claim)?

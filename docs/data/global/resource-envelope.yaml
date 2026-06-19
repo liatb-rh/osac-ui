@@ -1,0 +1,134 @@
+# OSAC Global Resource Envelope
+# Source of truth: proto/public/osac/public/v1/metadata_type.proto
+
+resource_envelope:
+  description: >
+    Every OSAC resource follows the same four-field top-level envelope.
+    The pattern is consistent across fulfillment-service (proto) and osac-operator (CRD).
+  typescript_interface: |
+    interface Resource<Spec, Status> {
+      id: string;          // server-assigned UUID (snake_case in proto, camelCase in JSON)
+      metadata: Metadata;
+      spec: Spec;          // user-controlled desired state
+      status: Status;      // system-controlled observed state (read-only)
+    }
+  exception: >
+    IdentityProvider uses `name` instead of `id` as its primary key (URL-safe string).
+
+metadata:
+  proto_message: osac.public.v1.Metadata
+  source: proto/public/osac/public/v1/metadata_type.proto
+  operator_equivalent: metav1.ObjectMeta (standard Kubernetes object metadata)
+  fields:
+    - name: creation_timestamp
+      proto_field: creation_timestamp
+      operator_field: metadata.creationTimestamp
+      ui_prop: metadata.creationTimestamp
+      type: google.protobuf.Timestamp / metav1.Time
+      notes: Set by server on create; read-only.
+
+    - name: deletion_timestamp
+      proto_field: deletion_timestamp
+      operator_field: metadata.deletionTimestamp
+      ui_prop: metadata.deletionTimestamp
+      type: google.protobuf.Timestamp / metav1.Time
+      notes: Set by server when delete is requested; read-only.
+
+    - name: creator
+      proto_field: creator
+      operator_field: metadata.annotations["osac.openshift.io/creator"]   # TODO: confirm annotation key
+      ui_prop: metadata.creator
+      type: string
+      notes: Username of the creator; populated at create time.
+
+    - name: name
+      proto_field: name
+      operator_field: metadata.name
+      ui_prop: metadata.name
+      type: string
+      notes: >
+        Human-friendly display name. DNS-label rules: 1–63 chars, a-z/0-9/hyphen.
+        Not unique. Optional.
+
+    - name: tenant
+      proto_field: tenant
+      operator_field: metadata.namespace (or metadata.labels["osac.openshift.io/tenant"])
+      ui_prop: metadata.tenant
+      type: string
+      notes: >
+        Tenant scoping. In the operator, resources are often placed in a tenant-specific
+        namespace rather than carrying this as an explicit field.
+
+    - name: labels
+      proto_field: labels
+      operator_field: metadata.labels
+      ui_prop: metadata.labels
+      type: map<string, string>
+      notes: Indexed and searchable. Follow Kubernetes label key/value rules.
+
+    - name: annotations
+      proto_field: annotations
+      operator_field: metadata.annotations
+      ui_prop: metadata.annotations
+      type: map<string, string>
+      notes: Arbitrary string metadata. Not indexed.
+
+    - name: version
+      proto_field: version
+      operator_field: metadata.resourceVersion
+      ui_prop: metadata.version
+      type: int32
+      notes: Auto-incremented on every mutation. Used for optimistic concurrency.
+
+list_response:
+  description: All List endpoints return the same envelope.
+  typescript_interface: |
+    interface ListResponse<T> {
+      size: number;    // items in this page
+      total: number;   // total matching items (for pagination)
+      items: T[];
+    }
+  query_params:
+    offset: "0-based page offset (default: 0)"
+    limit: "max results (default: all; server may cap)"
+    filter: "CEL expression — `this` = object, `now` = current time"
+    order: "SQL-style: \"metadata.name asc\" or \"metadata.created_at desc\""
+
+condition:
+  description: >
+    All resources with complex lifecycle use conditions for detailed status.
+    Pattern mirrors Kubernetes metav1.Condition but field names differ between layers.
+  proto_message: <Resource>Condition (per-resource type)
+  operator_type: metav1.Condition
+  fields:
+    - name: type
+      proto_field: type (enum <Resource>ConditionType)
+      operator_field: type (string)
+      notes: SCREAMING_SNAKE in proto; PascalCase string in operator.
+
+    - name: status
+      proto_field: status (enum ConditionStatus — TRUE/FALSE/UNKNOWN)
+      operator_field: status (metav1.ConditionStatus — "True"/"False"/"Unknown")
+      notes: String casing differs between layers.
+
+    - name: last_transition_time
+      proto_field: last_transition_time (Timestamp)
+      operator_field: lastTransitionTime (metav1.Time)
+
+    - name: reason
+      proto_field: reason (optional string)
+      operator_field: reason (string, required in metav1.Condition)
+      notes: Optional in proto; required in Kubernetes conventions.
+
+    - name: message
+      proto_field: message (optional string)
+      operator_field: message (string)
+      notes: Human-readable detail for debugging.
+
+owner_reference_annotation:
+  key: "osac.openshift.io/owner-reference"
+  description: >
+    Used to establish resource hierarchy for garbage collection.
+    Subnets and SecurityGroups set this annotation to their parent VirtualNetwork ID.
+    This is the fulfillment-service annotation convention; the operator uses Kubernetes
+    OwnerReferences for the same purpose within the cluster.

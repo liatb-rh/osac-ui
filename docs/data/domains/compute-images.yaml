@@ -1,0 +1,222 @@
+# OSAC Domain Spec — Compute Images
+# Sources:
+#   enhancements/image-management/README.md (OSAC-979)
+
+domain: compute-images
+title: Compute Images (VM Image Registry)
+status: draft
+owner: ""
+
+overview: >
+  ComputeImage is a first-class OSAC resource for managing virtual machine images as
+  named catalog entries. Instead of users specifying arbitrary OCI image URLs when creating
+  a ComputeInstance, administrators register images and users select from the curated list.
+
+  First milestone: metadata-level image management with out-of-band image upload (no upload API).
+  Image registry/OCI push is handled externally; OSAC stores the OCI reference.
+
+  ComputeInstance spec changes: the `image` field (source_ref URL) is replaced by
+  `compute_image` (a ComputeImage resource ID). The fulfillment-service resolves the ID
+  to the actual source_ref before creating the operator CRD.
+
+  Two-tier visibility:
+  - Global: created by Provider Admin, visible to all tenants
+  - Tenant-scoped: created by Provider Admin or Tenant Admin, visible only to that tenant
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - ComputeImage
+      - ComputeImageSpec
+      - ComputeImageStatus
+      - ComputeImageDeprecation
+    api_base: /api/fulfillment/v1/compute_images
+    operations:
+      public:
+        - GET    /compute_images        # List (filtered by tenant visibility)
+        - GET    /compute_images/{id}   # Get
+        - POST   /compute_images        # Create (Provider Admin or Tenant Admin)
+        - PATCH  /compute_images/{id}   # Update (state, display_name, description)
+        - DELETE /compute_images/{id}   # Delete (if no active VMs reference it)
+      private:
+        - Full CRUD + Signal
+    proto_source: proto/public/osac/public/v1/compute_image_type.proto   # TODO: confirm filename
+
+  osac_operator:
+    notes: >
+      No CRD for ComputeImage. The operator receives the resolved source_ref in the
+      ComputeInstance CRD spec (as image.source_ref). The operator is unaware of ComputeImage IDs.
+
+  database:
+    table: compute_images
+    format: JSONB (serialized proto)
+    indexes: [tenant array, os_type, architecture, display_name LIKE]
+
+data_model:
+  spec_fields:
+    - name: display_name
+      type: string
+      mutable: true
+      notes: Human-readable name shown in image picker. Example: "RHEL 10 (amd64)".
+
+    - name: description
+      type: string
+      mutable: true
+      notes: Markdown description.
+
+    - name: source_ref
+      type: string (OCI image reference)
+      mutable: false
+      notes: >
+        IMMUTABLE. OCI image URL. Example: "quay.io/openshift-release-dev/rhel10:latest".
+        Image must be pushed to registry out-of-band before creating the ComputeImage resource.
+
+    - name: os_type
+      type: string enum
+      mutable: false
+      notes: "Examples: RHEL, FEDORA, UBUNTU, WINDOWS. TODO: confirm enum values."
+
+    - name: os_version
+      type: string
+      mutable: false
+      notes: "Example: '10.0', '9.4', '22.04'."
+
+    - name: architecture
+      type: string enum
+      mutable: false
+      notes: "Examples: amd64, arm64."
+
+    - name: min_requirements
+      type: object (optional)
+      mutable: false
+      notes: >
+        Minimum compute requirements for this image.
+        TODO: confirm structure (min_cores, min_memory_gib, min_boot_disk_gib?).
+
+    - name: tenant
+      type: string (optional)
+      mutable: false
+      notes: >
+        Scoping. Empty = global (visible to all tenants). Set = tenant-specific.
+        Provider Admin can create global images. Tenant Admin can create tenant-scoped images.
+
+  status_fields:
+    - name: state
+      type: ComputeImageState enum
+      mutable: true (via PATCH)
+      values:
+        - AVAILABLE: VM creation succeeds; visible in List by default
+        - DEPRECATED: VM creation succeeds + warning; visible in List by default
+        - OBSOLETE: VM creation rejected (409); hidden in List by default (show_obsolete filter)
+      notes: Bidirectional transitions (AVAILABLE ↔ DEPRECATED ↔ OBSOLETE).
+
+    - name: deprecation
+      type: ComputeImageDeprecation object
+      fields:
+        - replacement: string (optional — suggested replacement image ID)
+        - deprecated_at: Timestamp (auto-set when transitioning to DEPRECATED)
+        - obsolete_at: Timestamp (auto-set when transitioning to OBSOLETE)
+
+vm_creation_behavior:
+  AVAILABLE:
+    allowed: true
+    warning: false
+  DEPRECATED:
+    allowed: true
+    warning: true
+    warning_location: CreateComputeInstanceResponse.warnings
+  OBSOLETE:
+    allowed: false
+    error: "409 Conflict — image is obsolete"
+
+authorization:
+  create_global: Provider Admin only
+  create_tenant: Provider Admin + Tenant Admin (auto-scoped to caller's tenant)
+  list_get_global: all authenticated users
+  list_get_tenant: users with access to that tenant
+  update_delete_global: Provider Admin only
+  update_delete_tenant: Provider Admin + Tenant Admin (own tenant only)
+
+deletion_protection: >
+  DELETE rejected with 409 Conflict if active ComputeInstances reference this image.
+  Deletion allowed after all referencing VMs are deleted.
+
+list_filtering:
+  description: >
+    GET /compute_images supports CEL-like filter syntax.
+  supported_filters:
+    - os_type: exact match
+    - architecture: exact match
+    - display_name LIKE: partial match
+    - state IN [AVAILABLE, DEPRECATED, OBSOLETE]: include obsolete images
+
+resolution_at_api_boundary:
+  description: >
+    When creating a ComputeInstance:
+    1. Fulfillment-service reads compute_image ID
+    2. Validates ComputeImage exists and is AVAILABLE or DEPRECATED
+    3. Resolves ID → source_ref OCI reference
+    4. Writes source_ref to ComputeInstance CR image.source_ref field
+    5. Operator receives resolved OCI reference — unaware of ComputeImage IDs
+
+transition_from_old_api:
+  old_field: ComputeInstanceSpec.image (ComputeInstanceImage with source_type + source_ref)
+  new_field: ComputeInstanceSpec.compute_image (string — ComputeImage resource ID)
+  migration: >
+    The `image` field in ComputeInstanceSpec is REPLACED by `compute_image`.
+    Existing VMs provisioned with raw source_ref retain the resolved value in the operator CRD.
+    ComputeInstance templates referencing image.source_ref must be updated to use compute_image IDs.
+    This is a breaking API change (OSAC is pre-GA).
+
+workflows:
+  register_image: |
+    ## Register a VM Image (Provider Admin or Tenant Admin)
+
+    1. Admin pushes OCI image to registry (out-of-band)
+    2. Admin: POST /compute_images
+       {
+         display_name: "RHEL 10 (amd64)",
+         source_ref: "quay.io/rhel/rhel10:latest",
+         os_type: "RHEL", os_version: "10.0", architecture: "amd64"
+       }
+    3. fulfillment-service: stores ComputeImage; state defaults to AVAILABLE
+    4. Image immediately visible to eligible users in List
+
+  tenant_selects_image: |
+    ## Tenant Selects Image for VM Creation
+
+    1. Tenant: GET /compute_images?filter=os_type="RHEL" → sees list of available images
+    2. Tenant: POST /compute_instances {spec: {compute_image: "<image-id>", instance_type: "standard-4-16", ...}}
+    3. fulfillment-service: resolves image ID → source_ref, creates ComputeInstance CR
+    4. If DEPRECATED: response includes warnings
+
+  deprecate_image: |
+    ## Deprecate and Replace an Image
+
+    1. Admin registers new image (v2): POST /compute_images {display_name: "RHEL 10.1 (amd64)", ...}
+    2. Admin deprecates old image: PATCH /compute_images/{old-id} {state: DEPRECATED, replacement: "{new-id}"}
+    3. New VMs with old image: creation still succeeds + deprecation warning
+    4. After migration: PATCH {state: OBSOLETE}
+
+cross_layer_gaps:
+  - gap: >
+      ComputeInstanceSpec field change: `image` (ComputeInstanceImage with source_type/source_ref)
+      → `compute_image` (string ID). This is a breaking change to the Create VM form in the UI.
+      The UI must show an image picker (list of ComputeImage resources) instead of a free-text URL field.
+
+  - gap: >
+      ComputeInstanceTemplate also gains a compute_image field (replacing the inline image spec).
+      Templates must be migrated by providers.
+
+  - gap: >
+      The proto file for ComputeImage does not yet exist (OSAC-979 is in progress).
+      Proto message names and exact field structure need confirmation from implementation.
+
+open_questions:
+  - What is the proto filename: compute_image_type.proto?
+  - What is the exact ComputeImageSpec field structure (confirm os_type enum values, architecture enum)?
+  - Is min_requirements a structured object or freeform string?
+  - Should ComputeImage have a structured name field (DNS-1035) separate from display_name?
+  - How does the UI image picker display metadata (display_name, os_type, architecture, description)?
+  - Future: will there be an image upload API, image scanning, or cross-region replication?

@@ -1,0 +1,196 @@
+# OSAC Domain Spec — Subnets
+# Sources:
+#   proto/public/osac/public/v1/subnet_type.proto
+#   Projects/osac-backends/osac-operator/api/v1alpha1/subnet_types.go
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §10
+#   specs/osac/ui-flows/manage-networks.yaml (subnets are managed within the network flow)
+#   OSAC-1008 (Netris Backend — Internal Network API), OSAC-1029 (Networking API)
+
+domain: subnets
+title: Subnets
+status: draft
+owner: ""
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - Subnet
+      - SubnetSpec
+      - SubnetStatus
+    api_base: /api/fulfillment/v1/subnets
+    operations:
+      - GET    /subnets              # List (filter by virtual_network recommended)
+      - GET    /subnets/{id}         # Get
+      - POST   /subnets              # Create
+      - DELETE /subnets/{id}         # Delete (no Update — all spec fields immutable)
+    proto_source: proto/public/osac/public/v1/subnet_type.proto
+    notes: >
+      Currently 1:1 mapping (one subnet per VirtualNetwork) but schema supports
+      multiple subnets per VirtualNetwork in the future.
+
+  osac_operator:
+    crd_group: osac.redhat.com
+    crd_kind: Subnet    # TODO: confirm
+    crd_version: v1alpha1
+    managed_by: osac-operator
+    source: Projects/osac-backends/osac-operator/api/v1alpha1/subnet_types.go
+    notes: >
+      Subnet CRs are created in the hub cluster. The primary subnet of a ComputeInstance
+      determines which tenant namespace the VM CR is placed in (subnet-namespace annotation).
+
+  osac_aap:
+    playbooks:
+      - playbook_osac_create_subnet.yml
+      - playbook_osac_delete_subnet.yml
+    triggered_by: osac-operator
+
+  osac_ui:
+    ui_flow: specs/osac/ui-flows/manage-networks.yaml
+    notes: >
+      Subnets are typically created in the same flow as VirtualNetworks.
+      The UI must enforce: parent VirtualNetwork must be in READY state.
+      Subnet CIDR must be a subset of parent VirtualNetwork CIDR.
+
+data_model:
+  spec_fields:
+    - name: virtual_network
+      proto_field: spec.virtual_network
+      operator_field: ""    # TODO: confirm operator field (spec.virtualNetworkRef?)
+      ui_prop: spec.virtualNetwork
+      type: string (VirtualNetwork ID)
+      mutable: false
+      notes: >
+        REQUIRED and IMMUTABLE. Parent VirtualNetwork must be in READY state.
+        Establishes resource hierarchy — garbage collection removes Subnet when parent
+        VirtualNetwork is deleted (via osac.openshift.io/owner-reference annotation).
+
+    - name: ipv4_cidr
+      proto_field: spec.ipv4_cidr (optional)
+      operator_field: ""    # TODO
+      ui_prop: spec.ipv4Cidr
+      type: string (CIDR notation, e.g. "10.0.1.0/24")
+      mutable: false
+      notes: >
+        IMMUTABLE. Must be a subset of parent VirtualNetwork.spec.ipv4_cidr.
+        Must not overlap with other Subnets in the same VirtualNetwork.
+
+    - name: ipv6_cidr
+      proto_field: spec.ipv6_cidr (optional)
+      operator_field: ""    # TODO
+      ui_prop: spec.ipv6Cidr
+      type: string (CIDR notation, e.g. "2001:db8::/64")
+      mutable: false
+      notes: IMMUTABLE. Must be a subset of parent VirtualNetwork.spec.ipv6_cidr.
+
+  status_fields:
+    - name: state
+      proto_field: status.state (SubnetState enum)
+      operator_field: ""    # TODO
+      ui_prop: status.state
+      type: enum
+      values:
+        - SUBNET_STATE_UNSPECIFIED → unknown
+        - SUBNET_STATE_PENDING → being initialized
+        - SUBNET_STATE_READY → operational (ComputeInstances can attach)
+        - SUBNET_STATE_FAILED → error (terminal; requires recreation)
+        - SUBNET_STATE_DELETING → deletion in progress
+        - SUBNET_STATE_DELETE_FAILED → deletion failed (manual intervention may be needed)
+
+    - name: message
+      proto_field: status.message (optional string)
+      operator_field: ""    # TODO
+      ui_prop: status.message
+      type: string
+      notes: Error detail for FAILED/DELETE_FAILED states. Progress info for PENDING.
+
+lifecycle:
+  states:
+    - PENDING: Validating CIDRs, checking parent VNet, configuring routing
+    - READY: Operational — ComputeInstances can use this subnet
+    - FAILED: Terminal error — delete and recreate
+    - DELETING: Cleanup in progress
+    - DELETE_FAILED: Deletion failed — check status.message; manual intervention may be needed
+
+  delete_preconditions:
+    - No ComputeInstances may have this subnet as a network attachment
+
+  notes: >
+    Subnet READY is required before a ComputeInstance can use it in networkAttachments.
+    Subnets with attached ComputeInstances cannot be deleted.
+
+dependency_chain:
+  - "VirtualNetwork must be in READY state before Subnet can be created"
+  - "Subnet must be in READY state before ComputeInstance can reference it"
+  - "Subnet determines the tenant namespace for ComputeInstance CR placement in the operator"
+
+operator_role: >
+  The osac-operator uses the Subnet CR's namespace annotations to determine where to place
+  KubeVirt VirtualMachine CRs. The primary subnet (first networkAttachments entry) is the
+  placement subnet. This is why subnet references in ComputeInstance are immutable —
+  changing the subnet would require moving the VM to a different namespace.
+
+backend_mapping:
+  netris:
+    subnet_type: V-Net (VXLAN-backed)
+    description: >
+      When the parent VirtualNetwork uses network_class = "netris", each Subnet maps to
+      a Netris V-Net. V-Nets are VXLAN-backed Layer 2 segments within the Netris VPC/VRF.
+      The Netris operator backend creates the V-Net via the Netris controller API.
+    jira: OSAC-1008 (Internal Network API work area)
+    notes: >
+      CIDR allocation for Netris V-Nets is managed by the Netris IPAM controller, not by
+      OSAC directly. The CIDR set in spec.ipv4_cidr / spec.ipv6_cidr must match
+      what Netris allocates for the V-Net.
+
+  udn-net:
+    subnet_type: OVN-Kubernetes Subnet
+    description: Subnets map to OVN-K secondary network subnets within the UDN VRF.
+
+workflows:
+  create: |
+    ## Create Subnet Workflow
+
+    Pre-condition: Parent VirtualNetwork must be in READY state.
+
+    1. **osac-ui** — User provides CIDR(s) and selects parent VirtualNetwork
+    2. **fulfillment-service** — POST /subnets: validates CIDR subset, no overlaps, parent READY
+    3. **osac-operator** — Subnet CR reconciler:
+       - Sets subnet-namespace annotation (determines VM placement namespace)
+       - Calls playbook_osac_create_subnet.yml
+    4. **osac-aap** — Playbook configures subnet routing in network backend
+    5. **osac-operator** — Updates Subnet status: PENDING → READY
+    6. **fulfillment-service** — Subnet available for ComputeInstance networkAttachments
+
+  delete: |
+    ## Delete Subnet Workflow
+
+    Pre-condition: No ComputeInstances may reference this subnet.
+
+    1. **osac-ui** — User confirms deletion (UI should warn if ComputeInstances are attached)
+    2. **fulfillment-service** — DELETE /subnets/{id}: validates no attached ComputeInstances
+    3. **osac-operator** — Finalizer calls playbook_osac_delete_subnet.yml
+    4. **osac-aap** — Removes subnet routing configuration from network backend
+    5. **fulfillment-service** — Resource removed (or transitions to DELETE_FAILED if cleanup fails)
+
+cross_layer_gaps:
+  - gap: >
+      Subnet operator CRD types need to be read to confirm spec/status field names.
+      Specifically: how does the operator express the parent VirtualNetwork reference
+      (annotation vs. spec field vs. ownerReference)?
+
+  - gap: >
+      The subnet-namespace annotation mechanism (operator uses this to determine VM placement)
+      is a critical architectural constraint not currently documented in the UI specs.
+      Frontend agents must understand that subnet selection during ComputeInstance creation
+      implicitly determines the infrastructure placement region/cluster.
+
+open_questions:
+  - What is the exact subnet-namespace annotation key and how is its value computed?
+  - Does one subnet map to one Kubernetes namespace, or can multiple subnets share a namespace?
+  - What is the Subnet CRD spec in the operator (subnet_types.go)?
+  - Are subnet CIDR allocations globally tracked or per-VirtualNetwork?
+  - What does the DELETE_FAILED state require for resolution?
+  - For Netris: does the OSAC CIDR field drive Netris IPAM, or does Netris IPAM assign the CIDR and OSAC reflects it?
+  - For Netris: is the V-Net VXLAN ID assigned by Netris automatically or configurable?
+  - For Netris: how does subnet creation interact with the Netris installer requirements (OSAC-1008 work area 3)?

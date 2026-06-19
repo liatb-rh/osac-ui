@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { BuildingIcon } from '@patternfly/react-icons/dist/esm/icons/building-icon'
 import { CloudIcon } from '@patternfly/react-icons/dist/esm/icons/cloud-icon'
 import { CogIcon } from '@patternfly/react-icons/dist/esm/icons/cog-icon'
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon'
@@ -7,6 +8,7 @@ import { ListIcon } from '@patternfly/react-icons/dist/esm/icons/list-icon'
 import { NetworkIcon } from '@patternfly/react-icons/dist/esm/icons/network-icon'
 import { OutlinedClockIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-clock-icon'
 import { ServerIcon } from '@patternfly/react-icons/dist/esm/icons/server-icon'
+import { UserIcon } from '@patternfly/react-icons/dist/esm/icons/user-icon'
 import type { OsacRole } from '@osac/api-contracts'
 
 // ---------------------------------------------------------------------------
@@ -172,6 +174,25 @@ const ALL_NAV: NavSection[] = [
         path: '/provider/baremetal',
         icon: ServerIcon,
         roles: ['providerAdmin'],
+      },
+    ],
+  },
+  {
+    groupLabel: 'Administration',
+    items: [
+      {
+        id: 'organizations',
+        label: 'Organizations',
+        path: '/provider/organizations',
+        icon: BuildingIcon,
+        roles: ['providerAdmin'],
+      },
+      {
+        id: 'admin-users',
+        label: 'Users & Access',
+        path: '/admin/users',
+        icon: UserIcon,
+        roles: ['tenantAdmin'],
       },
     ],
   },

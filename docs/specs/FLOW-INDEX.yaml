@@ -94,6 +94,12 @@ statechart_specs:
       file: statecharts/recent-activities.statechart.yaml
     - id: vm-console-demo
       file: statecharts/vm-console-demo.statechart.yaml
+    - id: manage-organizations
+      file: ui-flows/manage-organizations.yaml
+      notes: No separate statechart file — states are inline in the flow spec.
+    - id: manage-tenant-users
+      file: ui-flows/manage-tenant-users.yaml
+      notes: No separate statechart file — states are inline in the flow spec.
 
 # ---------------------------------------------------------------------------
 # Flow inventory
@@ -520,6 +526,43 @@ flows:
       deployment_variants: [standalone]
       deferred:
         - Create / edit network classes (read-only in current code)
+
+  - id: manage-organizations
+    file: ui-flows/manage-organizations.yaml
+    primary_routes:
+      - /provider/organizations
+      - /provider/tenants/:id
+    roles: [providerAdmin]
+    summary: >-
+      Provider admin Organizations & Authentication page — lists all tenant Organizations
+      with their Keycloak realm, federated IdP (OIDC/LDAP/SAML/AD), IdP health status,
+      user count, and break-glass credential count.  Org name is a CustomTableLink that
+      navigates to the tenant detail page (/provider/tenants/:id).  Tabs: Organizations
+      table · Sovereign Gateway (Keycloak + Authorino info) · IdP health probes.
+      Tenant detail page includes Overview/Quota/Clusters/VMs/Storage/Agents/Audit tabs
+      plus Identity Provider, Authn Capabilities, and Break-glass tabs (from osac.iam.v1).
+    implementation_status:
+      as_of: "2026-06-19"
+      code_refs:
+        - apps/app-frontend/src/pages/administration/OrganizationsPage.tsx
+        - apps/app-frontend/src/pages/administration/TenantDetailPage.tsx
+        - apps/app-frontend/src/mocks/organizations-store.ts
+      deployment_variants: [standalone]
+
+  - id: manage-tenant-users
+    file: ui-flows/manage-tenant-users.yaml
+    primary_routes:
+      - /admin/users
+    roles: [tenantAdmin]
+    summary: >-
+      Tenant admin Users & Access page — lists users scoped to the current tenant with
+      their name, email, RBAC role (tenantAdmin/tenantUser), and MFA enrollment status.
+      Invite user modal sets User.spec + RoleBinding.spec (role + groups).
+    implementation_status:
+      as_of: "2026-06-19"
+      code_refs:
+        - apps/app-frontend/src/pages/administration/UsersPage.tsx
+      deployment_variants: [standalone]
 
 # ---------------------------------------------------------------------------
 # Deferred / placeholder flows

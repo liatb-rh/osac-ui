@@ -1,6 +1,6 @@
 /**
- * flow: tenant-administration
- * step: tad_vn_detail
+ * flow: manage-networks
+ * step: net_vn_detail_page
  * route: /networks/virtual-networks/:id
  */
 import { useState } from 'react'
@@ -15,101 +15,18 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
-  Label,
   PageBreadcrumb,
   PageSection,
-  Spinner,
   Tab,
   TabTitleText,
   Tabs,
 } from '@patternfly/react-core'
 import { ActionsColumn, Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table'
 import { PageHeader } from '@osac/ui-components'
-import { useAllSubnets, useSecurityGroups, useVirtualNetworks } from '../../hooks/useNetworking'
-
-function VnStateLabel({ state }: { state: string }) {
-  if (state === 'VIRTUAL_NETWORK_STATE_READY')
-    return (
-      <Label color="green" isCompact>
-        Ready
-      </Label>
-    )
-  if (state === 'VIRTUAL_NETWORK_STATE_PENDING')
-    return (
-      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
-        Pending
-      </Label>
-    )
-  if (state === 'VIRTUAL_NETWORK_STATE_FAILED')
-    return (
-      <Label color="red" isCompact>
-        Failed
-      </Label>
-    )
-  return (
-    <Label color="grey" isCompact>
-      {state}
-    </Label>
-  )
-}
-
-function SubnetStateLabel({ state }: { state: string }) {
-  if (state === 'SUBNET_STATE_READY')
-    return (
-      <Label color="green" isCompact>
-        Ready
-      </Label>
-    )
-  if (state === 'SUBNET_STATE_PENDING')
-    return (
-      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
-        Pending
-      </Label>
-    )
-  if (state === 'SUBNET_STATE_FAILED')
-    return (
-      <Label color="red" isCompact>
-        Failed
-      </Label>
-    )
-  if (state === 'SUBNET_STATE_DELETING')
-    return (
-      <Label color="orange" isCompact>
-        Deleting
-      </Label>
-    )
-  return (
-    <Label color="grey" isCompact>
-      {state}
-    </Label>
-  )
-}
-
-function SgStateLabel({ state }: { state: string }) {
-  if (state === 'SECURITY_GROUP_STATE_READY')
-    return (
-      <Label color="green" isCompact>
-        Ready
-      </Label>
-    )
-  if (state === 'SECURITY_GROUP_STATE_PENDING')
-    return (
-      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
-        Pending
-      </Label>
-    )
-  if (state === 'SECURITY_GROUP_STATE_FAILED')
-    return (
-      <Label color="red" isCompact>
-        Failed
-      </Label>
-    )
-  return (
-    <Label color="grey" isCompact>
-      {state}
-    </Label>
-  )
-}
+import { useAllSubnets, useSecurityGroups, useVirtualNetworks } from '../../../../hooks/useNetworking'
+import { VnStateLabel } from './VnStateLabel'
+import { SubnetStateLabel } from '../subnets/SubnetStateLabel'
+import { SgStateLabel } from '../security-groups/SgStateLabel'
 
 export function VirtualNetworkDetailPage() {
   const { id } = useParams<{ id: string }>()

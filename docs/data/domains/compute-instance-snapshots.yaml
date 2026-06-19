@@ -1,0 +1,260 @@
+# OSAC Domain Spec — Compute Instance Snapshots
+# Sources:
+#   enhancements/vm-snapshots/README.md (OSAC-55)
+
+domain: compute-instance-snapshots
+title: Compute Instance Snapshots
+status: draft
+owner: ""
+
+overview: >
+  ComputeInstanceSnapshot enables tenants to create point-in-time snapshots of their VMs
+  and restore from them. Managed via the OSAC fulfillment-service API; the osac-operator
+  orchestrates KubeVirt VirtualMachineSnapshot / VirtualMachineRestore on the workload cluster.
+
+  Snapshot operations:
+  - Create: point-in-time capture (online or offline)
+  - List / Get: view snapshot metadata and status
+  - Delete: remove a snapshot
+  - Restore: declarative signal on ComputeInstance (not a snapshot operation)
+
+  Restore is declared on the parent ComputeInstance via two fields:
+    spec.restore_from_snapshot + spec.restore_requested_at (timestamp signal pattern, same as restart).
+  Restore requires VM to be stopped (run_strategy = Halted).
+
+  Auto cascade-delete: all snapshots are deleted when the parent ComputeInstance is deleted.
+
+infrastructure_requirement: >
+  KubeVirt snapshot support + CSI-compatible storage backend with VolumeSnapshot support
+  on the workload cluster. The osac-operator checks for VirtualMachineSnapshot CRD at startup;
+  if not present, snapshot creation returns Failed with a clear error message.
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - ComputeInstanceSnapshot
+      - ComputeInstanceSnapshotSpec
+      - ComputeInstanceSnapshotStatus
+      - ComputeInstanceSnapshotCondition
+    api_base: /api/fulfillment/v1/compute_instance_snapshots
+    operations:
+      public:
+        - POST   /compute_instance_snapshots              # Create
+        - GET    /compute_instance_snapshots              # List (filter by compute_instance ID)
+        - GET    /compute_instance_snapshots/{id}         # Get
+        - DELETE /compute_instance_snapshots/{id}         # Delete
+        # No Update — snapshots are immutable after creation
+      private:
+        - mirrors public + Update + Signal
+    notes: >
+      Restore is NOT a snapshot endpoint — it is a PATCH to the parent ComputeInstance.
+      See compute-instances.yaml spec_fields for restore_from_snapshot and restore_requested_at.
+
+  osac_operator:
+    crd_kind: ComputeInstanceSnapshot
+    new_controllers:
+      - computeinstancesnapshot_controller
+      - computeinstancesnapshot_feedback_controller
+    modified_controllers:
+      - computeinstance_controller (add restore handling + cascade deletion)
+    finalizers:
+      - osac.openshift.io/computeinstancesnapshot-finalizer
+      - osac.openshift.io/computeinstancesnapshot-feedback-finalizer
+    kubevirt_primitives:
+      create: VirtualMachineSnapshot CR on workload cluster
+      restore: VirtualMachineRestore CR on workload cluster
+
+  database:
+    table: compute_instance_snapshots
+    indexes: [compute_instance_id]
+
+data_model:
+  spec_fields:
+    - name: compute_instance
+      proto_field: spec.compute_instance    # TODO: confirm field name
+      type: string (ComputeInstance ID)
+      mutable: false
+      notes: Parent ComputeInstance reference. Immutable. Required on create.
+
+    - name: description
+      proto_field: spec.description    # TODO: confirm
+      type: string (optional)
+      mutable: false
+      notes: Human-readable description of the snapshot purpose.
+
+  status_fields:
+    - name: phase
+      proto_field: status.phase    # TODO: confirm — phase vs state naming
+      type: enum
+      values:
+        - Creating: KubeVirt VirtualMachineSnapshot being created
+        - Ready: Snapshot complete and available for restore
+        - Failed: Snapshot failed; see conditions for details
+        - Deleting: KubeVirt VirtualMachineSnapshot being deleted
+
+    - name: conditions
+      condition_types:
+        - COMPUTE_INSTANCE_SNAPSHOT_CONDITION_TYPE_READY
+          meaning: Snapshot data captured and restorable
+
+    - name: virtual_machine_snapshot_ref
+      proto_field: status.virtualMachineSnapshotRef    # operator-only
+      notes: Reference to the KubeVirt VirtualMachineSnapshot CR. Not exposed in public API.
+
+    - name: creation_time
+      type: Timestamp
+      notes: When the snapshot was completed (Ready state reached).
+
+    - name: size_bytes
+      type: int64
+      notes: Size of the snapshot data. Populated when Ready.
+
+    - name: online
+      type: bool
+      notes: >
+        True if snapshot was taken while the VM was running (online snapshot).
+        False if VM was stopped (offline snapshot). Guest agent quiescing for online
+        snapshots requires QEMU guest agent installed in the VM.
+
+compute_instance_spec_additions:
+  description: >
+    Two new fields are added to ComputeInstanceSpec for restore (see compute-instances.yaml).
+  fields:
+    - name: restore_from_snapshot
+      proto_field: spec.restore_from_snapshot (optional string)
+      type: string (ComputeInstanceSnapshot ID)
+      mutable: true
+      notes: >
+        Set to a Ready snapshot ID to request restore. Used together with restore_requested_at.
+
+    - name: restore_requested_at
+      proto_field: spec.restore_requested_at (optional Timestamp)
+      type: ISO-8601 timestamp
+      mutable: true
+      notes: >
+        Set to current timestamp to signal restore intent. Same signal pattern as restart_requested_at.
+        Controller restores if restore_requested_at > status.last_restored_at.
+        VM must be in Stopped state before controller will execute restore.
+
+compute_instance_status_additions:
+  - name: last_restored_at
+    proto_field: status.last_restored_at (optional Timestamp)
+    notes: Set by controller when restore completes. Used to detect new restore signals.
+
+compute_instance_new_conditions:
+  - type: RESTORE_IN_PROGRESS
+    meaning: KubeVirt VirtualMachineRestore CR created; restore in progress
+    reasons:
+      - RestoreRequested: restore_requested_at signal detected
+      - RestoreInProgress: VirtualMachineRestore executing
+
+  - type: RESTORE_FAILED
+    meaning: Restore failed; see condition message for details
+    common_reasons:
+      - VM not stopped (run_strategy must be Halted before restore)
+      - Snapshot not in Ready phase
+      - Wrong ComputeInstance reference in snapshot
+      - KubeVirt VirtualMachineRestore error
+
+snapshot_types:
+  online:
+    description: Snapshot taken while VM is running
+    requirement: QEMU guest agent installed in VM for filesystem quiescing
+    risk: Data inconsistency without guest agent; documented and surfaced in status.online field
+  offline:
+    description: Snapshot taken while VM is stopped (run_strategy = Halted)
+    requirement: VM must be in Stopped phase
+    consistency: Guaranteed consistent snapshot
+
+tenant_isolation:
+  mechanism: osac.openshift.io/tenant annotation on ComputeInstanceSnapshot CR (inherited from parent)
+  enforcement: Snapshot filtered by (computeInstanceRef AND tenant) on listing
+
+cascade_deletion:
+  trigger: ComputeInstance deletion
+  behavior: >
+    ComputeInstance finalizer not removed until all child ComputeInstanceSnapshot CRs
+    are fully deleted (KubeVirt VMS deleted + finalizers cleared).
+  scope: Filtered by computeInstanceRef AND osac.openshift.io/tenant annotation.
+
+workflows:
+  create_snapshot: |
+    ## Create Snapshot Workflow
+
+    1. **osac-ui** — User clicks "Create Snapshot", provides optional description
+    2. **fulfillment-service** — POST /compute_instance_snapshots:
+       Creates ComputeInstanceSnapshot resource; sets phase=Creating
+    3. **osac-operator** (computeinstancesnapshot_controller) — Detects new CR:
+       - Adds finalizer
+       - Looks up parent ComputeInstance → finds VirtualMachineReference (namespace + VM name)
+       - Creates KubeVirt VirtualMachineSnapshot on workload cluster
+    4. **KubeVirt** — Takes snapshot (online: with optional QEMU quiescing; offline: direct)
+    5. **osac-operator** — Watches KubeVirt VMS status:
+       - Maps VMS status → ComputeInstanceSnapshot phase/conditions
+       - Sets status.online, status.size_bytes, status.creation_time when Ready
+    6. **osac-operator** (computeinstancesnapshot_feedback_controller) — Syncs status to fulfillment-service
+    7. **fulfillment-service** — Snapshot in Ready state; visible to tenant
+
+  restore_snapshot: |
+    ## Restore from Snapshot Workflow
+
+    Pre-condition: VM must be stopped (run_strategy = Halted, phase = Stopped).
+
+    1. **osac-ui** — User selects a Ready snapshot, clicks "Restore"
+       Warning: this overwrites all VM disk data. Confirmation required.
+    2. **osac-ui** — PATCH /compute_instances/{id}:
+       {spec: {restore_from_snapshot: "<snapshot-id>", restore_requested_at: "<now>"}}
+    3. **fulfillment-service** — Validates snapshot is Ready, belongs to this ComputeInstance
+    4. **osac-operator** (computeinstance_controller) — Detects restore_requested_at > last_restored_at:
+       a. Verifies VM is in Stopped phase
+       b. Creates KubeVirt VirtualMachineRestore CR on workload cluster
+       c. Sets RESTORE_IN_PROGRESS condition = True
+    5. **KubeVirt** — Restores all VM disks from snapshot
+    6. **osac-operator** — Watches VirtualMachineRestore status:
+       - On success: sets last_restored_at = restore_requested_at; clears RESTORE_IN_PROGRESS
+       - On failure: sets RESTORE_FAILED condition = True
+    7. **Tenant** — Starts VM: PATCH run_strategy = Always
+       (must be done manually after restore; VM is not auto-started)
+
+  delete_snapshot: |
+    ## Delete Snapshot Workflow
+
+    1. **osac-ui** — User confirms deletion
+    2. **fulfillment-service** — DELETE /compute_instance_snapshots/{id}
+    3. **osac-operator** — Finalizer deletes KubeVirt VirtualMachineSnapshot on workload cluster
+    4. **osac-operator** — Removes finalizer; CR garbage-collected
+    5. **fulfillment-service** — Snapshot removed from API
+
+  cascade_on_vm_delete: |
+    ## Cascade Snapshot Deletion on VM Delete
+
+    1. **fulfillment-service** — DELETE /compute_instances/{id}
+    2. **osac-operator** (computeinstance_controller):
+       - Adds finalizer to ComputeInstance if not present
+       - Lists all ComputeInstanceSnapshot CRs with matching computeInstanceRef + tenant annotation
+       - Deletes all child snapshots
+    3. **osac-operator** — Waits for all snapshot finalizers to clear
+    4. **osac-operator** — Removes ComputeInstance finalizer; VM deleted
+
+cross_layer_gaps:
+  - gap: >
+      ComputeInstanceSnapshot CRD proto fields need confirmation once implemented.
+      Phase (phase vs state naming) and exact condition type names need verification.
+
+  - gap: >
+      Restore requires VM to be stopped (hard constraint from KubeVirt).
+      The UI must enforce this — show an informational warning and disable restore
+      button unless phase = Stopped. The server also validates this.
+
+  - gap: >
+      Online vs offline snapshot distinction affects consistency guarantees.
+      The UI should surface the status.online flag and explain the implications
+      (QEMU guest agent recommended for online snapshots).
+
+open_questions:
+  - Is the phase field named `phase` or `state` in the proto?
+  - What is the maximum number of snapshots per ComputeInstance (hard limit vs configurable)?
+  - Should status include a `quiesced` boolean separate from `online` (QEMU quiescing vs just online)?
+  - How are snapshot storage costs surfaced to tenants (no quota in initial implementation)?
+  - Will clone-from-snapshot (new ComputeInstance) be added in a future milestone?

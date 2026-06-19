@@ -14,3 +14,4 @@ export { ProviderPublicIPPoolDetailPage } from './network/public-ip/ProviderPubl
 export { GlobalTemplateDetailPage } from './network/templates/GlobalTemplateDetailPage'
 export { BaremetalInventoryPage } from './BaremetalInventoryPage'
 export { BaremetalHostDetailPage } from './BaremetalHostDetailPage'
+export { NetworksPage, VirtualNetworkDetailPage, SubnetDetailPage } from './network'

@@ -1,0 +1,289 @@
+# OSAC Domain Spec — Clusters (CaaS / Hosted OpenShift)
+# Sources:
+#   proto/public/osac/public/v1/cluster_type.proto
+#   Projects/osac-backends/osac-operator/api/v1alpha1/clusterorder_types.go
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §4
+#   specs/osac/ui-flows/manage-clusters.yaml
+
+domain: clusters
+title: Clusters (CaaS — Hosted OpenShift)
+status: draft
+owner: ""
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - Cluster
+      - ClusterSpec
+      - ClusterStatus
+      - ClusterCondition
+      - ClusterNodeSet
+      - ClusterNetwork
+    api_base: /api/fulfillment/v1/clusters
+    operations:
+      - GET    /clusters              # List
+      - GET    /clusters/{id}         # Get
+      - POST   /clusters              # Create
+      - PUT    /clusters/{id}         # Update (node_sets size is mutable)
+      - DELETE /clusters/{id}         # Delete
+    proto_source: proto/public/osac/public/v1/cluster_type.proto
+    private_api: proto/private/osac/private/v1/clusters_service.proto
+
+  osac_operator:
+    crd_group: osac.redhat.com
+    crd_kind: ClusterOrder
+    crd_version: v1alpha1
+    managed_by: osac-operator
+    source: Projects/osac-backends/osac-operator/api/v1alpha1/clusterorder_types.go
+    notes: >
+      The operator CRD is named ClusterOrder (not Cluster). It tracks the lifecycle of
+      a hosted OpenShift cluster provisioning request. The operator integrates with
+      HyperShift or ACM for actual cluster lifecycle management.
+
+  osac_aap:
+    playbooks:
+      - playbook_osac_create_hosted_cluster.yml
+      - playbook_osac_create_hosted_cluster_post_install.yml
+      - playbook_osac_delete_hosted_cluster.yml
+      - playbook_osac_report_hosted_cluster_status.yml
+    triggered_by: osac-operator
+    notes: >
+      The operator reconciler calls AAP to provision and manage hosted cluster lifecycle.
+      Post-install playbook handles day-2 configuration after cluster is available.
+
+  osac_ui:
+    ui_flow: specs/osac/ui-flows/manage-clusters.yaml
+    statechart: specs/osac/statecharts/manage-clusters.statechart.yaml
+    typescript_types: []    # TODO
+    notes: >
+      The UI exposes cluster creation via template/catalog-item selection and
+      optional node set configuration. The cluster console URL and API URL
+      are surfaced in the detail view when the cluster is READY.
+
+data_model:
+  spec_fields:
+    - name: template
+      proto_field: spec.template
+      operator_field: ""    # TODO: confirm ClusterOrder field
+      ui_prop: spec.template
+      type: string (ID reference)
+      mutable: false
+      notes: Mutually exclusive with catalog_item. Immutable after create.
+
+    - name: catalog_item
+      proto_field: spec.catalog_item
+      operator_field: ""    # TODO
+      ui_prop: spec.catalogItem
+      type: string (ID reference)
+      mutable: false
+
+    - name: template_parameters
+      proto_field: spec.template_parameters
+      operator_field: ""    # TODO
+      type: map<string, google.protobuf.Any>
+      mutable: false
+      notes: Same ProtoJSON serialization pattern as ComputeInstance.
+
+    - name: node_sets
+      proto_field: spec.node_sets (map<string, ClusterNodeSet>)
+      operator_field: ""    # TODO: confirm field in ClusterOrder
+      ui_prop: spec.nodeSets
+      type: "map of {host_type: string, size: int32}"
+      mutable: partial
+      notes: >
+        MUTABLE: `size` can be updated (scale up/down). `host_type` is immutable.
+        New node sets can be added. Existing sets can be removed (min 1 must remain).
+        UI should show current vs. desired node counts with scale controls.
+
+    - name: pull_secret
+      proto_field: spec.pull_secret (optional string, write-only)
+      operator_field: ""    # TODO — likely stored as Secret
+      ui_prop: spec.pullSecret
+      type: string (JSON pull secret)
+      mutable: false
+      notes: >
+        CONFIRMED (enhancements/caas/README.md MGMT-23417).
+        Write-only — redacted in GET responses. Immutable after create.
+        Previously passed as an opaque template_parameter; now an explicit typed field.
+        Default: provider's default pull secret if not provided.
+
+    - name: ssh_public_key
+      proto_field: spec.ssh_public_key (optional string)
+      operator_field: ""    # TODO
+      ui_prop: spec.sshPublicKey
+      type: string (SSH public key)
+      mutable: false
+      notes: >
+        CONFIRMED (enhancements/caas/README.md MGMT-23417).
+        Installed into authorized_keys on worker nodes. Immutable after create.
+        Previously passed as opaque template_parameter; now explicit typed field.
+        Default: provider's default SSH key if not provided.
+
+    - name: release_image
+      proto_field: spec.release_image (optional string)
+      operator_field: ""    # TODO
+      ui_prop: spec.releaseImage
+      type: string (OCI image URL)
+      mutable: false
+      notes: >
+        CONFIRMED (enhancements/caas/README.md MGMT-23417).
+        Controls OpenShift version. Example: quay.io/openshift-release-dev/ocp-release:4.17.0-multi.
+        Previously hardcoded in Ansible role; now tenant-configurable as explicit field.
+        Default: template's default release image if not provided.
+
+    - name: network
+      proto_field: spec.network (optional ClusterNetwork)
+      operator_field: ""    # TODO
+      ui_prop: spec.network
+      type: "{pod_cidr: string, service_cidr: string}"
+      mutable: false
+      notes: >
+        CONFIRMED (enhancements/caas/README.md MGMT-23417).
+        Defaults: pod_cidr=10.128.0.0/14, service_cidr=172.30.0.0/16.
+        Previously hardcoded in Ansible role; now tenant-configurable.
+        Immutable after create.
+
+    - name: network_attachments
+      proto_field: spec.network_attachments (repeated ClusterNetworkAttachment)    # unified-networking OSAC-1029
+      operator_field: ""    # TODO
+      ui_prop: spec.networkAttachments
+      type: "array of {subnet: string, security_groups: []string, node_set: string (optional)}"
+      mutable: false
+      notes: >
+        ADDED by unified-networking (OSAC-1029). Enables CaaS to use the OSAC Networking API.
+        Previously CaaS managed networking entirely through fabric-specific Ansible roles.
+        node_set field (optional) allows placing different node sets on different subnets.
+        All subnets must be in the same VirtualNetwork.
+
+  status_fields:
+    - name: state
+      proto_field: status.state (ClusterState enum)
+      operator_field: ""    # TODO: confirm ClusterOrder phase/state field
+      ui_prop: status.state
+      type: enum
+      values:
+        - CLUSTER_STATE_UNSPECIFIED → unknown
+        - CLUSTER_STATE_PROGRESSING → provisioning in progress
+        - CLUSTER_STATE_READY → cluster fully available
+        - CLUSTER_STATE_FAILED → cluster unusable
+
+    - name: conditions
+      proto_field: status.conditions (repeated ClusterCondition)
+      operator_field: ""    # TODO
+      condition_types:
+        - type: CLUSTER_CONDITION_TYPE_PROGRESSING — cluster not yet ready
+        - type: CLUSTER_CONDITION_TYPE_READY — cluster available (api_url populated)
+        - type: CLUSTER_CONDITION_TYPE_FAILED — cluster unusable
+        - type: CLUSTER_CONDITION_TYPE_DEGRADED — partial node set degradation
+
+    - name: api_url
+      proto_field: status.api_url
+      operator_field: ""    # TODO
+      ui_prop: status.apiUrl
+      type: string (URL)
+      notes: >
+        Populated when state=READY. Used for kubeconfig download and cluster access.
+        Unified-networking (OSAC-1029) also exposes this as status.api_endpoint for
+        ExternalIPAttachment DNAT targeting (target_endpoint=API).
+
+    - name: api_endpoint
+      proto_field: status.api_endpoint    # unified-networking OSAC-1029
+      operator_field: ""    # TODO
+      ui_prop: status.apiEndpoint
+      type: string (internal VIP address set by CaaS template)
+      notes: >
+        Set by CaaS Ansible template after MetalLB VIP provisioning.
+        Used as the DNAT backend when ExternalIPAttachment targets a cluster with endpoint=API.
+        May be the same as api_url or a separate internal IP.
+
+    - name: ingress_endpoint
+      proto_field: status.ingress_endpoint    # unified-networking OSAC-1029
+      operator_field: ""    # TODO
+      ui_prop: status.ingressEndpoint
+      type: string (internal VIP address set by CaaS template)
+      notes: >
+        Set by CaaS Ansible template for the ingress/wildcard VIP.
+        Used as the DNAT backend when ExternalIPAttachment targets a cluster with endpoint=INGRESS.
+
+    - name: console_url
+      proto_field: status.console_url
+      operator_field: ""    # TODO
+      ui_prop: status.consoleUrl
+      type: string (URL)
+      notes: Populated when state=READY and console is enabled.
+
+    - name: node_sets (status)
+      proto_field: status.node_sets (map<string, ClusterNodeSet>)
+      operator_field: ""    # TODO
+      ui_prop: status.nodeSets
+      type: "map of {host_type: string, size: int32}"
+      notes: >
+        Current node set state. Differs from spec.node_sets when a scale change
+        is in progress or failed. UI should show diff between spec and status node_sets
+        to indicate pending changes.
+
+lifecycle:
+  states:
+    - name: Progressing
+      description: Cluster is being provisioned; not yet available
+    - name: Ready
+      description: Cluster is fully available; api_url and console_url populated
+    - name: Failed
+      description: Cluster provisioning failed; check conditions
+    - name: Degraded
+      description: Cluster is running but one or more node sets are degraded
+
+workflows:
+  create: |
+    ## Create Cluster Workflow
+
+    1. **osac-ui** — User selects template/catalog item, configures node sets, network, SSH key, release image
+    2. **fulfillment-service** — POST /clusters: validates, creates ClusterOrder CR in operator
+    3. **osac-operator** — ClusterOrder reconciler:
+       - Calls playbook_osac_create_hosted_cluster.yml
+    4. **osac-aap** — Playbook provisions HyperShift HostedCluster:
+       - Creates HostedCluster CR (ACM/HyperShift)
+       - Monitors until control plane is available
+       - Calls playbook_osac_create_hosted_cluster_post_install.yml for day-2 config
+    5. **osac-operator** — Watches HyperShift/ACM for cluster status:
+       - Calls playbook_osac_report_hosted_cluster_status.yml periodically
+       - Updates ClusterOrder status → api_url, console_url, node_set sizes
+    6. **fulfillment-service** — Maps ClusterOrder → Cluster resource for API consumers
+
+  scale: |
+    ## Scale Node Set Workflow
+
+    1. **osac-ui** — User changes node set size via +/- controls
+    2. **fulfillment-service** — PUT /clusters/{id}: updates spec.node_sets[key].size
+    3. **osac-operator** — Reconciler detects node_sets diff:
+       - Calls scale-appropriate AAP playbook (TODO: identify exact playbook)
+    4. **osac-aap** — Adjusts HyperShift NodePool size
+    5. **fulfillment-service** — Status reflects actual vs. desired size until reconciled
+
+  delete: |
+    ## Delete Cluster Workflow
+
+    1. **osac-ui** — User confirms deletion (warning: all cluster workloads will be lost)
+    2. **fulfillment-service** — DELETE /clusters/{id}: sets deletion_timestamp
+    3. **osac-operator** — ClusterOrder finalizer calls playbook_osac_delete_hosted_cluster.yml
+    4. **osac-aap** — Deletes HyperShift HostedCluster and all associated resources
+    5. **fulfillment-service** — Resource removed after cleanup
+
+cross_layer_gaps:
+  - gap: >
+      The operator CRD is ClusterOrder (not Cluster). The public API resource is named Cluster.
+      The fulfillment-service maps between these names. Agents working on the operator
+      should use ClusterOrder; agents working on the API/UI should use Cluster.
+
+  - gap: >
+      ClusterOrder spec fields need verification against the actual Go type in
+      osac-operator/api/v1alpha1/clusterorder_types.go (not yet fully populated here).
+
+open_questions:
+  - What HyperShift/ACM CRDs are created by the AAP playbook (HostedCluster, NodePool, etc.)?
+  - How does the operator poll cluster readiness — webhook, watch, or periodic reconcile?
+  - Is there a break-glass / admin kubeconfig endpoint (separate from console_url)?
+  - What does playbook_osac_report_hosted_cluster_status.yml do exactly?
+  - Are node set host_type values the same IDs as HostType resources in the fulfillment-service?
+  - What is the full field list for ClusterOrder spec in the operator CRD?

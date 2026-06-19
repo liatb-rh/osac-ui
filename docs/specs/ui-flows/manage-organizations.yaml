@@ -1,0 +1,123 @@
+# ui-flow: manage-organizations
+# Role: providerAdmin
+# Routes: /provider/organizations, /provider/tenants/:id
+# Generated: 2026-06-19
+
+flow: manage-organizations
+title: Manage Organizations & Authentication
+summary: >-
+  Provider admin view of all tenant Organizations — Keycloak realms, federated IdPs,
+  break-glass credentials, and the Sovereign Gateway Pattern (Authorino + Kuadrant).
+  Org name links to a per-tenant detail page with IAM tabs.
+
+rbac:
+  required_role: providerAdmin
+  required_permissions:
+    - manage_organizations
+
+domain_ref: docs/data/domains/organizations.yaml
+
+steps:
+  - id: org_list
+    title: Organizations list
+    goal: >-
+      Show all Organizations with IdP health, user count, and break-glass count.
+      Allow creating a new Organization.
+    route: /provider/organizations
+    ui:
+      components:
+        - PageLayout (title="Organizations & Authentication", description="Keycloak realms, external identity providers, and the Sovereign Gateway Pattern.")
+        - KpiHeader (Organizations count, Healthy IdPs, Break-glass count, Gateway policies)
+        - Tabs:
+            - Organizations: ObjectsTable (org name, realm, IdP badge, IdP host, StatusDot, users, break-glass, ActionsColumn)
+            - Sovereign Gateway: info panels (Keycloak token issuance + Authorino authorization)
+            - IdP health: per-org health probe status list
+        - Button "New organization" → org_create_modal
+    states:
+      loading: Spinner inside PageLayout.
+      populated: Organizations table with clickable org names.
+      empty: EmptyState placeholder.
+    interactions:
+      - "Org name click: CustomTableLink → navigate('/provider/tenants/:id') → org_detail"
+      - "New organization: opens org_create_modal"
+      - "ActionsColumn: Test IdP connection | Rotate break-glass | View realm | Disable"
+    data_sources:
+      - organizations-store.ts (mock) → maps to GET /api/fulfillment/v1/organizations + GET /api/private/v1/organizations
+      - IdentityProvider fixtures → GET /api/fulfillment/v1/identity_providers
+
+  - id: org_create_modal
+    title: Create organization modal
+    goal: Provision a new Keycloak realm and register the external IdP.
+    route: /provider/organizations (modal overlay)
+    ui:
+      components:
+        - Modal (ModalVariant.medium)
+        - Form: organization name, Keycloak realm, IdP type (OIDC/LDAP/SAML/AD), IdP endpoint/host, break-glass switch
+        - Alert (info) — Authorino AuthPolicies auto-generated
+        - Actions: Cancel | Create organization
+    states:
+      open: Form visible.
+      submitting: Button loading.
+      done: Modal closes; org appears in list with status PENDING.
+    data_mapping:
+      - Organization.metadata.name ← name field
+      - Organization realm ← realm field
+      - IdentityProvider.spec.config.kind ← IdP type select
+      - IdentityProvider.spec.[oidc|ldap]_config.* ← IdP endpoint field
+
+  - id: org_detail
+    title: Tenant detail page
+    goal: >-
+      Per-tenant resource and IAM overview for provider admin.
+      Tabs mirror tenant admin detail plus Identity Provider/Authn/Break-glass.
+    route: /provider/tenants/:id
+    ui:
+      components:
+        - Breadcrumb (Tenant organizations → :id)
+        - PageLayout (title=tenant name, description="Tenant :id · realm")
+        - KpiHeader (Status, IdP, Clusters, VMs, vCPU used, Memory used, Storage)
+        - Tabs:
+            - Overview: Identity & federation card + Governance card (DescriptionList)
+            - Quota: progress bars per resource (vCPU, memory, VMs, clusters, storage)
+            - Clusters: ObjectsTable (clusters for tenant)
+            - Virtual machines: ObjectsTable (VMs for tenant)
+            - Storage: ObjectsTable (storage tier consumers)
+            - Infrastructure agents: ObjectsTable (agents attached to tenant clusters)
+            - Audit log: Table (timestamp, actor, action, resource)
+            - Identity provider: Organization metadata + IdentityProvider spec + oidc/ldap config grid
+            - Authn capabilities: AuthnCapabilities.trusted_token_issuers[] table
+            - Break-glass: BreakGlassCredentials table with Rotate button
+        - Actions: Audit log | Edit quota | Suspend
+    states:
+      loading: Spinner.
+      populated: All tabs rendered from fixture.
+    data_mapping:
+      - Organization.id ← :id param
+      - IdentityProvider.spec.config.oidc | ldap ← Identity provider tab
+      - AuthnCapabilities.trusted_token_issuers[] ← Authn capabilities tab
+      - BreakGlassCredentials[].{username, last_rotated} ← Break-glass tab
+
+cross_flow_entry_points:
+  - id: org_to_tenant_detail
+    from_step: org_list
+    to_step: org_detail
+    mechanism: "CustomTableLink onClick → navigate('/provider/tenants/:id')"
+
+  - id: tenant_detail_to_cluster
+    from_step: org_detail
+    to_step: cluster_detail (manage-clusters flow)
+    mechanism: "CustomTableLink in Clusters tab → navigate('/clusters/:name')"
+
+  - id: tenant_detail_to_vm
+    from_step: org_detail
+    to_step: vm_detail (manage-virtual-machines flow)
+    mechanism: "CustomTableLink in VMs tab → navigate('/vms/:name')"
+
+error_states:
+  - IdP probe failed: StatusDot shows 'failed'; Alert warning in detail Overview tab.
+  - Org status FAILED: StatusDot 'failed'; message shown in Overview Governance card.
+
+edge_cases:
+  - New org with status PENDING: rows are non-clickable until SYNCED.
+  - Break-glass password: displayed as masked (••••••••) — no retrieve action.
+  - Rotate break-glass: calls POST /api/fulfillment/v1/organizations/:id/rotate-break-glass (future).

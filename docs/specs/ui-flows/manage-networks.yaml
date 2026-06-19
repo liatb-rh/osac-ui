@@ -165,8 +165,15 @@ transitions:
 implementation_status:
   as_of: "2026-06-18"
   code_refs:
-    - apps/app-frontend/src/pages/administration/NetworksPage.tsx
-    - apps/app-frontend/src/pages/administration/VirtualNetworkDetailPage.tsx
-    - apps/app-frontend/src/pages/administration/SubnetDetailPage.tsx
+    - apps/app-frontend/src/pages/resources/network/NetworksPage.tsx
+    - apps/app-frontend/src/pages/resources/network/virtual-networks/VirtualNetworksTab.tsx
+    - apps/app-frontend/src/pages/resources/network/virtual-networks/VirtualNetworkDetailPage.tsx
+    - apps/app-frontend/src/pages/resources/network/virtual-networks/VnStateLabel.tsx
+    - apps/app-frontend/src/pages/resources/network/subnets/SubnetsTab.tsx
+    - apps/app-frontend/src/pages/resources/network/subnets/SubnetDetailPage.tsx
+    - apps/app-frontend/src/pages/resources/network/subnets/SubnetStateLabel.tsx
+    - apps/app-frontend/src/pages/resources/network/security-groups/SecurityGroupsTab.tsx
+    - apps/app-frontend/src/pages/resources/network/security-groups/RulesEditorModal.tsx
+    - apps/app-frontend/src/pages/resources/network/security-groups/SgStateLabel.tsx
     - apps/app-frontend/src/hooks/useNetworking.ts
   deployment_variants: [standalone]

@@ -1,0 +1,315 @@
+# OSAC Domain Spec — Storage (Tiers, Backends, Volumes)
+# Sources:
+#   specs/osac/ui-flows/manage-storage-tiers.yaml
+#   specs/osac/ui-flows/manage-storage-volumes.yaml
+#   specs/osac/ui-flows/manage-storage-backends.yaml
+#   specs/features/tenant-storage-onboarding.yaml
+#   specs/features/vast-storage-integration.yaml
+#   specs/ignore-specs/storage-spec.md
+#   Projects/osac-backends/enhancement-proposals/enhancements/tenant-storage-tiers/README.md
+#   Projects/osac-backends/enhancement-proposals/enhancements/tenant-storage-onboarding-OSAC-23/prd.md
+#   Projects/osac-backends/enhancement-proposals/enhancements/storage-backend-osac-1111/prd.md
+
+domain: storage
+title: Storage (Storage Tiers, Storage Backends, Storage Volumes)
+status: draft
+owner: ""
+
+overview: >
+  OSAC storage has three main resource types:
+  1. StorageBackend — provider-managed; defines the physical storage system (e.g. VAST, Ceph)
+  2. StorageTier — tenant-facing; a named storage class with performance characteristics
+     backed by a StorageBackend
+  3. StorageVolume — tenant-facing; an allocated persistent volume on a StorageTier
+
+  The fulfillment-service does NOT currently have proto definitions for storage resources.
+  Storage is provisioned via osac-installer and a dedicated storage operator pathway.
+  This spec is primarily derived from enhancement proposals and UI flow specs.
+  Backend source data must be added manually via chat context.
+
+known_backends:
+  - VAST (primary integration, see specs/features/vast-storage-integration.yaml)
+  - Ceph (TODO: confirm if supported)
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: StorageBackend (provider-admin only)
+# ──────────────────────────────────────────────────────────────────
+
+storage_backend:
+  description: >
+    Provider-level resource representing a physical storage system.
+    Admins create StorageBackends to make storage capacity available to tenants.
+    Tenants cannot directly manage StorageBackends but can see their available StorageTiers.
+
+  layers:
+    fulfillment_service:
+      notes: "TODO: determine if fulfillment-service has a StorageBackend proto or if this is osac-installer only"
+      api_base: ""    # TODO
+      operations: []  # TODO
+
+    osac_operator:
+      notes: "TODO: StorageBackend CRD — is this in osac-operator or a dedicated storage operator?"
+      crd_kind: StorageBackend    # TODO: confirm
+
+    osac_installer:
+      notes: >
+        osac-installer is the primary component for StorageBackend provisioning.
+        It handles the initial integration with physical storage systems (e.g. VAST).
+        Source context to be added manually — repo not present in workspace.
+
+    osac_aap:
+      playbooks:
+        - playbook_osac_configure_tenant_storage.yml
+      notes: "TODO: clarify which playbooks handle StorageBackend vs StorageTier provisioning"
+
+    osac_ui:
+      ui_flow: specs/osac/ui-flows/manage-storage-backends.yaml
+      notes: Provider admin view for managing storage backends.
+
+  spec_fields:
+    # TODO: populate from osac-installer source or enhancement proposals
+    - name: provider_type
+      notes: "e.g. 'vast', 'ceph', 'nfs'"
+    - name: connection_config
+      notes: "Connection details (endpoint, credentials, etc.) — likely sensitive/write-only"
+    - name: capacity
+      notes: "Total capacity in GiB"
+
+  status_fields:
+    # TODO
+    - name: state
+      notes: "TODO: PENDING | READY | FAILED | DEGRADED?"
+    - name: available_capacity
+      notes: "TODO: dynamic availability"
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: StorageTier (tenant-facing, admin-configurable)
+# ──────────────────────────────────────────────────────────────────
+
+storage_tier:
+  description: >
+    A named storage class exposing a subset of a StorageBackend with specific performance
+    characteristics (IOPS, throughput, latency class). Tenants request volumes from StorageTiers.
+    Provider admins create StorageTiers backed by StorageBackends.
+
+  layers:
+    fulfillment_service:
+      notes: "TODO: StorageTier proto/API — not found in current proto files"
+      api_base: ""    # TODO
+
+    osac_operator:
+      notes: >
+        Likely maps to a Kubernetes StorageClass with OSAC-specific annotations.
+        The osac-operator or storage operator creates/manages the underlying StorageClass.
+      crd_kind: StorageTier or maps to StorageClass    # TODO: confirm
+
+    osac_ui:
+      ui_flow: specs/osac/ui-flows/manage-storage-tiers.yaml
+      statechart: ""    # TODO
+
+  spec_fields:
+    # TODO: populate from enhancement proposals
+    - name: storage_backend
+      notes: "Reference to parent StorageBackend"
+    - name: display_name
+      notes: "Human-friendly name (e.g. 'Fast SSD', 'Standard HDD')"
+    - name: iops
+      notes: "Target IOPS"
+    - name: throughput_mbps
+      notes: "Target throughput in MB/s"
+    - name: tenant_scope
+      notes: "Which tenants can access this tier (all / specific list)"
+
+  two_phase_provisioning:
+    description: >
+      VAST StorageTier provisioning follows a two-phase model (from vast-storage-integration.yaml):
+      Phase 1 — Admin creates the VAST VIP pool and exports
+      Phase 2 — Admin creates the OSAC StorageTier and links it to the VAST backend
+    source: specs/features/vast-storage-integration.yaml
+
+# ──────────────────────────────────────────────────────────────────
+# Resource: StorageVolume (tenant-facing)
+# ──────────────────────────────────────────────────────────────────
+
+storage_volume:
+  description: >
+    An allocated persistent storage volume on a StorageTier. Tenants create volumes and
+    mount them to ComputeInstances. Volumes are independent of VM lifecycle — they persist
+    after VM deletion.
+
+  layers:
+    fulfillment_service:
+      notes: "TODO: StorageVolume proto/API"
+      api_base: ""    # TODO
+
+    osac_operator:
+      notes: "TODO: likely maps to a PersistentVolumeClaim (PVC) in the tenant namespace"
+      crd_kind: StorageVolume or PVC    # TODO
+
+    osac_ui:
+      ui_flow: specs/osac/ui-flows/manage-storage-volumes.yaml
+
+  spec_fields:
+    # TODO
+    - name: storage_tier
+      notes: "Reference to parent StorageTier"
+    - name: size_gib
+      notes: "Requested size in GiB"
+    - name: access_mode
+      notes: "ReadWriteOnce / ReadWriteMany / ReadOnlyMany?"
+
+  status_fields:
+    # TODO
+    - name: state
+      notes: "TODO: PENDING | BOUND | AVAILABLE | FAILED?"
+    - name: mount_path
+      notes: "TODO: how does the tenant get connection info?"
+
+tenant_storage_onboarding:
+  description: >
+    Tenant-specific storage setup (separate from StorageTier creation).
+    See feature spec: specs/features/tenant-storage-onboarding.yaml
+  crd: TenantStorage    # TODO: confirm CRD name
+  source: specs/features/tenant-storage-onboarding.yaml
+  aap_playbook: playbook_osac_configure_tenant_storage.yml
+  delete_playbook: playbook_osac_delete_tenant_storage.yml
+  notes: >
+    When a tenant is onboarded, OSAC provisions tenant-specific storage resources
+    (e.g. VAST exports, NFS shares) using the configure_tenant_storage playbook.
+
+workflows:
+  storage_backend_create: |
+    ## Create Storage Backend Workflow (Admin)
+
+    1. **osac-ui (provider admin)** — Admin configures StorageBackend (connection details, capacity)
+    2. **osac-installer / fulfillment-service** — Creates StorageBackend resource
+    3. **osac-operator / storage-operator** — Reconciles backend connectivity
+    4. **osac-aap** — TODO: confirm playbook
+    5. Status: READY when backend is connected and capacity is verified
+
+  storage_tier_create: |
+    ## Create Storage Tier Workflow (Admin)
+
+    See two-phase model for VAST (specs/features/vast-storage-integration.yaml).
+    1. Admin creates StorageTier linked to a READY StorageBackend
+    2. Operator creates Kubernetes StorageClass (or equivalent)
+    3. Tier becomes available to tenants
+
+  volume_create: |
+    ## Create Storage Volume Workflow (Tenant)
+
+    1. **osac-ui** — Tenant selects StorageTier and specifies size
+    2. **fulfillment-service / osac-operator** — Creates PVC from StorageClass
+    3. Storage backend provisions the volume
+    4. Volume becomes available for attachment to ComputeInstance
+
+storage_class_labeling:
+  description: >
+    From enhancements/tenant-specific-storageclasses/README.md and
+    enhancements/tenant-storage-tiers/README.md (MGMT-23669).
+    StorageClasses are labeled with two required axes to enable multi-tenant, multi-tier storage.
+
+  label_schema:
+    tenant_label:
+      key: osac.openshift.io/tenant
+      required: true
+      values:
+        - "<tenant-id>": assigns StorageClass to a specific tenant
+        - "Default": shared StorageClass available as fallback (capital D, safe from collision)
+      notes: StorageClasses without this label are ignored by OSAC.
+
+    tier_label:
+      key: osac.openshift.io/storage-tier
+      required: true
+      values:
+        - freeform string (case-sensitive, lowercase recommended)
+        - conventional_values: [fast, standard, archival, default]
+        - notes: "OSAC-shipped templates use tier name 'default'. CSP templates can use 'fast', etc."
+      notes: StorageClasses without this label are ignored by OSAC.
+
+  resolution_algorithm:
+    description: >
+      For each distinct (tenant, storage-tier) combination:
+    steps:
+      - "1. Find StorageClass with tenant=<this-tenant> AND storage-tier=<tier>: use it (tenant-specific wins)"
+      - "2. Else: find StorageClass with tenant=Default AND storage-tier=<tier>: use it (shared fallback)"
+      - "3. Else: error (tier not available for this tenant)"
+    error: "Descriptive error with list of available tiers for this tenant"
+
+  tenant_crd_status:
+    description: >
+      The Tenant CRD status field was changed from singular to plural (breaking change).
+    old_field: status.storageClass (string, singular — REMOVED)
+    new_field: "status.storageClasses (list of ResolvedStorageClass {name: string, tier: string})"
+    notes: >
+      The osac-operator is the single source of truth for StorageClass resolution.
+      Resolved list is injected into AAP extra_vars as `storageClasses` list.
+      Ansible roles must specify `tenant_storage_class_storage_tier` parameter (no default;
+      fails immediately with available tiers list if not provided).
+
+  example_configuration: |
+    # Tenant-specific fast storage
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: netapp-tenant123-fast
+      labels:
+        osac.openshift.io/tenant: tenant123
+        osac.openshift.io/storage-tier: fast
+    provisioner: csi.trident.netapp.io
+
+    # Shared default storage
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: ceph-default
+      labels:
+        osac.openshift.io/tenant: Default
+        osac.openshift.io/storage-tier: default
+    provisioner: rook-ceph.rbd.csi.ceph.com
+
+  template_usage:
+    osac_shipped: "Always use storage-tier=default"
+    csp_custom: "Can use fast, archival, or any custom tier"
+    ansible_role: "tenant_storage_class Ansible role requires tenant_storage_class_storage_tier parameter"
+
+helm_installation:
+  description: >
+    From enhancements/helm-based-installation/README.md (MGMT-24053).
+    OSAC storage prerequisites for Helm chart installation.
+  requirements:
+    - "StorageClass with RWX (ReadWriteMany) access mode for fulfillment-service database"
+    - "PostgreSQL (external HA or bundled single-replica): postgres.enabled=true/false"
+    - "StorageClass for PostgreSQL PVCs"
+  database_migration: >
+    Pre-upgrade Helm hook runs migration Job (migrate subcommand in fulfillment-service).
+    Idempotent; failure blocks upgrade.
+
+cross_layer_gaps:
+  - gap: >
+      Storage resources (StorageBackend, StorageTier, StorageVolume) do NOT appear in the
+      fulfillment-service proto files. Storage is managed by osac-installer and/or a dedicated
+      storage operator. The exact API contract for storage must be sourced from osac-installer
+      (not present in this workspace).
+
+  - gap: >
+      The TenantStorage CR from the tenant-storage-onboarding feature spec relates to
+      per-tenant storage provisioning but may be a separate resource from the user-facing
+      StorageVolume. The relationship needs clarification.
+
+  - gap: >
+      Storage provisioning path for VAST vs. generic storage backends may differ significantly.
+      The two-phase provisioning model for VAST is documented in the enhancement proposals.
+
+  - gap: >
+      Tenant CRD status.storageClass (singular) was REMOVED and replaced by status.storageClasses (list).
+      Any code referencing tenant.status.storageClass must be updated.
+
+open_questions:
+  - What proto/API does the fulfillment-service expose for storage? Or is this entirely osac-installer?
+  - What are the StorageBackend, StorageTier, StorageVolume CRD kinds and their API groups?
+  - Is there a separate storage-operator repo (distinct from osac-operator)?
+  - How does a ComputeInstance attach/detach a StorageVolume? Is it via spec.additionalDisks?
+  - What is the TenantStorage CRD — is this the same as StorageTier onboarding?
+  - How does VAST integration differ from the generic storage path?
+  - What playbooks handle StorageTier and StorageVolume lifecycle?

@@ -1,0 +1,81 @@
+# ui-flow: manage-tenant-users
+# Role: tenantAdmin
+# Route: /admin/users
+# Generated: 2026-06-19
+
+flow: manage-tenant-users
+title: Users & Access
+summary: >-
+  Tenant admin user management — list users scoped to the current tenant,
+  view their RBAC role and MFA status, and invite new users.
+
+rbac:
+  required_role: tenantAdmin
+  required_permissions:
+    - manage_users
+
+domain_ref: docs/data/domains/organizations.yaml
+
+steps:
+  - id: user_list
+    title: Users & Access list
+    goal: Show all users in the current tenant with role and MFA status. Invite new users.
+    route: /admin/users
+    ui:
+      components:
+        - PageLayout (title="Users & Access", description="Tenant-scoped identity and role bindings.")
+        - Button "Invite user" (primary) → invite_modal
+        - ObjectsTable (Name, Email, Role label, MFA label, ActionsColumn)
+    states:
+      loading: Spinner inside PageLayout.
+      populated: User table.
+      empty: EmptyState placeholder.
+    interactions:
+      - "Invite user: opens invite_modal"
+      - "ActionsColumn: Change role | Reset password | Remove"
+    data_mapping:
+      - User.spec.first_name + last_name → Name column
+      - User.spec.email → Email column (code element)
+      - RoleBinding.spec.role → Role label (blue=tenantAdmin, grey=tenantUser)
+      - User.spec.email_verified (proxy for MFA enrollment) → MFA label (green=Enrolled, orange=Pending)
+    data_sources:
+      - inline mock USERS array (mock) → maps to GET /api/fulfillment/v1/users?tenant=:tenant
+      - RoleBindings → GET /api/fulfillment/v1/role_bindings?tenant=:tenant
+
+  - id: invite_modal
+    title: Invite user modal
+    goal: Create a User and RoleBinding for a new tenant member.
+    route: /admin/users (modal overlay)
+    ui:
+      components:
+        - Modal (ModalVariant.medium)
+        - ModalHeader (title="Invite user", description="Send an invitation to join this tenant workspace.")
+        - Form:
+            - Full name (required) → User.spec.first_name + last_name
+            - Work email (required, type=email) → User.spec.email
+            - Role select (tenantUser | tenantAdmin) → RoleBinding.spec.role
+            - Checkbox "Require MFA enrollment on first sign-in" → User.spec.credentials.temporary_password
+            - Checkbox "Send invitation email now"
+        - ModalFooter: "Send invite" (primary, disabled when name/email empty) | Cancel
+    states:
+      open: Form visible.
+      submitting: Button loading state.
+      done: Modal closes; new user appears in list.
+    validation_rules:
+      - Send invite disabled when email or name is empty.
+      - Email must be valid format.
+
+cross_flow_entry_points:
+  - id: users_to_org_settings
+    from_step: user_list
+    to_step: admin-org-settings-placeholder
+    mechanism: "Link in page subtitle or breadcrumb (future)"
+
+error_states:
+  - Invite failed: inline Alert (danger) inside modal — "Failed to invite user."
+  - Duplicate email: Alert — "A user with this email already exists in the tenant."
+
+edge_cases:
+  - tenantAdmin cannot remove themselves (own record action disabled).
+  - Role change from tenantAdmin → tenantUser requires confirmation (not in current mock).
+  - MFA field proxied from email_verified — true MFA enrollment state requires Keycloak API.

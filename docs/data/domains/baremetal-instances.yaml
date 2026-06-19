@@ -1,0 +1,348 @@
+# OSAC Domain Spec — Bare Metal Instances (BMaaS)
+# Sources:
+#   proto/public/osac/public/v1/baremetal_instance_type.proto
+#   Projects/osac-backends/fulfillment-service/FRONTEND-SPEC.md §(baremetal section)
+#   specs/osac/ui-flows/manage-baremetal.yaml
+#   enhancements/baremetal-instance-api/README.md (OSAC-1118)
+#   enhancements/bare-metal-fulfillment/README.md
+#   enhancements/carbide-integration/README.md
+
+domain: baremetal-instances
+title: Bare Metal Instances (BMaaS)
+status: draft
+owner: ""
+
+layers:
+  fulfillment_service:
+    proto_package: osac.public.v1
+    key_messages:
+      - BareMetalInstance
+      - BareMetalInstanceSpec
+      - BareMetalInstanceStatus
+      - BareMetalInstanceCondition
+    api_base: /api/fulfillment/v1/baremetal_instances
+    operations:
+      - GET    /baremetal_instances              # List
+      - GET    /baremetal_instances/{id}         # Get
+      - POST   /baremetal_instances              # Create
+      - PUT    /baremetal_instances/{id}         # Update (run_strategy, restart_trigger)
+      - DELETE /baremetal_instances/{id}         # Delete
+    proto_source: proto/public/osac/public/v1/baremetal_instance_type.proto
+    private_api: proto/private/osac/private/v1/baremetal_instances_service.proto
+    notes: >
+      BareMetalInstance always uses catalog_item (no template alternative).
+      The catalog item defines the hardware profile; users cannot specify arbitrary CPU/memory.
+
+  osac_operator:
+    notes: >
+      TODO: Determine whether BareMetalInstances use a dedicated operator CRD in osac-operator
+      or are handled by a separate bare-metal-fulfillment-operator.
+
+  bare_metal_fulfillment_operator:
+    notes: >
+      The bare-metal-fulfillment-operator is a separate component (not present in
+      Projects/osac-backends). Context to be added manually.
+      Likely manages: BareMetalHost provisioning via Metal³/Ironic, network configuration,
+      OS provisioning via cloud-init/ignition.
+
+  osac_aap:
+    playbooks:
+      - playbook_osac_create_bare_metal_instance.yml
+      - playbook_osac_delete_bare_metal_instance.yml
+      - playbook_osac_create_bare_metal_pool.yml
+      - playbook_osac_delete_bare_metal_pool.yml
+      - playbook_osac_import_bcm_agents.yml
+    triggered_by: osac-operator or bare-metal-fulfillment-operator
+    notes: "TODO: clarify which operator triggers which BMaaS playbooks"
+
+  osac_ui:
+    ui_flow: specs/osac/ui-flows/manage-baremetal.yaml
+    statechart: ""    # TODO
+    typescript_types: []
+    notes: >
+      UI provides tenant inventory view (allocated instances) and provider inventory
+      management (available hosts, pools). See manage-baremetal.yaml and
+      manage-baremetal-inventory.yaml.
+
+data_model:
+  spec_fields:
+    - name: catalog_item
+      proto_field: spec.catalog_item
+      operator_field: ""    # TODO
+      ui_prop: spec.catalogItem
+      type: string (BareMetalInstanceCatalogItem ID)
+      mutable: false
+      notes: >
+        Required on create; immutable after creation.
+        Defines hardware profile (CPU, memory, storage, network, OS image).
+        Unlike ComputeInstance there is no template alternative — catalog_item is the only path.
+
+    - name: ssh_key
+      proto_field: spec.ssh_key (optional string)
+      operator_field: ""    # TODO
+      ui_prop: spec.sshKey
+      type: string (SSH public key, OpenSSH format)
+      mutable: false
+      notes: >
+        Injected into OS at provisioning time. Immutable after creation.
+        Invalid keys rejected at create time with 400.
+
+    - name: user_data
+      proto_field: spec.user_data (optional string)
+      operator_field: ""    # TODO
+      ui_prop: spec.userData
+      type: string (cloud-init / ignition payload)
+      mutable: false
+      notes: Passed to OS at first boot. Max 64 KB. Immutable after creation.
+
+    - name: run_strategy
+      proto_field: spec.run_strategy (optional BareMetalInstanceRunStrategy enum)
+      operator_field: ""    # TODO
+      ui_prop: spec.runStrategy
+      type: enum — ALWAYS (powered on) | HALTED (powered off)
+      mutable: true
+      notes: >
+        MUTABLE. Controls power state.
+        BARE_METAL_INSTANCE_RUN_STRATEGY_ALWAYS = powered on.
+        BARE_METAL_INSTANCE_RUN_STRATEGY_HALTED = powered off.
+
+    - name: restart_trigger
+      proto_field: spec.restart_trigger (int64)
+      operator_field: ""    # TODO
+      ui_prop: spec.restartTrigger
+      type: int64
+      mutable: true
+      notes: >
+        MUTABLE signal field. Change to ANY value to trigger a power cycle.
+        The controller compares spec.restart_trigger vs status.restart_trigger
+        and initiates a power cycle when they differ.
+        Note: different mechanism from ComputeInstance (which uses a timestamp).
+
+  status_fields:
+    - name: state
+      proto_field: status.state (BareMetalInstanceState enum)
+      operator_field: ""    # TODO
+      ui_prop: status.state
+      type: enum
+      values:
+        - BARE_METAL_INSTANCE_STATE_UNSPECIFIED → unknown
+        - BARE_METAL_INSTANCE_STATE_PROVISIONING → being provisioned
+        - BARE_METAL_INSTANCE_STATE_RUNNING → running and assigned to tenant
+        - BARE_METAL_INSTANCE_STATE_FAILED → error state
+        - BARE_METAL_INSTANCE_STATE_DELETING → deprovisioning in progress
+
+    - name: conditions
+      proto_field: status.conditions (repeated BareMetalInstanceCondition)
+      operator_field: ""    # TODO
+      condition_types:
+        - type: BARE_METAL_INSTANCE_CONDITION_TYPE_PROVISIONED
+          meaning: Infrastructure allocated by baremetal fulfillment component
+        - type: BARE_METAL_INSTANCE_CONDITION_TYPE_CONFIGURATION_APPLIED
+          meaning: OS image and user config applied by provisioning provider
+        - type: BARE_METAL_INSTANCE_CONDITION_TYPE_READY
+          meaning: Machine available and assigned to tenant (NOT OS readiness — tenant's responsibility)
+        - type: BARE_METAL_INSTANCE_CONDITION_TYPE_RESTART_IN_PROGRESS
+          meaning: Power cycle in progress
+        - type: BARE_METAL_INSTANCE_CONDITION_TYPE_RESTART_FAILED
+          meaning: Restart request failed
+        - type: BARE_METAL_INSTANCE_CONDITION_TYPE_RESTART_REQUIRED
+          meaning: Config changes pending restart
+
+    - name: restart_trigger (status)
+      proto_field: status.restart_trigger (int64)
+      operator_field: ""    # TODO
+      ui_prop: status.restartTrigger
+      type: int64
+      notes: >
+        Echo of spec.restart_trigger after the controller executes the power cycle.
+        When spec.restart_trigger != status.restart_trigger, a restart is pending.
+
+lifecycle:
+  states:
+    - name: Provisioning
+      description: Hardware being allocated and OS being provisioned
+    - name: Running
+      description: Machine running and assigned to tenant
+    - name: Failed
+      description: Provisioning or runtime error; check conditions
+    - name: Deleting
+      description: Deprovisioning in progress
+
+  key_difference_from_compute_instances: >
+    BareMetalInstance READY condition does NOT indicate OS readiness. The tenant
+    is responsible for OS-level checks after the machine is in RUNNING state.
+    This is unlike ComputeInstance where READY means VM is network-reachable.
+
+workflows:
+  create: |
+    ## Create Bare Metal Instance Workflow
+
+    1. **osac-ui** — Tenant user selects BareMetalInstanceCatalogItem, provides ssh_key and user_data
+    2. **fulfillment-service** — POST /baremetal_instances: validates, creates BMI resource
+    3. **bare-metal-fulfillment-operator** (or osac-operator) — Reconciler:
+       - Calls playbook_osac_create_bare_metal_instance.yml
+    4. **osac-aap** — Playbook:
+       - Allocates a physical machine from the pool matching the catalog item hardware profile
+       - Configures network (may involve playbook_osac_create_bare_metal_pool.yml for pool setup)
+       - Triggers Metal³/Ironic provisioning with OS image from catalog item
+       - Injects ssh_key and user_data via cloud-init/ignition
+    5. **Operator** — Updates BareMetalInstance status:
+       - Provisioned condition → True when hardware allocated
+       - ConfigurationApplied condition → True when OS provisioned
+       - Ready condition → True when machine available to tenant
+    6. **fulfillment-service** — Propagates status to API
+
+  power_cycle: |
+    ## Power Cycle (Restart) Workflow
+
+    1. **osac-ui** — User clicks "Restart" — UI PATCHes/PUTs restart_trigger to a new value (e.g. increment)
+    2. **fulfillment-service** — Updates spec.restart_trigger on BareMetalInstance resource
+    3. **bare-metal-fulfillment-operator** — Detects spec.restart_trigger != status.restart_trigger:
+       - Sets RestartInProgress condition = True
+       - Triggers IPMI/Redfish power cycle on physical hardware
+       - Sets status.restart_trigger = spec.restart_trigger after cycle completes
+       - Sets RestartInProgress condition = False
+    4. **fulfillment-service** — Reflects updated status
+
+  delete: |
+    ## Delete Bare Metal Instance Workflow
+
+    1. **osac-ui** — User confirms deletion
+    2. **fulfillment-service** — DELETE /baremetal_instances/{id}
+    3. **bare-metal-fulfillment-operator** — Finalizer calls playbook_osac_delete_bare_metal_instance.yml
+    4. **osac-aap** — Playbook:
+       - Powers off machine via IPMI/Redfish
+       - Wipes storage (DBAN or secure erase)
+       - Returns machine to the available pool
+    5. **fulfillment-service** — Resource removed after cleanup
+
+bare_metal_fulfillment_architecture:
+  description: >
+    From enhancements/bare-metal-fulfillment/README.md (authored Tzu-Mainn Chen, updated 2026-06-02).
+    The bare-metal-fulfillment-operator provides a unified API for bare metal acquisition and
+    configuration. Used by: tenant BareMetalInstance requests, cluster fulfillment, and agent provisioning.
+
+  crds:
+    HostLease:
+      description: >
+        Represents a lease on a bare metal host. Ephemeral — created when a host is acquired,
+        deleted when released. The primary unit of bare metal possession.
+        NOTE: HostLease is distinct from BareMetalInstance. HostLease is also used by other
+        workflows (cluster fulfillment, agent provisioning) that bypass the fulfillment service.
+      mutable: true (manipulate host while leased)
+
+    HostClass:
+      description: >
+        Specifies how a host can be managed (OpenStack, Carbide, etc).
+        Each Host is associated with one HostClass. Defines the inventory backend type.
+
+    HostType:
+      description: >
+        Describes the hardware type (analogous to AWS instance types or Ironic resource class).
+        Examples: fc430, h100. Maps directly to BareMetalInstanceCatalogItem hardware profiles.
+
+    HostTemplate:
+      description: Ansible role detailing setup and teardown steps for an individual host.
+
+    BareMetalPool:
+      description: >
+        A collection of bare metal hosts sharing a common desired configuration.
+        Contains: HostSets (desired hosts), Profile (configuration), BareMetalPoolTemplate (Ansible role for pool-level setup/teardown).
+
+  operators:
+    HostOperator:
+      description: >
+        Queries the backend inventory, assigns a host (via FindFreeHost/AssignHost),
+        and executes setup/teardown HostTemplates. Supports power control.
+      inventory_interface:
+        - FindFreeHost
+        - AssignHost
+        - UnassignHost
+      notes: Supports multiple bare metal backends through a Go interface.
+
+    BareMetalPoolOperator:
+      description: Creates/deletes HostLease CRs and executes pool-level setup/teardown templates.
+
+  provisioning_chain:
+    description: >
+      Confirmed from enhancements/baremetal-instance-api/README.md (OSAC-1118).
+    steps:
+      - "Fulfillment service → creates BareMetalInstance CR"
+      - "bare-metal-fulfillment-operator → creates HostLease CR (acquires a host matching catalog item HostType)"
+      - "HostOperator → calls inventory backend (FindFreeHost/AssignHost)"
+      - "HostOperator → calls osac-aap playbooks for OS provisioning"
+      - "osac-operator → receives feedback, updates BareMetalInstance CR status"
+      - "Fulfillment service → propagates status to API"
+
+  inventory_backends:
+    supported:
+      - Carbide (NVIDIA Bare Metal Manager) — see carbide-integration enhancement
+      - ESI (Edge Software Integrator) — used by CaaS cluster fulfillment (legacy)
+    notes: >
+      The HostClass defines which backend manages each host. Multiple backends supported
+      via the Go inventory interface (FindFreeHost/AssignHost/UnassignHost).
+
+  carbide_integration:
+    description: >
+      From enhancements/carbide-integration/README.md. NVIDIA Carbide (Bare Metal Manager)
+      is integrated as a bare metal backend for CaaS cluster fulfillment.
+      Carbide provides: provisioning, lifecycle, power, console, networking, DPU-enforced isolation.
+    workflow: >
+      Pre-provisioned Carbide agents → AAP creates HostedCluster + VPC + subnet + attaches agents.
+      Scale up/down/delete follow similar Carbide API patterns.
+    caas_note: >
+      Carbide is an interim CaaS backend (alongside ESI). Long-term: bare-metal-fulfillment
+      feature will be the standard BM path for all CaaS.
+
+  api_extensions_from_osac_1118:
+    new_grpc_services_public:
+      - BareMetalInstanceTemplates (List, Get)
+      - BareMetalInstanceCatalogItems (full CRUD)
+      - BareMetalInstances (full CRUD)
+    new_grpc_services_private:
+      - BareMetalInstanceTemplates (full CRUD + Signal)
+      - BareMetalInstanceCatalogItems (full CRUD + Signal)
+      - BareMetalInstances (full CRUD + Signal)
+    rest_routes:
+      - GET/POST/PATCH/DELETE /api/fulfillment/v1/baremetal_instances
+      - GET/POST/PATCH/DELETE /api/fulfillment/v1/baremetal_instance_catalog_items
+      - GET /api/fulfillment/v1/baremetal_instance_templates
+
+  restart_field_discrepancy:
+    current_proto: restart_trigger (int64 counter — change any value to trigger restart)
+    enhancement_proposal_osac_1118: restart_requested_at (timestamp — following ComputeInstance pattern)
+    resolution: >
+      The proto currently uses restart_trigger (int64). The enhancement proposal (OSAC-1118,
+      created 2026-05-29) mentions restart_requested_at. This may indicate the proto is being
+      changed to align with the ComputeInstance timestamp pattern. Verify with current proto
+      before implementing UI restart action.
+
+cross_layer_gaps:
+  - gap: >
+      BareMetalInstance restart: current proto uses int64 restart_trigger (counter pattern);
+      enhancement proposal OSAC-1118 mentions restart_requested_at (timestamp pattern like VM).
+      UI must handle whichever field is in the current proto — verify before implementation.
+
+  - gap: >
+      The bare-metal-fulfillment-operator CRD types need mapping.
+      Key CRDs: HostLease, HostClass, HostType, BareMetalPool.
+      Add context from the operator repo when available.
+
+  - gap: >
+      BMI READY condition ≠ OS ready. The UI should clearly communicate this distinction:
+      READY means machine is allocated and available to tenant, NOT that the OS has finished booting.
+      Show a warning that SSH/cloud-init may still be running.
+
+  - gap: >
+      BareMetalInstanceTemplate is a new resource (OSAC-1118) not previously in specs.
+      It defines the hardware profile/OS configuration for a catalog item.
+      See domains/catalog-items.yaml for BareMetalInstanceCatalogItem.
+
+open_questions:
+  - Has the restart proto field been changed to restart_requested_at (OSAC-1118 proposal)?
+  - What is the HostLease CRD schema in the bare-metal-fulfillment-operator?
+  - Which HostClass implementations are shipped initially (Carbide, ESI, others)?
+  - What IPMI/Redfish/Redfish operations does the HostOperator use for power control?
+  - Is there a separate BareMetalPool management API in the fulfillment-service?
+  - How does BareMetalInstanceTemplate differ from BareMetalInstanceCatalogItem?
+  - What are the tenant isolation mechanisms in Carbide (org ID, tenant ID mapping)?

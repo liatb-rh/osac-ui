@@ -1,6 +1,6 @@
 /**
- * flow: tenant-administration
- * step: tad_subnet_detail
+ * flow: manage-networks
+ * step: net_subnet_detail_page
  * route: /networks/subnets/:id
  */
 import { useNavigate, useParams } from 'react-router-dom'
@@ -14,45 +14,12 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
-  Label,
   PageBreadcrumb,
   PageSection,
-  Spinner,
 } from '@patternfly/react-core'
 import { PageHeader } from '@osac/ui-components'
-import { useAllSubnets, useVirtualNetworks } from '../../hooks/useNetworking'
-
-function SubnetStateLabel({ state }: { state: string }) {
-  if (state === 'SUBNET_STATE_READY')
-    return (
-      <Label color="green" isCompact>
-        Ready
-      </Label>
-    )
-  if (state === 'SUBNET_STATE_PENDING')
-    return (
-      <Label color="blue" isCompact icon={<Spinner size="sm" aria-label="pending" />}>
-        Pending
-      </Label>
-    )
-  if (state === 'SUBNET_STATE_FAILED')
-    return (
-      <Label color="red" isCompact>
-        Failed
-      </Label>
-    )
-  if (state === 'SUBNET_STATE_DELETING')
-    return (
-      <Label color="orange" isCompact>
-        Deleting
-      </Label>
-    )
-  return (
-    <Label color="grey" isCompact>
-      {state}
-    </Label>
-  )
-}
+import { useAllSubnets, useVirtualNetworks } from '../../../../hooks/useNetworking'
+import { SubnetStateLabel } from './SubnetStateLabel'
 
 export function SubnetDetailPage() {
   const { id } = useParams<{ id: string }>()
