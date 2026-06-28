@@ -303,7 +303,7 @@ function IdentityProviderTab({ org }: { org: OrgFixture }) {
             {idp.kind}
           </Label>
         </div>
-        <KV k="name" v={<code>{idp.name}</code>} />
+        <KV k="id" v={<code>{idp.id}</code>} />
         <KV k="spec.kind" v={idp.kind} />
         <KV
           k="status.phase"
@@ -481,7 +481,7 @@ function BreakGlassTab({ org }: { org: OrgFixture }) {
         </div>
         <p style={{ fontSize: 13, color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
           Local realm accounts independent of the external IdP. Use only when{' '}
-          <code>{org.idp.name}</code> is unavailable. Every login is audited as an{' '}
+          <code>{org.idp.id}</code> is unavailable. Every login is audited as an{' '}
           <code>Event</code> of type <code>BREAK_GLASS_USED</code>.
         </p>
         <ObjectsTable

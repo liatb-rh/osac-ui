@@ -32,8 +32,8 @@ export interface LdapConfig {
 }
 
 export interface IdentityProvider {
-  /** Primary key — NOT UUID. e.g. "northstar-corp-ldap" */
-  name: string
+  /** Primary key — UUID. Proto field renamed from `name` to `id` in OSAC-204 / fulfillment-service#719. */
+  id: string
   kind: IdpKind
   host: string
   config: OidcConfig | LdapConfig
@@ -101,7 +101,7 @@ export const ORGANIZATIONS: OrgFixture[] = [
     creator: 'avery.chen@osac.io',
     labels: { 'osac.io/region': 'eu-west', 'osac.io/tier': 'gold' },
     idp: {
-      name: 'northstar-corp-ldap',
+      id: 'idp-northstar-ldap',
       kind: 'LDAP',
       host: 'ldap.northstar.internal',
       config: {
@@ -178,7 +178,7 @@ export const ORGANIZATIONS: OrgFixture[] = [
     creator: 'priya.raman@osac.io',
     labels: { 'osac.io/region': 'eu-north', 'osac.io/tier': 'silver' },
     idp: {
-      name: 'bluestone-azure-oidc',
+      id: 'idp-bluestone-azure-oidc',
       kind: 'OIDC',
       host: 'login.microsoftonline.com/bluestone',
       config: {
@@ -237,7 +237,7 @@ export const ORGANIZATIONS: OrgFixture[] = [
     creator: 'lee.park@osac.io',
     labels: { 'osac.io/region': 'eu-central', 'osac.io/tier': 'silver' },
     idp: {
-      name: 'aurora-health-oidc',
+      id: 'idp-aurora-health-oidc',
       kind: 'OIDC',
       host: 'auth.aurora.health',
       config: {
@@ -285,7 +285,7 @@ export const ORGANIZATIONS: OrgFixture[] = [
     creator: 'ops@osac.io',
     labels: { 'osac.io/region': 'eu-west', 'osac.io/tier': 'bronze' },
     idp: {
-      name: 'helix-ad',
+      id: 'idp-helix-ad',
       kind: 'AD',
       host: 'dc01.helix.local',
       config: {

@@ -8,7 +8,7 @@ title: RBAC Management
 summary: >-
   Provider admin RBAC console — manage predefined Roles, edit their permissions,
   inspect members via Keycloak group bindings, and maintain Group → Role mappings
-  enforced by Authorino AuthPolicies at the Kuadrant gateway.
+  enforced by embedded OPA Rego policy in the fulfillment service (fulfillment-service#685).
 
 rbac:
   required_role: providerAdmin
@@ -67,7 +67,7 @@ steps:
     title: Edit permissions modal
     goal: >-
       View and toggle the permission set for a role. Toggling stages changes
-      locally; Publish re-generates Authorino AuthPolicies.
+      locally; Publish updates the OPA Rego policy evaluated in-process by the fulfillment service.
     route: /provider/rbac (modal overlay)
     ui:
       components:
@@ -76,7 +76,7 @@ steps:
         - Badge: "X granted · Y pending changes"
         - 7 ExpandableSection panels (one per category)
         - 2-column Checkbox grid per category
-        - Alert (warning): "Publishing will re-generate Authorino AuthPolicies for this role"
+        - Alert (warning): "Publishing will update the OPA Rego policy that the fulfillment service evaluates for this role."
         - Footer: Cancel | Publish (primary, disabled when no pending changes)
     states:
       open: Checkboxes initialized from role's current permission set.
@@ -112,13 +112,16 @@ steps:
 
   - id: enforcement
     title: Enforcement info
-    goal: Explain the deny-by-default Authorino/Kuadrant gateway pattern.
+    goal: >-
+      Explain the deny-by-default OPA pattern: gRPC interceptors validate JWT via JwksCache
+      and evaluate embedded Rego policy. Authorino / Kuadrant external auth was removed in
+      fulfillment-service#685.
     route: /provider/rbac (Enforcement tab)
     ui:
       components:
-        - Alert (info): deny-by-default description
-        - <pre> block: sample AuthPolicy YAML
-        - Button "View all AuthPolicies" (stub)
+        - Alert (info): deny-by-default OPA description (GrpcAuthnInterceptor + GrpcAuthzInterceptor)
+        - <pre> block: sample Rego policy (package authz / default allow := false)
+        - Button "View Rego policy" (stub)
 
 cross_flow_entry_points:
   - id: rbac_to_tenant_detail

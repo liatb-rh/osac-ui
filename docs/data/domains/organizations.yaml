@@ -159,7 +159,8 @@ workflows:
 authentication_architecture:
   description: >
     From enhancements/organizations/README.md.
-    Built on: Gateway API (Envoy Proxy), Keycloak (user-managed), Kuadrant (Authorino + Limitador),
+    Built on: Gateway API (Envoy Proxy), Keycloak (user-managed), Kuadrant (OPA + Limitador),
+    NOTE: Authorino was removed in fulfillment-service#685 — authentication is now built-in (JWKS/JWT + embedded OPA Rego).
     OpenShift Projects for namespace isolation.
 
   keycloak:
@@ -170,13 +171,13 @@ authentication_architecture:
     authorization_services: Keycloak Authorization Services for Project-level permissions.
 
   kuadrant:
-    authorino:
-      description: Validates Keycloak-issued tokens; enforces authorization policies at Gateway layer.
-      supports: OPA, SpiceDB, external auth services
-      injects_headers:
-        - X-Remote-User
-        - X-Organization
-        - X-Roles
+    opa_built_in:
+      description: >
+        Built-in gRPC interceptors in fulfillment-service validate JWT tokens via JWKS/OIDC
+        discovery (JwksCache) and evaluate an embedded Rego policy (internal/auth/policies/authz.rego)
+        using the OPA Go library. Authorino external auth was removed in fulfillment-service#685.
+      policy: deny-by-default; allow rules keyed on is_admin / is_tenant_admin / is_client + has_client_permissions
+      context_propagation: subject injected into gRPC context; no injected HTTP headers
     limitador: Rate limiting capabilities.
 
   authentication_flow:
@@ -184,9 +185,10 @@ authentication_architecture:
       - "User visits console → redirect to Keycloak → authenticates at corporate IdP"
       - "Keycloak issues tokens; protocol mappers normalize claims"
       - "User calls OSAC APIs with token"
-      - "Kuadrant intercepts at Gateway; Authorino validates token, extracts claims, enforces policies"
-      - "Authorino injects X-Remote-User, X-Organization, X-Roles headers"
-      - "Fulfillment Service receives clean request with verified context"
+      - "Request reaches fulfillment-service gRPC layer"
+      - "GrpcAuthnInterceptor validates JWT via JwksCache (OIDC discovery + JWKS fetch)"
+      - "GrpcAuthzInterceptor evaluates embedded Rego policy; injects Subject into context"
+      - "Handler proceeds with authenticated + authorized Subject (no external Authorino required)"
 
 role_model:
   source: enhancements/organizations/README.md
@@ -258,22 +260,24 @@ iam_models:
   IdentityProvider:
     description: >
       External identity provider federated into a Keycloak realm.
-      Keyed by name (string), NOT UUID. Each Organization has one IdP.
+      Keyed by id (UUID). Proto field renamed from `name` to `id` in OSAC-204 / fulfillment-service#719.
+      Each Organization has one IdP.
     proto: proto/public/osac/public/v1/identity_provider_type.proto
     api: /api/fulfillment/v1/identity_providers
     operations:
       - POST   /identity_providers            # Create
       - GET    /identity_providers            # List
       - GET    /identity_providers:list-available
-      - GET    /identity_providers/{name}     # Get — keyed by name
-      - PUT    /identity_providers/{name}     # Update
-      - DELETE /identity_providers/{name}     # Delete
-      - POST   /identity_providers/{name}:assign
-      - POST   /identity_providers/{name}:unassign
+      - GET    /identity_providers/{id}       # Get — keyed by id (UUID)
+      - PATCH  /identity_providers/{object.id} # Update — field mask + lock (was PUT /{name})
+      - DELETE /identity_providers/{id}       # Delete
+      - POST   /identity_providers/{id}:assign
+      - POST   /identity_providers/{id}:unassign
+      - POST   /identity_providers/{id}:signal  # Private API only — trigger reconciliation
     fields:
-      - name: name
-        type: string
-        notes: Primary key — NOT a UUID. e.g. "northstar-corp-ldap"
+      - name: id
+        type: string (UUID)
+        notes: Primary key. Renamed from `name` in OSAC-204. Immutable after creation.
       - name: metadata
         type: Metadata
       - name: spec.config
@@ -293,7 +297,8 @@ iam_models:
   AuthnCapabilities:
     description: >
       Authn discovery resource exposing the list of trusted Keycloak token issuers
-      for the current tenant. Issuers are validated by Authorino at the gateway.
+      for the current tenant. Issuers are validated in-process by the fulfillment service
+      JwksCache (OIDC discovery + JWKS fetch). Authorino removed in fulfillment-service#685.
     proto: proto/public/osac/public/v1/authn_capabilities_type.proto
     api: GET /api/fulfillment/v1/capabilities
     fields:
@@ -430,7 +435,7 @@ cross_layer_gaps:
 open_questions:
   - RESOLVED: Tenant CRD spec confirmed — TenantSpec is empty; TenantStatus has Phase/Namespace/StorageClasses/Conditions/Jobs
   - RESOLVED: No public /tenants API endpoint — tenancy is via metadata.tenant string ID + operator CRD
-  - RESOLVED: IdentityProvider keyed by name (not UUID); supports OIDC and LDAP oneof config
+  - RESOLVED: IdentityProvider keyed by id (UUID) — OSAC-204 / fulfillment-service#719 renamed proto field name→id; supports OIDC and LDAP oneof config
   - RESOLVED: Break-glass password write-only; returned once on org create via private API (/api/private/v1/organizations)
   - RESOLVED: Tenant CRD group is osac.openshift.io/v1alpha1 (not osac.redhat.com)
   - OPEN: How are org-scoped roles different from project-scoped roles in practice?

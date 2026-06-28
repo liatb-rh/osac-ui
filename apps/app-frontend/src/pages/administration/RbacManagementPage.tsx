@@ -282,7 +282,7 @@ function PermissionsModal({ role, onClose }: PermissionsModalProps) {
           variant="warning"
           isInline
           isPlain
-          title="Publishing will re-generate Authorino AuthPolicies for this role across all Kuadrant gateways."
+          title="Publishing will update the OPA Rego policy that the fulfillment service evaluates for this role."
           style={{ marginTop: 16 }}
         />
       </ModalBody>
@@ -588,35 +588,42 @@ function GroupMappingsTab({ mappings, onEdit, onRemove }: GroupMappingsTabProps)
 // Enforcement tab
 // ---------------------------------------------------------------------------
 
-const SAMPLE_AUTH_POLICY = `apiVersion: kuadrant.io/v1beta2
-kind: AuthPolicy
-metadata:
-  name: osac-tenant-admin-policy
-  namespace: osac-gateway
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: fulfillment-tenant-admin-route
-  rules:
-    authentication:
-      jwt-bearer:
-        jwt:
-          issuerUrl: https://auth.osac.internal/realms/northstar.osac
-    authorization:
-      roles-check:
-        opa:
-          inlineRego: |
-            allow {
-              claims := input.auth.identity.claims
-              "tenant-admin" in claims.groups
-            }
-    response:
-      success:
-        headers:
-          x-osac-role:
-            plain:
-              value: "tenant-admin"`.trim()
+// Rego snippet from fulfillment-service internal/auth/policies/authz.rego (PR #685)
+const SAMPLE_REGO_POLICY = `package authz
+
+import rego.v1
+
+default allow := false
+
+# Provider admin — full access
+allow if is_admin
+
+# Tenant admin — user-management RPCs
+allow if {
+  is_tenant_admin
+  has_tenant_admin_permissions
+}
+
+# Tenant user (client) — standard workload RPCs
+allow if {
+  is_client
+  has_client_permissions
+}
+
+# --- Identity helpers ---
+
+is_admin if input.auth.identity.authnMethod == "jwt"
+is_admin if "cloud-provider-admin" in subject_roles
+
+is_tenant_admin if "tenant-admin" in subject_roles
+
+is_client if {
+  not is_admin
+  not is_tenant_admin
+}
+
+subject_tenants := input.auth.identity.organization
+subject_roles   := input.auth.identity.roles`.trim()
 
 function EnforcementTab() {
   return (
@@ -624,16 +631,18 @@ function EnforcementTab() {
       <Alert
         variant="info"
         isInline
-        title="Deny-by-default: Authorino rejects all requests not matching an AuthPolicy"
+        title="Deny-by-default: OPA Rego policy embedded in the fulfillment service binary"
       >
-        Every API endpoint in the OSAC fulfillment service is protected by an Authorino{' '}
-        <code>AuthPolicy</code> attached to a Kuadrant <code>HTTPRoute</code>. Requests without a
-        valid Keycloak JWT whose groups claim includes the required role are rejected with{' '}
-        <code>401 Unauthorized</code> before reaching the backend.
+        Every API endpoint in the OSAC fulfillment service is protected by an in-process{' '}
+        <strong>OPA Rego policy</strong> evaluated by gRPC interceptors. The{' '}
+        <code>GrpcAuthnInterceptor</code> validates Keycloak-issued JWTs via the built-in{' '}
+        JWKS cache; the <code>GrpcAuthzInterceptor</code> runs the embedded Rego policy.
+        Requests that do not satisfy the policy are rejected with <code>PERMISSION_DENIED</code>.
+        Authorino / Kuadrant external auth was removed in fulfillment-service#685.
       </Alert>
       <div>
         <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-          Sample AuthPolicy — tenant-admin scope
+          Sample OPA Rego policy — tenant-admin scope
         </div>
         <pre
           style={{
@@ -646,7 +655,7 @@ function EnforcementTab() {
             lineHeight: 1.6,
           }}
         >
-          {SAMPLE_AUTH_POLICY}
+          {SAMPLE_REGO_POLICY}
         </pre>
       </div>
       <div>
@@ -687,10 +696,10 @@ export function RbacManagementPage() {
     <>
       <PageLayout
         title="RBAC Management"
-        description="Role definitions, Keycloak group bindings, and Authorino enforcement policies."
+        description="Role definitions, Keycloak group bindings, and OPA Rego enforcement policy."
         actions={
           <Button variant="secondary" icon={<LockIcon />}>
-            Sync from Authorino
+            View Rego policy
           </Button>
         }
       >
@@ -723,7 +732,7 @@ export function RbacManagementPage() {
             group mappings
           </span>
           <Label isCompact color="green">
-            Enforced by Authorino
+            Enforced by OPA
           </Label>
         </div>
 
