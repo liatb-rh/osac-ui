@@ -22,6 +22,7 @@ import {
 } from '../constants'
 import { useSecurityGroups } from '../../../../hooks/useNetworking'
 import type { UpdateFn, WizardState } from '../types'
+import { estimateVmMonthlyCost } from '../../../../utils/costUtils'
 
 const introCss = css`
   margin-top: var(--pf-t--global--spacer--sm);
@@ -189,6 +190,39 @@ export function ReviewStep({
           </DescriptionListGroup>
         </DescriptionList>,
       )}
+      {(() => {
+        const cost = estimateVmMonthlyCost({
+          cores: templateCores ?? undefined,
+          memoryGib: templateMemoryGib ?? undefined,
+          bootDiskGib: templateBootDiskGib ?? undefined,
+          additionalDisksGib: additionalDisks ?? [],
+        })
+        if (!cost) return null
+        const fmt = (usd: number) =>
+          `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        return renderSection(
+          'template-cost',
+          'Estimated cost',
+          <DescriptionList isCompact>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Compute</DescriptionListTerm>
+              <DescriptionListDescription>{fmt(cost.compute)} / mo</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Storage</DescriptionListTerm>
+              <DescriptionListDescription>{fmt(cost.storage)} / mo</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>
+                <strong>Total</strong>
+              </DescriptionListTerm>
+              <DescriptionListDescription>
+                <strong>{fmt(cost.total)} / mo</strong>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>,
+        )
+      })()}
     </>
   )
 

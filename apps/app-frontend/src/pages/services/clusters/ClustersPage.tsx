@@ -31,6 +31,7 @@ import { useDeleteCluster } from '../../../hooks/useDeleteCluster'
 import { PageHeader } from '@osac/ui-components'
 import { CustomTableLink, ObjectsTable } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
+import { estimateClusterMonthlyCost, formatCostPerMonth } from '../../../utils/costUtils'
 
 type StateFilter =
   | 'all'
@@ -154,6 +155,19 @@ export function ClustersPage() {
         cluster.metadata.createdAt
           ? new Date(cluster.metadata.createdAt).toLocaleDateString()
           : '—',
+    },
+    {
+      label: 'Est. cost / mo',
+      dataLabel: 'Est. cost / mo',
+      render: (cluster) => {
+        const nodeCount = Object.values(cluster.spec.nodeSets ?? {}).reduce(
+          (sum, ns) => sum + ns.size,
+          0,
+        )
+        if (nodeCount === 0) return '—'
+        const { leaseTotal } = estimateClusterMonthlyCost({ nodeCount })
+        return formatCostPerMonth(leaseTotal)
+      },
     },
     {
       screenReaderText: 'Actions',

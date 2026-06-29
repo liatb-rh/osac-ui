@@ -117,6 +117,17 @@ const specValueCss = css`
   font-weight: 700;
 `
 
+const costRowCss = css`
+  font-size: 0.8125rem;
+  margin-top: 6px;
+  color: var(--pf-t--global--text--color--subtle);
+`
+
+const costValueCss = css`
+  font-weight: 600;
+  color: var(--pf-t--global--text--color--regular);
+`
+
 const footerCss = css`
   padding-top: 0;
   display: flex;
@@ -220,6 +231,16 @@ export function FullCatalogItemCard({ item, onClick, isSelected }: FullCatalogIt
                 <span>{s.label}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Estimated monthly cost */}
+        {item.fixedDefaults.estimatedMonthlyCostUsd != null && (
+          <div className={costRowCss}>
+            <span className={costValueCss}>
+              ~${item.fixedDefaults.estimatedMonthlyCostUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })} / mo
+            </span>
+            {' '}· estimated
           </div>
         )}
       </CardBody>

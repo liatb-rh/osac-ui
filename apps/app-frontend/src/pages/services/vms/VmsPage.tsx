@@ -23,6 +23,7 @@ import { resolveVmOsForUi } from '@osac/api-contracts'
 import { CustomTableLink, ObjectsTable, PageLayout, VmStatusLabel } from '@osac/ui-components'
 import type { ObjectsTableColumn } from '@osac/ui-components'
 import { useComputeInstances, useDeleteVm, usePatchVm, useProvisionVm } from '../../../hooks/hooks'
+import { estimateVmMonthlyCost, formatCostPerMonth } from '../../../utils/costUtils'
 import { useVmPowerActionDisplay } from '../../../hooks/useVmPowerActionDisplay'
 import { useSession } from '../../../contexts/SessionContext'
 import { VmDeleteConfirmModal } from '../../../components/vm/VmDeleteConfirmModal'
@@ -223,6 +224,18 @@ export function VmsPage() {
       label: 'Memory',
       dataLabel: 'Memory',
       render: (vm) => (vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—'),
+    },
+    {
+      label: 'Est. cost / mo',
+      dataLabel: 'Est. cost / mo',
+      render: (vm) => {
+        const cost = estimateVmMonthlyCost({
+          cores: vm.spec.cores,
+          memoryGib: vm.spec.memoryGib,
+          bootDiskGib: vm.spec.bootDisk?.sizeGib as number | undefined,
+        })
+        return cost != null ? formatCostPerMonth(cost.total) : '—'
+      },
     },
     {
       label: 'IP address',

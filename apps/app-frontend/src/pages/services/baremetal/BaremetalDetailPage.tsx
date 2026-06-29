@@ -22,6 +22,7 @@ import {
 } from '@patternfly/react-core'
 import { BARE_METAL_HOSTS, BARE_METAL_INSTANCES, BM_FLAVORS, BM_IMAGES } from '@osac/api-contracts'
 import { ActionRow, KpiHeader, ObjectsTable, PageHeader } from '@osac/ui-components'
+import { estimateBareMetalMonthlyCost, formatCostPerMonth } from '../../../utils/costUtils'
 import { TrashIcon } from '@patternfly/react-icons/dist/esm/icons/trash-icon'
 import { useState } from 'react'
 
@@ -80,16 +81,6 @@ export function BaremetalDetailPage() {
             ),
           },
           {
-            label: 'Power',
-            value: host ? (
-              <Label color={host.powerState === 'on' ? 'green' : 'grey'} isCompact>
-                {host.powerState}
-              </Label>
-            ) : (
-              '—'
-            ),
-          },
-          {
             label: 'Cores',
             value: host ? String(host.cores) : flavor ? String(flavor.cores) : '—',
           },
@@ -97,7 +88,12 @@ export function BaremetalDetailPage() {
             label: 'Memory',
             value: host ? `${host.memoryGiB} GiB` : flavor ? `${flavor.memoryGiB} GiB` : '—',
           },
-          { label: 'Primary IP', value: <code>{instance.ip}</code> },
+          {
+            label: 'Est. cost / mo',
+            value: formatCostPerMonth(
+              estimateBareMetalMonthlyCost({ flavorId: instance.flavor }).leaseTotal,
+            ),
+          },
         ]}
       />
 

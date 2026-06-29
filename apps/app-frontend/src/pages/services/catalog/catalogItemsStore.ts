@@ -16,7 +16,8 @@ const SEED_ITEMS: FullCatalogItem[] = [
     published: true,
     tenantEnabled: true,
     templateRef: 'vm-rhel9',
-    fixedDefaults: { cpu: 2, memoryGib: 8, bootDiskSizeGib: 40 },
+    // 2 vCPU × $36 + 8 GiB × $4.32 + 40 GiB × $0.10 = $110.56
+    fixedDefaults: { cpu: 2, memoryGib: 8, bootDiskSizeGib: 40, estimatedMonthlyCostUsd: 111 },
     tags: ['rhel', 'small'],
   },
   {
@@ -28,7 +29,8 @@ const SEED_ITEMS: FullCatalogItem[] = [
     published: true,
     tenantEnabled: true,
     templateRef: 'vm-rhel9',
-    fixedDefaults: { cpu: 4, memoryGib: 16, bootDiskSizeGib: 80 },
+    // 4 vCPU × $36 + 16 GiB × $4.32 + 80 GiB × $0.10 = $221.12
+    fixedDefaults: { cpu: 4, memoryGib: 16, bootDiskSizeGib: 80, estimatedMonthlyCostUsd: 221 },
     tags: ['rhel', 'medium'],
   },
   {
@@ -40,7 +42,8 @@ const SEED_ITEMS: FullCatalogItem[] = [
     published: true,
     tenantEnabled: true,
     templateRef: 'ocp-4.17-edge',
-    fixedDefaults: { cpu: 3, memoryGib: 24, ocpVersion: '4.17' },
+    // 3 nodes × $180/node-month = $540
+    fixedDefaults: { cpu: 3, memoryGib: 24, ocpVersion: '4.17', estimatedMonthlyCostUsd: 540 },
     tags: ['openshift', 'edge'],
   },
 
@@ -58,7 +61,8 @@ const SEED_ITEMS: FullCatalogItem[] = [
     published: true,
     tenantEnabled: true,
     templateRef: 'bm-standard-2x',
-    fixedDefaults: {},
+    // flat server lease — bm-standard-2x → $1,200/mo
+    fixedDefaults: { estimatedMonthlyCostUsd: 1200 },
     tags: ['amd', 'general-purpose'],
     fieldDefinitions: [
       // text — editable: user names the OS hostname
@@ -122,7 +126,8 @@ const SEED_ITEMS: FullCatalogItem[] = [
     published: true,
     tenantEnabled: true,
     templateRef: 'bm-large-gpu',
-    fixedDefaults: {},
+    // flat server lease — bm-large-gpu → $8,500/mo
+    fixedDefaults: { estimatedMonthlyCostUsd: 8500 },
     tags: ['gpu', 'ml', 'hpc'],
     fieldDefinitions: [
       // text — editable
@@ -204,7 +209,8 @@ const SEED_ITEMS: FullCatalogItem[] = [
     published: true,
     tenantEnabled: true,
     templateRef: 'bm-edge-compact',
-    fixedDefaults: {},
+    // flat server lease — bm-edge-compact → $400/mo
+    fixedDefaults: { estimatedMonthlyCostUsd: 400 },
     tags: ['edge', 'iot', 'compact'],
     fieldDefinitions: [
       {

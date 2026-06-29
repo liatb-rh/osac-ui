@@ -18,6 +18,8 @@ export interface CatalogItemFixedDefaults {
   allowUserResize?: boolean
   ocpVersion?: string
   nodeProfile?: string
+  /** Pre-computed capacity-based monthly cost estimate in USD (AI Grid PoC) */
+  estimatedMonthlyCostUsd?: number
 }
 
 // ---------------------------------------------------------------------------

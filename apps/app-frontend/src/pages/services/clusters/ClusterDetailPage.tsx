@@ -34,6 +34,7 @@ import { useCluster } from '../../../hooks/useCluster'
 import { useClusterCatalogItems } from '../../../hooks/useClusterCatalogItems'
 import { downloadKubeconfig } from '../../../api/clusterClient'
 import { useDeleteCluster } from '../../../hooks/useDeleteCluster'
+import { estimateClusterMonthlyCost, formatCostPerMonth } from '../../../utils/costUtils'
 import { useVirtualNetworks } from '../../../hooks/useNetworking'
 import { ClusterStatusLabel } from '@osac/ui-components'
 import { UpgradeClusterModal } from '../../../components/clusters/UpgradeClusterModal'
@@ -231,24 +232,11 @@ export function ClusterDetailPage() {
             { label: 'OCP version', value: cluster.status.version ?? '—', hint: 'control plane' },
             { label: 'Workers', value: String(totalWorkers || '—'), hint: 'worker nodes' },
             {
-              label: 'Virtual network',
-              value: resolveVnName(cluster.spec.network?.virtualNetworkRef),
-            },
-            {
-              label: 'Storage',
+              label: 'Est. cost / mo',
               value:
-                cluster.status.storageReady === true
-                  ? 'Ready'
-                  : cluster.status.storageReady === false
-                    ? 'Provisioning'
-                    : '—',
-              hint: 'VAST CSI',
-              tone:
-                cluster.status.storageReady === true
-                  ? 'success'
-                  : cluster.status.storageReady === false
-                    ? 'warning'
-                    : 'muted',
+                totalWorkers > 0
+                  ? formatCostPerMonth(estimateClusterMonthlyCost({ nodeCount: totalWorkers }).leaseTotal)
+                  : '—',
             },
           ]}
         />

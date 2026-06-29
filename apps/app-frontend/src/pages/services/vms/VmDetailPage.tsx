@@ -32,6 +32,7 @@ import { KpiHeader, VmStatusLabel } from '@osac/ui-components'
 import type { ComputeInstance } from '@osac/api-contracts'
 import { resolveVmOsForUi } from '@osac/api-contracts'
 import { useComputeInstances, useDeleteVm, usePatchVm } from '../../../hooks/hooks'
+import { estimateVmMonthlyCost, formatCostPerMonth } from '../../../utils/costUtils'
 import { useVmPowerActionDisplay } from '../../../hooks/useVmPowerActionDisplay'
 import { PageHeader } from '@osac/ui-components'
 import { VmDeleteConfirmModal } from '../../../components/vm/VmDeleteConfirmModal'
@@ -41,6 +42,7 @@ import {
   VmOverviewTab,
   VmStorageTab,
 } from '../../../components/vm/tabs'
+import { VmCostTab } from '../../../components/vm/tabs/VmCostTab'
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -221,6 +223,17 @@ export function VmDetailPage() {
                 value: vm.spec.memoryGib != null ? `${vm.spec.memoryGib} GiB` : '—',
               },
               { label: 'IP address', value: vm.status.ipAddress ?? '—' },
+              {
+                label: 'Est. cost / mo',
+                value: (() => {
+                  const cost = estimateVmMonthlyCost({
+                    cores: vm.spec.cores,
+                    memoryGib: vm.spec.memoryGib,
+                    bootDiskGib: vm.spec.bootDisk?.sizeGib as number | undefined,
+                  })
+                  return cost != null ? formatCostPerMonth(cost.total) : '—'
+                })(),
+              },
             ]}
           />
         </StackItem>
@@ -240,6 +253,9 @@ export function VmDetailPage() {
             </Tab>
             <Tab eventKey={2} title={<TabTitleText>Storage</TabTitleText>}>
               {activeTab === 2 && <VmStorageTab vm={vm} />}
+            </Tab>
+            <Tab eventKey={3} title={<TabTitleText>Cost</TabTitleText>}>
+              {activeTab === 3 && <VmCostTab vm={vm} />}
             </Tab>
             <Tab eventKey={5} title={<TabTitleText>Activity</TabTitleText>}>
               {activeTab === 5 && <VmActivityTab vm={vm} />}

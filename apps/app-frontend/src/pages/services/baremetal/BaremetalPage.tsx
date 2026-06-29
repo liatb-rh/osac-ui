@@ -25,6 +25,7 @@ import type {
   ObjectsTableColumn,
 } from '@osac/ui-components'
 import { catalogItemsStore } from '../catalog/catalogItemsStore'
+import { estimateBareMetalMonthlyCost, formatCostPerMonth } from '../../../utils/costUtils'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -198,6 +199,13 @@ export function BaremetalPage() {
     {
       label: 'Age',
       render: (i) => <span title={i.createdAt}>{formatAge(i.createdAt)}</span>,
+    },
+    {
+      label: 'Est. cost / mo',
+      render: (i) => {
+        const { leaseTotal } = estimateBareMetalMonthlyCost({ flavorId: i.flavor })
+        return formatCostPerMonth(leaseTotal)
+      },
     },
     {
       isActionCell: true,
