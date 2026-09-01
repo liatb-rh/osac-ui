@@ -79,6 +79,7 @@ export const buildBareMetalInstanceStepSchema = (
   }
 
   const fields = buildBareMetalInstanceFieldDefinitions(catalogItem, t);
+  const optionalUserData = fields.specUserData as yup.StringSchema<string | undefined>;
 
   switch (stepId) {
     case 'catalog':
@@ -97,7 +98,33 @@ export const buildBareMetalInstanceStepSchema = (
     case 'configuration':
       return yup.object({
         spec: yup.object({
-          userData: fields.specUserData,
+          userData: optionalUserData.notRequired(),
+        }),
+      });
+    case 'networking':
+      return yup.object({
+        spec: yup.object({
+          networking: yup.object({
+            attachments: yup
+              .array()
+              .of(
+                yup.object({
+                  interface: yup
+                    .string()
+                    .required(t('catalogProvision.validation.interfaceRequired')),
+                  virtualNetwork: yup
+                    .string()
+                    .required(t('catalogProvision.validation.virtualNetworkRequired')),
+                  subnet: yup.string().required(t('catalogProvision.validation.subnetRequired')),
+                  securityGroups: yup
+                    .array()
+                    .min(1, t('catalogProvision.validation.securityGroupRequired')),
+                  primary: yup.boolean().required(),
+                }),
+              )
+              .min(1, t('catalogProvision.validation.atLeastOneAttachment')),
+            autoExternalIpAttachment: yup.boolean(),
+          }),
         }),
       });
     default:

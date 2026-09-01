@@ -6,6 +6,7 @@ import { BareMetalInstanceSchema } from '@osac/types';
 
 import BareMetalConfigurationStep from './bareMetalInstance/BareMetalConfigurationStep';
 import BareMetalGeneralStep from './bareMetalInstance/BareMetalGeneralStep';
+import { BareMetalNetworkingStep } from './bareMetalInstance/BareMetalNetworkingStep';
 import { BareMetalReviewStep } from './bareMetalInstance/BareMetalReviewStep';
 import {
   type BareMetalInstanceWizardValues,
@@ -44,7 +45,7 @@ export const useBareMetalInstanceAdapter = (): CatalogProvisionAdapter<
       ConfigurationStep: BareMetalConfigurationStep,
       GeneralStep: BareMetalGeneralStep,
       ReviewStep: BareMetalReviewStep,
-      NetworkingStep: () => null,
+      NetworkingStep: BareMetalNetworkingStep,
       getStepValidationSchema: (catalogItem, stepId) =>
         buildBareMetalInstanceStepSchema(catalogItem, stepId, t),
       onCatalogItemSelected: (item, helpers) => {

@@ -12,16 +12,16 @@ import { Formik } from 'formik';
 import type { TFunction } from 'i18next';
 import * as Yup from 'yup';
 
-import type { ComputeInstance } from '@osac/types';
-
-import { useAttachExternalIp, useExternalIPPools } from '../../../api/v1/external-ip';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { getErrorMessage } from '../../../utils/error';
-import OsacForm from '../../Form/OsacForm';
-import { SelectField } from '../../Form/SelectField';
+import type { ExternalIPAttachmentTarget } from '../../api/v1/external-ip';
+import { useAttachExternalIp, useExternalIPPools } from '../../api/v1/external-ip';
+import { useTranslation } from '../../hooks/useTranslation';
+import { getErrorMessage } from '../../utils/error';
+import OsacForm from '../Form/OsacForm';
+import { SelectField } from '../Form/SelectField';
 
 interface AttachExternalIpModalProps {
-  vm: ComputeInstance;
+  target: ExternalIPAttachmentTarget;
+  targetId: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -35,7 +35,12 @@ const validationSchema = (t: TFunction) =>
     pool: Yup.string().required(t('An external IP pool is required')),
   });
 
-const AttachExternalIpModal = ({ vm, onClose, onSuccess }: AttachExternalIpModalProps) => {
+const AttachExternalIpModal = ({
+  target,
+  targetId,
+  onClose,
+  onSuccess,
+}: AttachExternalIpModalProps) => {
   const { t } = useTranslation();
   const attachExternalIp = useAttachExternalIp();
   const { data: pools = [], isLoading, error: poolsError } = useExternalIPPools();
@@ -53,8 +58,8 @@ const AttachExternalIpModal = ({ vm, onClose, onSuccess }: AttachExternalIpModal
       onSubmit={async (values) => {
         try {
           await attachExternalIp.mutateAsync({
-            target: 'computeInstance',
-            id: vm.id,
+            target,
+            id: targetId,
             pool: values.pool,
           });
           onSuccess();

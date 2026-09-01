@@ -36,6 +36,7 @@ const BARE_METAL_WIZARD_STEPS: readonly WizardStepId[] = [
   'catalog',
   'general',
   'configuration',
+  'networking',
   'review',
 ];
 

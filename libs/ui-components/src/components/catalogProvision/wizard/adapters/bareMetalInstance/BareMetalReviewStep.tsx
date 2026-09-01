@@ -89,6 +89,31 @@ export const BareMetalReviewStep = ({ catalogItem }: Props) => {
               {formatReviewScalar(values.spec.userData, true)}
             </DescriptionListDescription>
           </DescriptionListGroup>
+
+          <DescriptionListGroup>
+            <DescriptionListTerm>{t('Networking')}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {values.spec.networking.attachments.map((att, index) => (
+                <span key={index}>
+                  {att.interface ? `Interface: ${att.interface}` : 'Interface: —'}
+                  {` • Virtual network: ${att.virtualNetwork || '—'}`}
+                  {` • Subnet: ${att.subnet || '—'}`}
+                  {` • Security groups: ${
+                    att.securityGroups?.length ? att.securityGroups.join(', ') : '—'
+                  }`}
+                  {att.primary ? ' (primary)' : ''}
+                  {index < values.spec.networking.attachments.length - 1 ? <br /> : null}
+                </span>
+              ))}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+
+          <DescriptionListGroup>
+            <DescriptionListTerm>{t('Auto External IP')}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {values.spec.networking.autoExternalIpAttachment ? t('Enabled') : t('Disabled')}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
         </DescriptionList>
       </StackItem>
     </Stack>

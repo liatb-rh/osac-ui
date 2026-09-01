@@ -24,7 +24,27 @@ export interface BareMetalInstanceWizardValues {
   spec: {
     sshKey: string;
     userData: string;
+    networking: BareMetalInstanceNetworkingValues;
   };
+}
+
+export interface BareMetalNetworkAttachmentValue {
+  /** Physical NIC name from HostType's `interfaces[]` list. */
+  interface: string;
+  /** Virtual network id used for scoping VN -> subnet -> security group. */
+  virtualNetwork: string;
+  subnet: string;
+  securityGroups: string[];
+  /**
+   * Whether this attachment is the primary one for multi-NIC instances.
+   * The backend may infer primary implicitly for single-NIC instances.
+   */
+  primary: boolean;
+}
+
+export interface BareMetalInstanceNetworkingValues {
+  attachments: BareMetalNetworkAttachmentValue[];
+  autoExternalIpAttachment: boolean;
 }
 
 export const createEmptyBareMetalInstanceValues = (): BareMetalInstanceWizardValues => ({
@@ -33,6 +53,20 @@ export const createEmptyBareMetalInstanceValues = (): BareMetalInstanceWizardVal
   spec: {
     sshKey: '',
     userData: '',
+    networking: {
+      // Keep the initial model shape simple; the networking step will populate
+      // interface/VN/subnet/SG defaults once HostType is resolved.
+      attachments: [
+        {
+          interface: '',
+          virtualNetwork: '',
+          subnet: '',
+          securityGroups: [],
+          primary: true,
+        },
+      ],
+      autoExternalIpAttachment: false,
+    },
   },
 });
 

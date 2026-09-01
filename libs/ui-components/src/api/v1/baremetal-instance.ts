@@ -5,6 +5,7 @@ import {
   BareMetalInstanceCatalogItems,
   BareMetalInstanceRunStrategy,
   BareMetalInstanceSchema,
+  BareMetalInstanceTemplates,
   BareMetalInstances,
 } from '@osac/types';
 import { useProjectFilterQuery } from '@osac/ui-components/hooks/use-project-filter-query';
@@ -56,6 +57,16 @@ export const useBareMetalInstanceCatalogItem = (id: string | undefined) => {
     queryFn: () => client.get({ id: trimmedId }),
     select: (data) => data.object,
     enabled: Boolean(trimmedId),
+  });
+};
+
+export const useBareMetalInstanceTemplate = (id: string | undefined) => {
+  const client = useApiFetch(BareMetalInstanceTemplates);
+  return useApiQuery({
+    queryKey: apiQueryKey('v1/baremetal_instance_templates', id?.trim() ? [id.trim()] : undefined),
+    queryFn: () => client.get({ id: id?.trim() ?? '' }),
+    select: (data) => data.object,
+    enabled: Boolean(id?.trim()),
   });
 };
 

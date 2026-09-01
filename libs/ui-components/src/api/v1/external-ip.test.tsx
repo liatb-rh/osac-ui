@@ -179,7 +179,7 @@ describe('useAttachExternalIp', () => {
     const transport = createAttachExternalIpTransport();
 
     const { result } = renderUseAttachExternalIp(transport);
-    result.current.mutate({ computeInstanceId: 'vm-1', pool: 'pool-1' });
+    result.current.mutate({ target: 'computeInstance', id: 'vm-1', pool: 'pool-1' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -201,7 +201,7 @@ describe('useAttachExternalIp', () => {
     });
 
     const { result } = renderUseAttachExternalIp(transport);
-    result.current.mutate({ computeInstanceId: 'vm-1', pool: 'pool-1' });
+    result.current.mutate({ target: 'computeInstance', id: 'vm-1', pool: 'pool-1' });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 

@@ -2,6 +2,9 @@ import type { MessageInitShape } from '@bufbuild/protobuf';
 import { Code, ConnectError, type Transport, createRouterTransport } from '@connectrpc/connect';
 
 import type {
+  BareMetalInstance,
+  BareMetalInstanceCatalogItem,
+  BareMetalInstanceStatus,
   Cluster,
   ClusterCatalogItem,
   ClusterTemplate,
@@ -10,6 +13,7 @@ import type {
   ClustersCreateRequest,
   ClustersCreateResponse,
   ComputeInstanceCatalogItem,
+  ConsoleSession,
   DiskImage,
   DiskImagesCreateRequest,
   DiskImagesCreateResponse,
@@ -18,6 +22,11 @@ import type {
   DiskImagesListRequest,
   DiskImagesUpdateRequest,
   DiskImagesUpdateResponse,
+  ExternalIP,
+  ExternalIPAttachment,
+  ExternalIPAttachmentStatus,
+  ExternalIPPool,
+  ExternalIPStatus,
   HostType,
   IdentityProvider,
   IdentityProvidersCreateRequest,
@@ -25,6 +34,8 @@ import type {
   IdentityProvidersUpdateRequest,
   IdentityProvidersUpdateResponse,
   InstanceType,
+  NetworkClass,
+  Organization,
   Project,
   ProjectMembership,
   StorageTier as PublicStorageTier,
@@ -37,7 +48,11 @@ import type {
   User,
   VirtualNetwork,
 } from '@osac/types';
+import type { BareMetalInstanceTemplate } from '@osac/types';
 import {
+  BareMetalInstanceCatalogItems,
+  BareMetalInstanceState,
+  BareMetalInstances,
   ClusterCatalogItems,
   ClusterTemplates,
   ClusterVersionState,
@@ -45,13 +60,21 @@ import {
   ClusterVersionsListResponseSchema,
   Clusters,
   ComputeInstanceCatalogItems,
+  ConsoleSessions,
   DiskImageLifecycle,
   DiskImages,
   DiskImagesListResponseSchema,
+  ExternalIPAttachmentState,
+  ExternalIPAttachments,
+  ExternalIPPools,
+  ExternalIPState,
+  ExternalIPs,
   HostTypes,
   IdentityProviders,
   InstanceTypeState,
   InstanceTypes,
+  NetworkClasses,
+  Organizations,
   ProjectMemberships,
   Projects,
   StorageTiers as PublicStorageTiers,
@@ -65,6 +88,7 @@ import {
   VirtualNetworkState,
   VirtualNetworks,
 } from '@osac/types';
+import { BareMetalInstanceTemplates } from '@osac/types';
 import type {
   BareMetalInstanceTypesDeleteRequest,
   BareMetalInstanceTypesListRequest,
@@ -116,6 +140,9 @@ import { UnauthorizedError } from '../utils/unauthorizedError';
 
 export type MockApiFixtures = {
   catalogItems?: ComputeInstanceCatalogItem[];
+  bareMetalInstances?: BareMetalInstance[];
+  bareMetalInstanceCatalogItems?: BareMetalInstanceCatalogItem[];
+  bareMetalInstanceTemplates?: BareMetalInstanceTemplate[];
   clusters?: Cluster[];
   clusterCatalogItems?: ClusterCatalogItem[];
   clusterTemplates?: ClusterTemplate[];
@@ -125,6 +152,8 @@ export type MockApiFixtures = {
   virtualNetworks?: VirtualNetwork[];
   subnets?: Subnet[];
   securityGroups?: SecurityGroup[];
+  networkClasses?: NetworkClass[];
+  organizations?: Organization[];
   identityProviders?: IdentityProvider[];
   instanceTypes?: InstanceType[];
   diskImages?: DiskImage[];
@@ -138,6 +167,9 @@ export type MockApiFixtures = {
   roles?: Role[];
   roleBindings?: RoleBinding[];
   users?: User[];
+  externalIpPools?: ExternalIPPool[];
+  externalIps?: ExternalIP[];
+  externalIpAttachments?: ExternalIPAttachment[];
 };
 
 export const wrapWithAuthInterceptor = (transport: Transport): Transport => {
@@ -316,6 +348,9 @@ export const createMockConnectTransport = (
   overrides: MockTransportOverrides = {},
 ) => {
   const catalogItems = fixtures.catalogItems ?? [];
+  const bareMetalInstances = [...(fixtures.bareMetalInstances ?? [])];
+  const bareMetalInstanceCatalogItems = fixtures.bareMetalInstanceCatalogItems ?? [];
+  const bareMetalInstanceTemplates = fixtures.bareMetalInstanceTemplates ?? [];
   const clusters = fixtures.clusters ?? [];
   const clusterCatalogItems = fixtures.clusterCatalogItems ?? [];
   const clusterTemplates = fixtures.clusterTemplates ?? [];
@@ -328,6 +363,8 @@ export const createMockConnectTransport = (
   const virtualNetworks = fixtures.virtualNetworks ?? [];
   const subnets = fixtures.subnets ?? [];
   const securityGroups = fixtures.securityGroups ?? [];
+  const networkClasses = fixtures.networkClasses ?? [];
+  const organizations = fixtures.organizations ?? [];
   const instanceTypes = fixtures.instanceTypes ?? [];
   const diskImages = fixtures.diskImages ?? [];
   const privateInstanceTypes = fixtures.privateInstanceTypes ?? [];
@@ -338,6 +375,11 @@ export const createMockConnectTransport = (
   const roles = fixtures.roles ?? [];
   const roleBindingsFixtures = fixtures.roleBindings ?? [];
   const usersFixtures = fixtures.users ?? [];
+  const externalIpPools = fixtures.externalIpPools ?? [];
+  const externalIps = [...(fixtures.externalIps ?? [])];
+  const externalIpAttachments = [...(fixtures.externalIpAttachments ?? [])];
+  let mockIdCounter = 0;
+  const nextMockId = (prefix: string): string => `${prefix}-${(mockIdCounter += 1)}`;
 
   return wrapWithAuthInterceptor(
     createRouterTransport((router) => {
@@ -781,6 +823,151 @@ export const createMockConnectTransport = (
         }),
         get: (req) => ({
           object: usersFixtures.find((u) => u.id === req.id),
+        }),
+      });
+
+      // ── BMaaS ─────────────────────────────────────────────────────────────
+
+      router.service(BareMetalInstanceTemplates, {
+        list: () => ({
+          items: bareMetalInstanceTemplates,
+          size: bareMetalInstanceTemplates.length,
+          total: bareMetalInstanceTemplates.length,
+        }),
+        get: (req) => {
+          const tpl = bareMetalInstanceTemplates.find((t) => t.id === req.id);
+          if (!tpl) {
+            throw new ConnectError(`BareMetalInstanceTemplate not found: ${req.id}`, Code.NotFound);
+          }
+          return { object: tpl };
+        },
+      });
+
+      router.service(BareMetalInstanceCatalogItems, {
+        list: () => ({ items: bareMetalInstanceCatalogItems }),
+        get: (req) => ({
+          object: bareMetalInstanceCatalogItems.find((i) => i.id === req.id),
+        }),
+      });
+
+      router.service(BareMetalInstances, {
+        list: () => ({ items: bareMetalInstances }),
+        get: (req) => ({ object: bareMetalInstances.find((b) => b.id === req.id) }),
+        create: (req) => {
+          const created: BareMetalInstance = {
+            ...(req.object as BareMetalInstance),
+            id: nextMockId('bmi'),
+            status: {
+              $typeName: 'osac.public.v1.BareMetalInstanceStatus',
+              state: BareMetalInstanceState.PROVISIONING,
+              restartTrigger: 0n,
+              conditions: [],
+              networkAttachmentStatuses: [],
+            } as BareMetalInstanceStatus,
+          };
+          bareMetalInstances.push(created);
+          return { object: created };
+        },
+        update: (req) => {
+          const idx = bareMetalInstances.findIndex((b) => b.id === req.object?.id);
+          if (idx === -1) {
+            throw new ConnectError(`BareMetalInstance not found: ${req.object?.id}`, Code.NotFound);
+          }
+          const updated = { ...bareMetalInstances[idx], spec: req.object?.spec };
+          bareMetalInstances[idx] = updated as BareMetalInstance;
+          return { object: updated };
+        },
+        delete: (req) => {
+          const idx = bareMetalInstances.findIndex((b) => b.id === req.id);
+          if (idx !== -1) {
+            bareMetalInstances.splice(idx, 1);
+          }
+          return {};
+        },
+      });
+
+      // ── Networking extras ─────────────────────────────────────────────────
+
+      router.service(NetworkClasses, {
+        list: () => ({ items: networkClasses }),
+        get: (req) => ({ object: networkClasses.find((nc) => nc.id === req.id) }),
+      });
+
+      router.service(Organizations, {
+        list: () => ({ items: organizations }),
+        get: (req) => ({ object: organizations.find((o) => o.id === req.id) }),
+      });
+
+      router.service(ExternalIPPools, {
+        list: () => ({ items: externalIpPools }),
+        get: (req) => ({ object: externalIpPools.find((p) => p.id === req.id) }),
+      });
+
+      router.service(ExternalIPs, {
+        list: () => ({ items: externalIps }),
+        get: (req) => ({ object: externalIps.find((e) => e.id === req.id) }),
+        create: (req) => {
+          const created: ExternalIP = {
+            ...(req.object as ExternalIP),
+            id: nextMockId('eip'),
+            status: {
+              $typeName: 'osac.public.v1.ExternalIPStatus',
+              state: ExternalIPState.EXTERNAL_IP_STATE_ALLOCATED,
+              address: `203.0.113.${10 + externalIps.length}`,
+              pool: req.object?.spec?.pool?.id ?? '',
+              attached: false,
+            } as ExternalIPStatus,
+          };
+          externalIps.push(created);
+          return { object: created };
+        },
+        delete: (req) => {
+          const idx = externalIps.findIndex((e) => e.id === req.id);
+          if (idx !== -1) {
+            externalIps.splice(idx, 1);
+          }
+          return {};
+        },
+      });
+
+      router.service(ExternalIPAttachments, {
+        list: () => ({
+          items: externalIpAttachments,
+          size: externalIpAttachments.length,
+          total: externalIpAttachments.length,
+        }),
+        create: (req) => {
+          const created: ExternalIPAttachment = {
+            ...(req.object as ExternalIPAttachment),
+            id: nextMockId('eipa'),
+            status: {
+              $typeName: 'osac.public.v1.ExternalIPAttachmentStatus',
+              state: ExternalIPAttachmentState.EXTERNAL_IP_ATTACHMENT_STATE_READY,
+              externalIpAddress:
+                externalIps.find((e) => e.id === req.object?.spec?.externalIp?.id)?.status
+                  ?.address ?? '',
+            } as ExternalIPAttachmentStatus,
+          };
+          externalIpAttachments.push(created);
+          return { object: created };
+        },
+        delete: (req) => {
+          const idx = externalIpAttachments.findIndex((a) => a.id === req.id);
+          if (idx !== -1) {
+            externalIpAttachments.splice(idx, 1);
+          }
+          return {};
+        },
+      });
+
+      // ── Console (stub) ────────────────────────────────────────────────────
+
+      router.service(ConsoleSessions, {
+        create: (req) => ({
+          object: {
+            ...(req.object as ConsoleSession),
+            ticket: nextMockId('console-ticket'),
+          },
         }),
       });
     }),

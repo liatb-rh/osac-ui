@@ -63,6 +63,8 @@ export * from './osac/public/v1/field_definition_type_pb.js'
 
 export * from './osac/public/v1/baremetal_instance_type_pb.js';
 export * from './osac/public/v1/baremetal_instances_service_pb.js';
+export * from './osac/public/v1/baremetal_instance_template_type_pb.js';
+export * from './osac/public/v1/baremetal_instance_templates_service_pb.js';
 export * from './osac/public/v1/baremetal_instance_catalog_item_type_pb.js';
 export * from './osac/public/v1/baremetal_instance_catalog_items_service_pb.js';
 
