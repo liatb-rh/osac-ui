@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, PageSectionTypes, Wizard, WizardStep } from '@patternfly/react-core';
 import { Formik } from 'formik';
@@ -33,9 +33,22 @@ const BareMetalInstanceTypeForm = ({ bareMetalInstanceType }: BareMetalInstanceT
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isEdit = Boolean(bareMetalInstanceType);
-  const { mutateAsync: create, error: createError } = useCreateBareMetalInstanceType();
-  const { mutateAsync: update, error: updateError } = useUpdateBareMetalInstanceType();
+  const {
+    mutateAsync: create,
+    error: createError,
+    reset: resetCreate,
+  } = useCreateBareMetalInstanceType();
+  const {
+    mutateAsync: update,
+    error: updateError,
+    reset: resetUpdate,
+  } = useUpdateBareMetalInstanceType();
   const [currentStep, setCurrentStep] = useState<string>('general');
+
+  const handleErrorReset = useCallback(() => {
+    resetCreate();
+    resetUpdate();
+  }, [resetCreate, resetUpdate]);
 
   const onSubmit = async (values: BareMetalInstanceTypeFormValues) => {
     try {
@@ -73,6 +86,7 @@ const BareMetalInstanceTypeForm = ({ bareMetalInstanceType }: BareMetalInstanceT
                 stepHasErrors={bareMetalStepHasErrors}
                 isEdit={isEdit}
                 error={isEdit ? updateError : createError}
+                onErrorReset={handleErrorReset}
               />
             }
             onStepChange={(_, step) => setCurrentStep(step.id as string)}

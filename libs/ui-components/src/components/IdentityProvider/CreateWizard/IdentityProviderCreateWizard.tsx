@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -42,9 +42,22 @@ const IdentityProviderCreateWizard = ({ idp }: IdentityProviderCreateWizard) => 
   const { t } = useTranslation();
 
   const navigate = useNavigate();
-  const { mutateAsync: createAync, error: createErr } = useCreateResource(IdentityProviders);
-  const { mutateAsync: updateAsync, error: updateErr } = useUpdateResource(IdentityProviders);
+  const {
+    mutateAsync: createAync,
+    error: createErr,
+    reset: resetCreate,
+  } = useCreateResource(IdentityProviders);
+  const {
+    mutateAsync: updateAsync,
+    error: updateErr,
+    reset: resetUpdate,
+  } = useUpdateResource(IdentityProviders);
   const [currentStep, setCurrentStep] = useState<string>('general');
+
+  const handleErrorReset = useCallback(() => {
+    resetCreate();
+    resetUpdate();
+  }, [resetCreate, resetUpdate]);
 
   const initialValues = getIdentityProviderValues(idp);
 
@@ -104,6 +117,7 @@ const IdentityProviderCreateWizard = ({ idp }: IdentityProviderCreateWizard) => 
                   stepHasErrors={idpStepHasErrors}
                   isEdit={!!idp}
                   error={createErr || updateErr}
+                  onErrorReset={handleErrorReset}
                 />
               }
               onStepChange={(_, step) => {
