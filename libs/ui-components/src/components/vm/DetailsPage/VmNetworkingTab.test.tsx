@@ -6,37 +6,23 @@ import type { ComputeInstance } from '@osac/types';
 import VmNetworkingTab from './VmNetworkingTab';
 import { renderWithProviders } from '../../../test-utils/TestProviders';
 
-vi.mock('./useVmDetailsDisplay', () => ({
-  useVmDetailsDisplay: vi.fn(),
+vi.mock('./useVmNetworkAttachmentRows', () => ({
+  useVmNetworkAttachmentRows: vi.fn(),
 }));
 
-const { useVmDetailsDisplay } = await import('./useVmDetailsDisplay');
+const { useVmNetworkAttachmentRows } = await import('./useVmNetworkAttachmentRows');
 
 const renderTab = (vm: ComputeInstance) => renderWithProviders(<VmNetworkingTab vm={vm} />);
 
 describe('VmNetworkingTab', () => {
   it('renders resolved networking names', () => {
-    vi.mocked(useVmDetailsDisplay).mockReturnValue({
-      networkingRows: [
-        {
-          virtualNetwork: 'prod-vn',
-          subnet: 'prod-subnet',
-          securityGroups: 'web-sg, default-sg',
-        },
-      ],
-      catalogItemId: 'catalog-rhel-9',
-      hasCatalogItem: true,
-      isCatalogItemLoading: false,
-      instanceType: undefined,
-      instanceTypeId: undefined,
-      isInstanceTypeLoading: false,
-      fieldLabels: {
-        sshPublicKey: '',
-        bootDisk: '',
-        userData: '',
+    vi.mocked(useVmNetworkAttachmentRows).mockReturnValue([
+      {
+        virtualNetwork: 'prod-vn',
+        subnet: 'prod-subnet',
+        securityGroups: 'web-sg, default-sg',
       },
-      catalogItem: undefined,
-    });
+    ]);
 
     const vm = {
       id: 'vm-1',
@@ -58,21 +44,7 @@ describe('VmNetworkingTab', () => {
   });
 
   it('shows empty state when there are no attachments', () => {
-    vi.mocked(useVmDetailsDisplay).mockReturnValue({
-      networkingRows: [],
-      catalogItemId: undefined,
-      hasCatalogItem: false,
-      isCatalogItemLoading: false,
-      instanceType: undefined,
-      instanceTypeId: undefined,
-      isInstanceTypeLoading: false,
-      fieldLabels: {
-        sshPublicKey: '',
-        bootDisk: '',
-        userData: '',
-      },
-      catalogItem: undefined,
-    });
+    vi.mocked(useVmNetworkAttachmentRows).mockReturnValue([]);
 
     renderTab({ id: 'vm-1', spec: {} } as ComputeInstance);
     expect(screen.getByText('No virtual networks configured.')).toBeInTheDocument();

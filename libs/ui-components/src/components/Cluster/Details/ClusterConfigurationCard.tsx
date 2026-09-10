@@ -13,7 +13,6 @@ import {
 
 import type { Cluster } from '@osac/types';
 
-import { useClusterCatalogItem } from '../../../api/v1/cluster-catalog-item';
 import { useClusterVersion } from '../../../api/v1/cluster-versions';
 import { displayValue } from '../../../utils/detailFormatters';
 import { Timestamp } from '../../Primitives/Timestamp';
@@ -24,9 +23,7 @@ interface ClusterConfigurationCardProps {
 }
 
 export const ClusterConfigurationCard = ({ cluster }: ClusterConfigurationCardProps) => {
-  const catalogItemId = cluster.spec?.catalogItem?.id;
-  const { data: catalogItem, isLoading: isCatalogItemLoading } =
-    useClusterCatalogItem(catalogItemId);
+  const catalogItem = cluster.spec?.catalogItem;
   const { data: clusterVersion, isLoading: isVersionLoading } = useClusterVersion(
     cluster.spec?.version?.id,
   );
@@ -38,11 +35,7 @@ export const ClusterConfigurationCard = ({ cluster }: ClusterConfigurationCardPr
           <DescriptionListGroup>
             <DescriptionListTerm>Catalog item</DescriptionListTerm>
             <DescriptionListDescription>
-              {isCatalogItemLoading ? (
-                <Skeleton width="150px" />
-              ) : (
-                displayValue(catalogItem?.metadata?.name || catalogItemId)
-              )}
+              {displayValue(catalogItem?.name || catalogItem?.id)}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

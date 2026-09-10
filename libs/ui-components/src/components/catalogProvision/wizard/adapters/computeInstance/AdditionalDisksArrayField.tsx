@@ -12,6 +12,7 @@ import { useFormikContext } from 'formik';
 import type { ComputeInstanceWizardValues } from './fields';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { InputField } from '../../../../Form/InputField';
+import { emptyResourceSelectValue } from '../../../../Form/resourceSelectValue';
 import { StorageTierSelectField } from '../../../../Form/StorageTierSelectField';
 
 /** Same mechanism as ClusterNodeSetsArrayField: every row is always live and editable; Add appends a row, Remove deletes one. No separate editor/confirm/cancel state. */
@@ -21,7 +22,10 @@ export const AdditionalDisksArrayField = () => {
   const disks = values.spec.additionalDisks;
 
   const addDisk = () => {
-    void setFieldValue('spec.additionalDisks', [...disks, { sizeGib: '30', storageTier: '' }]);
+    void setFieldValue('spec.additionalDisks', [
+      ...disks,
+      { sizeGib: '30', storageTier: emptyResourceSelectValue() },
+    ]);
   };
 
   const removeDisk = (index: number) => {

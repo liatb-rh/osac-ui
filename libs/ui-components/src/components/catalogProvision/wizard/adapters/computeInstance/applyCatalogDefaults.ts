@@ -4,6 +4,10 @@ import type { TFunction } from 'i18next';
 import type { ComputeInstanceCatalogItem } from '@osac/types';
 
 import type { ComputeInstanceDiskValues, ComputeInstanceWizardValues } from './fields';
+import {
+  type ResourceSelectValue,
+  emptyResourceSelectValue,
+} from '../../../../Form/resourceSelectValue';
 import { fieldDefinitionDefaultToInputString } from '../../../catalogFieldDefinition';
 import {
   getCatalogFieldOverlay,
@@ -21,6 +25,25 @@ const setDefault = (
   }
 };
 
+const storageTierFromCatalogDefault = (value: unknown): ResourceSelectValue | undefined => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    return { id: '', name: value };
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const rec = value as { id?: unknown; name?: unknown };
+    const id = typeof rec.id === 'string' ? rec.id : '';
+    const name = typeof rec.name === 'string' ? rec.name : '';
+    if (!id && !name) {
+      return undefined;
+    }
+    return { id, name };
+  }
+  return undefined;
+};
+
 const additionalDisksOverlayToFormValue = (
   value: unknown,
 ): ComputeInstanceDiskValues[] | undefined => {
@@ -31,7 +54,7 @@ const additionalDisksOverlayToFormValue = (
     const record = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {};
     return {
       sizeGib: fieldDefinitionDefaultToInputString(record.size_gib),
-      storageTier: fieldDefinitionDefaultToInputString(record.storage_tier),
+      storageTier: storageTierFromCatalogDefault(record.storage_tier) ?? emptyResourceSelectValue(),
     };
   });
 };
@@ -67,7 +90,11 @@ export const applyVmCatalogConfigurationDefaults = (
 
   setDefault(helpers, 'spec.userData', overlayDefaultToFormValue(userDataOverlay));
   setDefault(helpers, 'spec.bootDisk.sizeGib', overlayDefaultToFormValue(bootDiskOverlay) ?? '');
-  setDefault(helpers, 'spec.bootDisk.storageTier', overlayDefaultToFormValue(storageTierOverlay));
+  setDefault(
+    helpers,
+    'spec.bootDisk.storageTier',
+    storageTierFromCatalogDefault(storageTierOverlay.defaultValue),
+  );
   setDefault(
     helpers,
     'spec.additionalDisks',

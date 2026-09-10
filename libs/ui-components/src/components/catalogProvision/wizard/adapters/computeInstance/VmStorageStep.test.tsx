@@ -13,6 +13,10 @@ import {
 import { createEmptyComputeInstanceValues } from './payload';
 import { VmStorageStep } from './VmStorageStep';
 import { renderWithProviders } from '../../../../../test-utils/TestProviders';
+import {
+  type ResourceSelectValue,
+  emptyResourceSelectValue,
+} from '../../../../Form/resourceSelectValue';
 
 const makeTier = (name: string, displayName: string) =>
   create(StorageTierSchema, {
@@ -43,7 +47,10 @@ const makeCatalogItem = (
     fieldDefinitions: storageTierFieldDefinition ? [storageTierFieldDefinition] : [],
   }) as unknown as ComputeInstanceCatalogItem;
 
-const renderStep = (catalogItem: ComputeInstanceCatalogItem, storageTier = '') =>
+const renderStep = (
+  catalogItem: ComputeInstanceCatalogItem,
+  storageTier: ResourceSelectValue = emptyResourceSelectValue(),
+) =>
   renderWithProviders(
     <Formik
       initialValues={{
@@ -77,12 +84,14 @@ describe('VmStorageStep', () => {
         editable: true,
         validationSchema: '',
       }),
-      'fast',
+      { id: 'id-fast', name: 'fast' },
     );
 
-    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Fast SSD'));
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^Storage tier/)).toHaveTextContent('fast');
+      expect(screen.getByLabelText(/^Storage tier/)).not.toBeDisabled();
+    });
     expect(screen.queryByText('Locked by catalog')).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox').closest('[disabled]')).toBeNull();
   });
 
   it('renders the tier read-only with a lock badge when the catalog locks it', async () => {
@@ -94,19 +103,19 @@ describe('VmStorageStep', () => {
         editable: false,
         validationSchema: '',
       }),
-      'fast',
+      { id: 'id-fast', name: 'fast' },
     );
 
-    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Fast SSD'));
+    await waitFor(() => expect(screen.getByLabelText(/^Storage tier/)).toHaveTextContent('fast'));
     expect(screen.getByText('Locked by catalog')).toBeInTheDocument();
-    expect(screen.getByRole('combobox').closest('[disabled]')).not.toBeNull();
+    expect(screen.getByLabelText(/^Storage tier/)).toBeDisabled();
   });
 
   it('leaves the tier picker editable and unset when the catalog defines no default', async () => {
     renderStep(makeCatalogItem());
 
-    await waitFor(() => expect(screen.getByRole('combobox').closest('[disabled]')).toBeNull());
-    expect(screen.getByRole('combobox')).toHaveValue('');
+    await waitFor(() => expect(screen.getByLabelText(/^Storage tier/)).not.toBeDisabled());
+    expect(screen.getByLabelText(/^Storage tier/)).toHaveTextContent('Select a storage tier');
     expect(screen.queryByText('Locked by catalog')).not.toBeInTheDocument();
   });
 });
@@ -123,12 +132,12 @@ describe('VmStorageStep — additional disks', () => {
   });
 
   it('adding an additional disk does not affect the boot disk fields', async () => {
-    const { user } = renderStep(makeCatalogItem(), 'fast');
+    const { user } = renderStep(makeCatalogItem(), { id: 'id-fast', name: 'fast' });
 
     await user.click(screen.getByRole('button', { name: 'Add disk' }));
 
-    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByLabelText(/^Storage tier/)).toHaveLength(2));
     // Boot disk's picker renders before the additional-disks array field in this step.
-    expect(screen.getAllByRole('combobox')[0]).toHaveValue('Fast SSD');
+    expect(screen.getAllByLabelText(/^Storage tier/)[0]).toHaveTextContent('fast');
   });
 });

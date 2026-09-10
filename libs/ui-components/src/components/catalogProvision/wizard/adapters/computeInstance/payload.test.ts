@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { type ComputeInstanceCatalogItem, ComputeInstanceRunStrategy } from '@osac/types';
 
 import { buildComputeInstanceCreatePayload, createEmptyComputeInstanceValues } from './payload';
+import { emptyResourceSelectValue } from '../../../../Form/resourceSelectValue';
 
 const vmCatalogItem: ComputeInstanceCatalogItem = {
   $typeName: 'osac.public.v1.ComputeInstanceCatalogItem',
@@ -108,18 +109,21 @@ describe('buildComputeInstanceCreatePayload', () => {
 });
 
 describe('buildComputeInstanceCreatePayload — disk storage tiers', () => {
-  it('sends the boot disk tier by name, not id', () => {
+  it('sends the boot disk tier id and name', () => {
     const values = baseValues();
-    values.spec.bootDisk = { sizeGib: '20', storageTier: 'balanced' };
+    values.spec.bootDisk = { sizeGib: '20', storageTier: { id: 'id-balanced', name: 'balanced' } };
 
     const payload = buildComputeInstanceCreatePayload(values, vmCatalogItem);
 
-    expect(payload.spec?.bootDisk).toEqual({ sizeGib: 20, storageTier: 'balanced' });
+    expect(payload.spec?.bootDisk).toEqual({
+      sizeGib: 20,
+      storageTier: { id: 'id-balanced', name: 'balanced' },
+    });
   });
 
   it('omits storage_tier from the boot disk when no tier is selected', () => {
     const values = baseValues();
-    values.spec.bootDisk = { sizeGib: '20', storageTier: '' };
+    values.spec.bootDisk = { sizeGib: '20', storageTier: emptyResourceSelectValue() };
 
     const payload = buildComputeInstanceCreatePayload(values, vmCatalogItem);
 
@@ -129,31 +133,40 @@ describe('buildComputeInstanceCreatePayload — disk storage tiers', () => {
 
   it('carries both the boot disk tier and each additional disk tier', () => {
     const values = baseValues();
-    values.spec.bootDisk = { sizeGib: '20', storageTier: 'fast' };
-    values.spec.additionalDisks = [{ sizeGib: '100', storageTier: 'bulk' }];
-
-    const payload = buildComputeInstanceCreatePayload(values, vmCatalogItem);
-
-    expect(payload.spec?.bootDisk).toEqual({ sizeGib: 20, storageTier: 'fast' });
-    expect(payload.spec?.additionalDisks).toEqual([{ sizeGib: 100, storageTier: 'bulk' }]);
-  });
-
-  it('drops additional disk rows that have no size', () => {
-    const values = baseValues();
-    values.spec.bootDisk = { sizeGib: '20', storageTier: '' };
+    values.spec.bootDisk = { sizeGib: '20', storageTier: { id: 'id-fast', name: 'fast' } };
     values.spec.additionalDisks = [
-      { sizeGib: '100', storageTier: 'bulk' },
-      { sizeGib: '', storageTier: 'fast' },
+      { sizeGib: '100', storageTier: { id: 'id-bulk', name: 'bulk' } },
     ];
 
     const payload = buildComputeInstanceCreatePayload(values, vmCatalogItem);
 
-    expect(payload.spec?.additionalDisks).toEqual([{ sizeGib: 100, storageTier: 'bulk' }]);
+    expect(payload.spec?.bootDisk).toEqual({
+      sizeGib: 20,
+      storageTier: { id: 'id-fast', name: 'fast' },
+    });
+    expect(payload.spec?.additionalDisks).toEqual([
+      { sizeGib: 100, storageTier: { id: 'id-bulk', name: 'bulk' } },
+    ]);
+  });
+
+  it('drops additional disk rows that have no size', () => {
+    const values = baseValues();
+    values.spec.bootDisk = { sizeGib: '20', storageTier: emptyResourceSelectValue() };
+    values.spec.additionalDisks = [
+      { sizeGib: '100', storageTier: { id: 'id-bulk', name: 'bulk' } },
+      { sizeGib: '', storageTier: { id: 'id-fast', name: 'fast' } },
+    ];
+
+    const payload = buildComputeInstanceCreatePayload(values, vmCatalogItem);
+
+    expect(payload.spec?.additionalDisks).toEqual([
+      { sizeGib: 100, storageTier: { id: 'id-bulk', name: 'bulk' } },
+    ]);
   });
 
   it('omits additional_disks entirely when no rows have a size', () => {
     const values = baseValues();
-    values.spec.additionalDisks = [{ sizeGib: '', storageTier: 'fast' }];
+    values.spec.additionalDisks = [{ sizeGib: '', storageTier: { id: 'id-fast', name: 'fast' } }];
 
     const payload = buildComputeInstanceCreatePayload(values, vmCatalogItem);
 
@@ -174,13 +187,17 @@ describe('buildComputeInstanceCreatePayload — disk storage tiers', () => {
 
   it('still sends non-empty additional disks as usual when the catalog defines a default', () => {
     const values = baseValues();
-    values.spec.additionalDisks = [{ sizeGib: '100', storageTier: 'bulk' }];
+    values.spec.additionalDisks = [
+      { sizeGib: '100', storageTier: { id: 'id-bulk', name: 'bulk' } },
+    ];
 
     const payload = buildComputeInstanceCreatePayload(
       values,
       catalogItemWithAdditionalDisksDefault,
     );
 
-    expect(payload.spec?.additionalDisks).toEqual([{ sizeGib: 100, storageTier: 'bulk' }]);
+    expect(payload.spec?.additionalDisks).toEqual([
+      { sizeGib: 100, storageTier: { id: 'id-bulk', name: 'bulk' } },
+    ]);
   });
 });

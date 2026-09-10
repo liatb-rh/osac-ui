@@ -1,17 +1,10 @@
-import { useMemo } from 'react';
-import {
-  Alert,
-  Button,
-  FormGroup,
-  HelperText,
-  HelperTextItem,
-  Label,
-} from '@patternfly/react-core';
+import { Label } from '@patternfly/react-core';
 import LockIcon from '@patternfly/react-icons/dist/esm/icons/lock-icon';
-import { type TypeaheadSelectOption } from '@patternfly/react-templates';
 
-import { TypeaheadSelectField } from './TypeaheadSelectField';
-import { STORAGE_TIER_ACTIVE_LIST_FILTER, useStorageTiers } from '../../api/v1/storage-tiers';
+import { StorageTiers } from '@osac/types';
+
+import { ResourceSelectField } from './ResourceSelectField';
+import { STORAGE_TIER_ACTIVE_LIST_FILTER } from '../../api/v1/storage-tiers';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface StorageTierSelectFieldProps {
@@ -31,58 +24,16 @@ export const StorageTierSelectField = ({
   isLocked = false,
 }: StorageTierSelectFieldProps) => {
   const { t } = useTranslation();
-  const {
-    data: tiers = [],
-    isLoading,
-    error: loadError,
-    refetch,
-  } = useStorageTiers({ filter: STORAGE_TIER_ACTIVE_LIST_FILTER });
-
-  const options = useMemo<TypeaheadSelectOption[]>(
-    () =>
-      tiers.map((tier, index) => {
-        const displayName = tier.metadata?.displayName || tier.metadata?.name || '';
-        return {
-          value: tier.metadata?.name ?? '',
-          content: index === 0 ? t('{{name}} (default)', { name: displayName }) : displayName,
-          description: tier.spec?.description || undefined,
-        };
-      }),
-    [tiers, t],
-  );
-
-  if (loadError) {
-    return (
-      <FormGroup label={label} fieldId={fieldId} isRequired={isRequired}>
-        <Alert variant="danger" isInline title={t('Failed to load storage tiers')}>
-          <Button variant="link" isInline onClick={() => void refetch()}>
-            {t('Retry')}
-          </Button>
-        </Alert>
-      </FormGroup>
-    );
-  }
-
-  if (!isLoading && options.length === 0) {
-    return (
-      <FormGroup label={label} fieldId={fieldId} isRequired={isRequired}>
-        <HelperText>
-          <HelperTextItem>
-            {t('No storage tiers available. Contact your administrator.')}
-          </HelperTextItem>
-        </HelperText>
-      </FormGroup>
-    );
-  }
 
   return (
-    <TypeaheadSelectField
+    <ResourceSelectField
       name={name}
       label={label}
       fieldId={fieldId}
+      service={StorageTiers}
+      request={{ filter: STORAGE_TIER_ACTIVE_LIST_FILTER }}
       isRequired={isRequired}
-      options={options}
-      isDisabled={isLoading || isLocked}
+      isDisabled={isLocked}
       labelInfo={
         isLocked ? (
           <Label color="grey" icon={<LockIcon aria-hidden />}>
@@ -90,8 +41,11 @@ export const StorageTierSelectField = ({
           </Label>
         ) : undefined
       }
-      placeholder={isLoading ? t('Loading...') : t('Select a storage tier')}
-      noOptionsFoundMessage={(filter) => t('No storage tiers found for "{{filter}}"', { filter })}
+      placeholder={t('Select a storage tier')}
+      loadingPlaceholder={t('Loading...')}
+      loadErrorTitle={t('Failed to load storage tiers')}
+      emptyTitle={t('No storage tiers available')}
+      emptyDescription={t('Contact your administrator.')}
     />
   );
 };

@@ -19,13 +19,69 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../buf/validate/validate_pb";
 import { file_cleanapi_cleanapi } from "../../../cleanapi/cleanapi_pb";
+import type { SecurityGroupLocalReference } from "./security_group_type_pb";
+import { file_osac_private_v1_security_group_type } from "./security_group_type_pb";
+import type { SubnetLocalReference } from "./subnet_type_pb";
+import { file_osac_private_v1_subnet_type } from "./subnet_type_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file osac/private/v1/compute_instance_common_type.proto.
  */
 export const file_osac_private_v1_compute_instance_common_type: GenFile = /*@__PURE__*/
-  fileDesc("CjJvc2FjL3ByaXZhdGUvdjEvY29tcHV0ZV9pbnN0YW5jZV9jb21tb25fdHlwZS5wcm90bxIPb3NhYy5wcml2YXRlLnYxIm4KE0NvbXB1dGVJbnN0YW5jZURpc2sSHgoIc2l6ZV9naWIYASABKAVCB7pIBBoCIABIAIgBARIZCgxzdG9yYWdlX3RpZXIYAiABKAlIAYgBAUILCglfc2l6ZV9naWJCDwoNX3N0b3JhZ2VfdGllciq7AQoaQ29tcHV0ZUluc3RhbmNlUnVuU3RyYXRlZ3kSLQopQ09NUFVURV9JTlNUQU5DRV9SVU5fU1RSQVRFR1lfVU5TUEVDSUZJRUQQABIoCiRDT01QVVRFX0lOU1RBTkNFX1JVTl9TVFJBVEVHWV9BTFdBWVMQARIoCiRDT01QVVRFX0lOU1RBTkNFX1JVTl9TVFJBVEVHWV9IQUxURUQQAhIKCgZBbHdheXMQARIKCgZIYWx0ZWQQAhoCEAFCFIq1GBASDm9zYWMucHVibGljLnYxYgZwcm90bzM", [file_buf_validate_validate, file_cleanapi_cleanapi]);
+  fileDesc("CjJvc2FjL3ByaXZhdGUvdjEvY29tcHV0ZV9pbnN0YW5jZV9jb21tb25fdHlwZS5wcm90bxIPb3NhYy5wcml2YXRlLnYxIpgBChhDb21wdXRlTmV0d29ya0F0dGFjaG1lbnQSNQoGc3VibmV0GAEgASgLMiUub3NhYy5wcml2YXRlLnYxLlN1Ym5ldExvY2FsUmVmZXJlbmNlEkUKD3NlY3VyaXR5X2dyb3VwcxgCIAMoCzIsLm9zYWMucHJpdmF0ZS52MS5TZWN1cml0eUdyb3VwTG9jYWxSZWZlcmVuY2UiMAoUU3RvcmFnZVRpZXJSZWZlcmVuY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSKVAQoTQ29tcHV0ZUluc3RhbmNlRGlzaxIeCghzaXplX2dpYhgBIAEoBUIHukgEGgIgAEgAiAEBEkAKDHN0b3JhZ2VfdGllchgCIAEoCzIlLm9zYWMucHJpdmF0ZS52MS5TdG9yYWdlVGllclJlZmVyZW5jZUgBiAEBQgsKCV9zaXplX2dpYkIPCg1fc3RvcmFnZV90aWVyKrsBChpDb21wdXRlSW5zdGFuY2VSdW5TdHJhdGVneRItCilDT01QVVRFX0lOU1RBTkNFX1JVTl9TVFJBVEVHWV9VTlNQRUNJRklFRBAAEigKJENPTVBVVEVfSU5TVEFOQ0VfUlVOX1NUUkFURUdZX0FMV0FZUxABEigKJENPTVBVVEVfSU5TVEFOQ0VfUlVOX1NUUkFURUdZX0hBTFRFRBACEgoKBkFsd2F5cxABEgoKBkhhbHRlZBACGgIQAUIUirUYEBIOb3NhYy5wdWJsaWMudjFiBnByb3RvMw", [file_buf_validate_validate, file_cleanapi_cleanapi, file_osac_private_v1_security_group_type, file_osac_private_v1_subnet_type]);
+
+/**
+ * Groups one subnet with security groups for that network attachment (multi-NIC VMs).
+ *
+ * @generated from message osac.private.v1.ComputeNetworkAttachment
+ */
+export type ComputeNetworkAttachment = Message<"osac.private.v1.ComputeNetworkAttachment"> & {
+  /**
+   * Reference to the Subnet for this NIC; must be in READY state (same tenant and region rules as ComputeInstance).
+   *
+   * @generated from field: osac.private.v1.SubnetLocalReference subnet = 1;
+   */
+  subnet?: SubnetLocalReference | undefined;
+
+  /**
+   * References to SecurityGroups for this NIC; each must be READY and belong to the same VirtualNetwork as subnet.
+   *
+   * @generated from field: repeated osac.private.v1.SecurityGroupLocalReference security_groups = 2;
+   */
+  securityGroups: SecurityGroupLocalReference[];
+};
+
+/**
+ * Describes the message osac.private.v1.ComputeNetworkAttachment.
+ * Use `create(ComputeNetworkAttachmentSchema)` to create a new message.
+ */
+export const ComputeNetworkAttachmentSchema: GenMessage<ComputeNetworkAttachment> = /*@__PURE__*/
+  messageDesc(file_osac_private_v1_compute_instance_common_type, 0);
+
+/**
+ * Reference to a StorageTier resource.
+ *
+ * @generated from message osac.private.v1.StorageTierReference
+ */
+export type StorageTierReference = Message<"osac.private.v1.StorageTierReference"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message osac.private.v1.StorageTierReference.
+ * Use `create(StorageTierReferenceSchema)` to create a new message.
+ */
+export const StorageTierReferenceSchema: GenMessage<StorageTierReference> = /*@__PURE__*/
+  messageDesc(file_osac_private_v1_compute_instance_common_type, 1);
 
 /**
  * Contains the disk configuration for a compute instance.
@@ -41,11 +97,11 @@ export type ComputeInstanceDisk = Message<"osac.private.v1.ComputeInstanceDisk">
   sizeGib?: number | undefined;
 
   /**
-   * Storage tier name (e.g., "standard", "fast", "archive").
+   * Reference to the storage tier for this disk.
    *
-   * @generated from field: optional string storage_tier = 2;
+   * @generated from field: optional osac.private.v1.StorageTierReference storage_tier = 2;
    */
-  storageTier?: string | undefined;
+  storageTier?: StorageTierReference | undefined;
 };
 
 /**
@@ -53,7 +109,7 @@ export type ComputeInstanceDisk = Message<"osac.private.v1.ComputeInstanceDisk">
  * Use `create(ComputeInstanceDiskSchema)` to create a new message.
  */
 export const ComputeInstanceDiskSchema: GenMessage<ComputeInstanceDisk> = /*@__PURE__*/
-  messageDesc(file_osac_private_v1_compute_instance_common_type, 0);
+  messageDesc(file_osac_private_v1_compute_instance_common_type, 2);
 
 /**
  * Run strategy for the compute instance.

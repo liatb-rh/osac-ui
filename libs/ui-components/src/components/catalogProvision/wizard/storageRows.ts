@@ -1,11 +1,14 @@
 import type { TFunction } from 'i18next';
 
-import { formatBootDiskSizeForReview, formatReviewScalar } from './catalogOverlay';
+import type { ComputeInstanceDisk, StorageTierReference } from '@osac/types';
 
-export interface StorageDiskValue {
-  sizeGib?: unknown;
-  storageTier?: string;
-}
+import { formatBootDiskSizeForReview } from './catalogOverlay';
+import { displayValue } from '../../../utils/detailFormatters';
+
+type StorageDisk = {
+  sizeGib?: ComputeInstanceDisk['sizeGib'] | string;
+  storageTier?: Pick<StorageTierReference, 'id' | 'name'>;
+};
 
 export interface VmStorageRow {
   name: string;
@@ -15,19 +18,19 @@ export interface VmStorageRow {
 
 export const getVmStorageRows = (
   t: TFunction,
-  bootDisk: StorageDiskValue | undefined,
-  additionalDisks: StorageDiskValue[] | undefined,
+  bootDisk: StorageDisk | undefined,
+  additionalDisks: StorageDisk[] | undefined,
 ): VmStorageRow[] => {
   return [
     {
       name: t('Boot disk'),
       size: formatBootDiskSizeForReview(bootDisk?.sizeGib),
-      storageTier: formatReviewScalar(bootDisk?.storageTier),
+      storageTier: displayValue(bootDisk?.storageTier?.name || bootDisk?.storageTier?.id),
     },
     ...(additionalDisks ?? []).map((disk, index) => ({
       name: t('Additional disk {{number}}', { number: index + 1 }),
       size: formatBootDiskSizeForReview(disk.sizeGib),
-      storageTier: formatReviewScalar(disk.storageTier),
+      storageTier: displayValue(disk.storageTier?.name || disk.storageTier?.id),
     })),
   ];
 };

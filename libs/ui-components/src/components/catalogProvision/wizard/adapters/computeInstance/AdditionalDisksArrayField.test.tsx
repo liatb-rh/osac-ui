@@ -9,6 +9,10 @@ import { StorageTierSchema, StorageTierState } from '@osac/types';
 import { AdditionalDisksArrayField } from './AdditionalDisksArrayField';
 import { createEmptyComputeInstanceValues } from './payload';
 import { renderWithProviders } from '../../../../../test-utils/TestProviders';
+import {
+  type ResourceSelectValue,
+  emptyResourceSelectValue,
+} from '../../../../Form/resourceSelectValue';
 
 const makeTier = (name: string, displayName: string) =>
   create(StorageTierSchema, {
@@ -21,16 +25,16 @@ const storageTiers = [makeTier('fast', 'Fast SSD'), makeTier('bulk', 'Bulk Capac
 
 const selectTier = async (
   user: ReturnType<typeof renderWithProviders>['user'],
-  comboboxIndex: number,
-  optionName: RegExp,
+  toggleIndex: number,
+  optionName: string,
 ) => {
-  const combobox = screen.getAllByRole('combobox')[comboboxIndex];
-  await user.click(combobox);
+  const toggle = screen.getAllByLabelText(/^Storage tier/)[toggleIndex];
+  await user.click(toggle);
   await user.click(await screen.findByRole('option', { name: optionName }));
 };
 
 const renderField = (
-  initialDisks: { sizeGib: string; storageTier: string }[] = [],
+  initialDisks: { sizeGib: string; storageTier: ResourceSelectValue }[] = [],
   withValidation = false,
 ) =>
   renderWithProviders(
@@ -40,7 +44,9 @@ const renderField = (
         spec: { ...createEmptyComputeInstanceValues().spec, additionalDisks: initialDisks },
       }}
       initialTouched={
-        withValidation ? { spec: { additionalDisks: [{ storageTier: true }] } } : undefined
+        withValidation
+          ? { spec: { additionalDisks: [{ storageTier: { id: true, name: true } }] } }
+          : undefined
       }
       validateOnMount={withValidation}
       validationSchema={
@@ -48,7 +54,11 @@ const renderField = (
           ? yup.object({
               spec: yup.object({
                 additionalDisks: yup.array(
-                  yup.object({ storageTier: yup.string().required('Storage tier is required') }),
+                  yup.object({
+                    storageTier: yup.object({
+                      id: yup.string().required('Storage tier is required'),
+                    }),
+                  }),
                 ),
               }),
             })
@@ -77,7 +87,7 @@ describe('AdditionalDisksArrayField', () => {
 
     expect(screen.queryByText('No additional disks added.')).not.toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'Size (GiB)' })).toHaveValue(30);
-    await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/^Storage tier/)).toBeInTheDocument());
   });
 
   it('adds a second row alongside the first, each independently editable', async () => {
@@ -104,21 +114,24 @@ describe('AdditionalDisksArrayField', () => {
     await user.click(screen.getByRole('button', { name: 'Add disk' }));
     await user.click(screen.getByRole('button', { name: 'Add disk' }));
 
-    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
-    await selectTier(user, 0, /Fast SSD/);
-    await selectTier(user, 1, /Bulk Capacity/);
+    await waitFor(() => expect(screen.getAllByLabelText(/^Storage tier/)).toHaveLength(2));
+    await selectTier(user, 0, 'fast');
+    await selectTier(user, 1, 'bulk');
 
-    const comboboxes = screen.getAllByRole('combobox');
-    expect(comboboxes[0]).toHaveValue('Fast SSD (default)');
-    expect(comboboxes[1]).toHaveValue('Bulk Capacity');
+    const toggles = screen.getAllByLabelText(/^Storage tier/);
+    expect(toggles[0]).toHaveTextContent('fast');
+    expect(toggles[1]).toHaveTextContent('bulk');
   });
 
   it('clears a required error immediately after selecting an additional disk tier', async () => {
-    const { user } = renderField([{ sizeGib: '30', storageTier: '' }], true);
+    const { user } = renderField(
+      [{ sizeGib: '30', storageTier: emptyResourceSelectValue() }],
+      true,
+    );
 
     expect(await screen.findByText('Storage tier is required')).toBeInTheDocument();
 
-    await selectTier(user, 0, /Fast SSD/);
+    await selectTier(user, 0, 'fast');
 
     await waitFor(() =>
       expect(screen.queryByText('Storage tier is required')).not.toBeInTheDocument(),
@@ -153,12 +166,12 @@ describe('AdditionalDisksArrayField', () => {
   });
 
   it('renders a row already present in initial values (e.g. seeded from a catalog default) as editable and removable', async () => {
-    const { user } = renderField([{ sizeGib: '40', storageTier: 'fast' }]);
+    const { user } = renderField([{ sizeGib: '40', storageTier: { id: 'id-fast', name: 'fast' } }]);
 
     expect(screen.queryByText('No additional disks added.')).not.toBeInTheDocument();
     const sizeInput = screen.getByRole('spinbutton', { name: 'Size (GiB)' });
     expect(sizeInput).toHaveValue(40);
-    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Fast SSD (default)'));
+    await waitFor(() => expect(screen.getByLabelText(/^Storage tier/)).toHaveTextContent('fast'));
 
     await user.clear(sizeInput);
     await user.type(sizeInput, '60');

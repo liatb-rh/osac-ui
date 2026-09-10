@@ -17,6 +17,8 @@ import {
   HostTypeReferenceSchema,
   InstanceTypeState,
   SecurityGroupState,
+  StorageTierSchema,
+  StorageTierState,
   SubnetState,
   VirtualNetworkLocalReferenceSchema,
   VirtualNetworkState,
@@ -137,6 +139,14 @@ const fillStorageStep = async (user: UserEvent) => {
   if (!bootDisk.value) {
     await user.clear(bootDisk);
     await user.type(bootDisk, '40');
+  }
+  const storageTierToggle = (await screen.findAllByLabelText(/^Storage tier/))[0];
+  await waitFor(() => {
+    expect(storageTierToggle).not.toBeDisabled();
+  });
+  if (!storageTierToggle.textContent?.includes('fast')) {
+    await user.click(storageTierToggle);
+    await user.click(await screen.findByRole('option', { name: 'fast' }));
   }
 };
 
@@ -538,6 +548,13 @@ const apiFixtures: MockApiFixtures = {
       },
     },
   ],
+  publicStorageTiers: [
+    create(StorageTierSchema, {
+      id: 'id-fast',
+      metadata: { name: 'fast', displayName: 'fast' },
+      status: { state: StorageTierState.ACTIVE },
+    }),
+  ],
 };
 
 type RenderWizardOptions = {
@@ -638,6 +655,7 @@ describe('CatalogProvisionWizard', () => {
     await waitFor(() => {
       expect(screen.getByLabelText<HTMLInputElement>(/Boot disk/).value).toBe('40');
     });
+    await fillStorageStep(user);
 
     await clickWizardNext(user);
     await selectNetworkingPickers(user);
@@ -653,7 +671,7 @@ describe('CatalogProvisionWizard', () => {
       spec: {
         runStrategy: ComputeInstanceRunStrategy.COMPUTE_INSTANCE_RUN_STRATEGY_ALWAYS,
         instanceType: { id: 'standard-4-8' },
-        bootDisk: { sizeGib: 40 },
+        bootDisk: { sizeGib: 40, storageTier: { id: 'id-fast', name: 'fast' } },
       },
     });
   });

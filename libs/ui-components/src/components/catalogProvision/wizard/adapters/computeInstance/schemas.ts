@@ -13,6 +13,18 @@ import {
 import { isValidSshPublicKey } from '../../fields/credentialValidation';
 import type { WizardStepId } from '../../stepIds';
 
+const storageTierSchema = (t: TFunction) =>
+  yup
+    .object({
+      id: yup.string(),
+      name: yup.string(),
+    })
+    .test('storage-tier-id-or-name', t('Storage tier is required'), (value) => {
+      const id = value?.id?.trim() ?? '';
+      const name = value?.name?.trim() ?? '';
+      return Boolean(id || name);
+    });
+
 const buildComputeInstanceFieldDefinitions = (catalogItem: unknown, t: TFunction) => {
   const definitions = readCatalogFieldDefinitions(catalogItem);
 
@@ -67,6 +79,7 @@ const buildComputeInstanceFieldDefinitions = (catalogItem: unknown, t: TFunction
         true,
         t('catalogProvision.validation.required'),
       ),
+      storageTier: storageTierSchema(t),
     }),
     specAdditionalDisks: yup.array(
       yup.object({
@@ -76,7 +89,7 @@ const buildComputeInstanceFieldDefinitions = (catalogItem: unknown, t: TFunction
             const size = Number(value?.trim());
             return Number.isInteger(size) && size >= 1 && size <= 16384;
           }),
-        storageTier: yup.string().required(t('Storage tier is required')),
+        storageTier: storageTierSchema(t),
       }),
     ),
     specNetworking: yup.object({

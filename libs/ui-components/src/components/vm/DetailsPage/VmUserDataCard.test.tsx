@@ -1,16 +1,10 @@
 import { screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { ComputeInstance } from '@osac/types';
 
 import VmUserDataCard from './VmUserDataCard';
 import { renderWithProviders } from '../../../test-utils/TestProviders';
-
-vi.mock('./useVmDetailsDisplay', () => ({
-  useVmDetailsDisplay: vi.fn(),
-}));
-
-const { useVmDetailsDisplay } = await import('./useVmDetailsDisplay');
 
 const catalogVm = {
   id: 'vm-1',
@@ -24,43 +18,10 @@ const renderCard = (vm: ComputeInstance = catalogVm) =>
   renderWithProviders(<VmUserDataCard vm={vm} />);
 
 describe('VmUserDataCard', () => {
-  beforeEach(() => {
-    vi.mocked(useVmDetailsDisplay).mockReturnValue({
-      hasCatalogItem: true,
-      fieldLabels: { userData: 'User Data', sshPublicKey: '', bootDisk: '' },
-      catalogItemId: 'catalog-rhel-9',
-      isCatalogItemLoading: false,
-      instanceType: undefined,
-      instanceTypeId: undefined,
-      isInstanceTypeLoading: false,
-      networkingRows: [],
-      catalogItem: undefined,
-    });
-  });
-
   it('renders nothing when user data is empty', () => {
     const { container } = renderCard({
       id: 'vm-1',
       spec: { catalogItem: { id: 'catalog-rhel-9' }, userData: '   ' },
-    } as ComputeInstance);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders nothing when catalog item is missing', () => {
-    vi.mocked(useVmDetailsDisplay).mockReturnValue({
-      hasCatalogItem: false,
-      fieldLabels: { userData: 'User Data', sshPublicKey: '', bootDisk: '' },
-      catalogItemId: undefined,
-      isCatalogItemLoading: false,
-      instanceType: undefined,
-      instanceTypeId: undefined,
-      isInstanceTypeLoading: false,
-      networkingRows: [],
-      catalogItem: undefined,
-    });
-    const { container } = renderCard({
-      id: 'vm-1',
-      spec: { userData: '#cloud-config' },
     } as ComputeInstance);
     expect(container).toBeEmptyDOMElement();
   });

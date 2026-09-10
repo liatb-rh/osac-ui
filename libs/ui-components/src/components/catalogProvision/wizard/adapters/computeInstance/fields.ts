@@ -1,3 +1,5 @@
+import type { ResourceSelectValue } from '../../../../Form/resourceSelectValue';
+
 export interface ComputeInstanceNetworkingValues {
   virtualNetwork: string;
   subnet: string;
@@ -6,8 +8,7 @@ export interface ComputeInstanceNetworkingValues {
 
 export interface ComputeInstanceDiskValues {
   sizeGib: string;
-  /** Storage tier name; empty means "let the server or template default apply". */
-  storageTier: string;
+  storageTier: ResourceSelectValue;
 }
 
 export interface ComputeInstanceWizardValues {

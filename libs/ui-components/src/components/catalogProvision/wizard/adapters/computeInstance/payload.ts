@@ -4,6 +4,10 @@ import { type ComputeInstanceCatalogItem, ComputeInstanceSchema } from '@osac/ty
 import { ComputeInstanceRunStrategy } from '@osac/types';
 
 import type { ComputeInstanceWizardValues } from './fields';
+import {
+  type ResourceSelectValue,
+  emptyResourceSelectValue,
+} from '../../../../Form/resourceSelectValue';
 import { getCatalogFieldOverlay, readCatalogFieldDefinitions } from '../../catalogOverlay';
 
 export const createEmptyComputeInstanceValues = (): ComputeInstanceWizardValues => ({
@@ -13,7 +17,7 @@ export const createEmptyComputeInstanceValues = (): ComputeInstanceWizardValues 
     sshPublicKey: '',
     instanceType: '',
     userData: '',
-    bootDisk: { sizeGib: '', storageTier: '' },
+    bootDisk: { sizeGib: '', storageTier: emptyResourceSelectValue() },
     additionalDisks: [],
     networking: {
       virtualNetwork: '',
@@ -23,9 +27,21 @@ export const createEmptyComputeInstanceValues = (): ComputeInstanceWizardValues 
   },
 });
 
-// Tier is picked from a dropdown (a tier name), so it needs no trimming.
-const tierField = (storageTier: string): { storageTier?: string } =>
-  storageTier ? { storageTier } : {};
+const tierField = (
+  storageTier: ResourceSelectValue,
+): { storageTier?: { id?: string; name?: string } } => {
+  const id = storageTier?.id?.trim() ?? '';
+  const name = storageTier?.name?.trim() ?? '';
+  if (!id && !name) {
+    return {};
+  }
+  return {
+    storageTier: {
+      ...(id ? { id } : {}),
+      ...(name ? { name } : {}),
+    },
+  };
+};
 
 export const buildComputeInstanceCreatePayload = (
   values: ComputeInstanceWizardValues,

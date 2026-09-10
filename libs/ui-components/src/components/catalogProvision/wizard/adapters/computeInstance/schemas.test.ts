@@ -8,6 +8,7 @@ import { tIdentity } from '@osac/ui-components/test-utils/i18n';
 
 import type { ComputeInstanceWizardValues } from './fields';
 import { buildComputeInstanceStepSchema } from './schemas';
+import { emptyResourceSelectValue } from '../../../../Form/resourceSelectValue';
 
 const vmCatalogItem: ComputeInstanceCatalogItem = {
   $typeName: 'osac.public.v1.ComputeInstanceCatalogItem',
@@ -53,7 +54,7 @@ const emptyValues: ComputeInstanceWizardValues = {
     sshPublicKey: '',
     instanceType: '',
     userData: '',
-    bootDisk: { sizeGib: '', storageTier: '' },
+    bootDisk: { sizeGib: '', storageTier: emptyResourceSelectValue() },
     additionalDisks: [],
     networking: {
       virtualNetwork: '',
@@ -145,7 +146,7 @@ describe('buildComputeInstanceStepSchema', () => {
         metadata: { name: 'web-01', project: '' },
         spec: {
           ...emptyValues.spec,
-          bootDisk: { sizeGib: 'not-a-number', storageTier: '' },
+          bootDisk: { sizeGib: 'not-a-number', storageTier: { id: 'id-fast', name: 'fast' } },
         },
       },
       vmCatalogItem,
@@ -165,7 +166,7 @@ describe('buildComputeInstanceStepSchema', () => {
         spec: {
           ...emptyValues.spec,
           instanceType: 'standard-4-8',
-          bootDisk: { sizeGib: 'not-a-number', storageTier: '' },
+          bootDisk: { sizeGib: 'not-a-number', storageTier: emptyResourceSelectValue() },
         },
       },
       vmCatalogItem,
@@ -182,7 +183,7 @@ describe('buildComputeInstanceStepSchema', () => {
         metadata: { name: 'web-01', project: '' },
         spec: {
           ...emptyValues.spec,
-          bootDisk: { sizeGib: '30', storageTier: '' },
+          bootDisk: { sizeGib: '30', storageTier: { id: 'id-fast', name: 'fast' } },
         },
       },
       vmCatalogItem,
@@ -246,7 +247,10 @@ describe('buildComputeInstanceStepSchema', () => {
     );
     expect(errors).toEqual({
       spec: {
-        bootDisk: { sizeGib: 'catalogProvision.validation.required' },
+        bootDisk: {
+          sizeGib: 'catalogProvision.validation.required',
+          storageTier: 'Storage tier is required',
+        },
       },
     });
   });
@@ -260,8 +264,8 @@ describe('buildComputeInstanceStepSchema', () => {
         metadata: { name: 'web-01', project: '' },
         spec: {
           ...emptyValues.spec,
-          bootDisk: { sizeGib: '30', storageTier: '' },
-          additionalDisks: [{ sizeGib: '100', storageTier: '' }],
+          bootDisk: { sizeGib: '30', storageTier: { id: 'id-fast', name: 'fast' } },
+          additionalDisks: [{ sizeGib: '100', storageTier: emptyResourceSelectValue() }],
         },
       },
       vmCatalogItem,
@@ -273,6 +277,45 @@ describe('buildComputeInstanceStepSchema', () => {
         },
       },
     });
+  });
+
+  it('requires a boot disk storage tier on storage step', async () => {
+    const errors = await validateStep(
+      'storage',
+      {
+        ...emptyValues,
+        catalogItemId: vmCatalogItem.id,
+        metadata: { name: 'web-01', project: '' },
+        spec: {
+          ...emptyValues.spec,
+          bootDisk: { sizeGib: '30', storageTier: emptyResourceSelectValue() },
+        },
+      },
+      vmCatalogItem,
+    );
+    expect(errors).toEqual({
+      spec: {
+        bootDisk: { storageTier: 'Storage tier is required' },
+      },
+    });
+  });
+
+  it('accepts a name-only storage tier on additional disks', async () => {
+    const errors = await validateStep(
+      'storage',
+      {
+        ...emptyValues,
+        catalogItemId: vmCatalogItem.id,
+        metadata: { name: 'web-01', project: '' },
+        spec: {
+          ...emptyValues.spec,
+          bootDisk: { sizeGib: '30', storageTier: { id: '', name: 'fast' } },
+          additionalDisks: [{ sizeGib: '100', storageTier: { id: '', name: 'fast' } }],
+        },
+      },
+      vmCatalogItem,
+    );
+    expect(errors).toEqual({});
   });
 
   it.each([
@@ -291,8 +334,8 @@ describe('buildComputeInstanceStepSchema', () => {
         metadata: { name: 'web-01', project: '' },
         spec: {
           ...emptyValues.spec,
-          bootDisk: { sizeGib: '30', storageTier: '' },
-          additionalDisks: [{ sizeGib, storageTier: 'fast' }],
+          bootDisk: { sizeGib: '30', storageTier: { id: 'id-fast', name: 'fast' } },
+          additionalDisks: [{ sizeGib, storageTier: { id: 'id-fast', name: 'fast' } }],
         },
       },
       vmCatalogItem,
@@ -321,8 +364,8 @@ describe('buildComputeInstanceStepSchema', () => {
           metadata: { name: 'web-01', project: '' },
           spec: {
             ...emptyValues.spec,
-            bootDisk: { sizeGib: '30', storageTier: '' },
-            additionalDisks: [{ sizeGib, storageTier: 'fast' }],
+            bootDisk: { sizeGib: '30', storageTier: { id: 'id-fast', name: 'fast' } },
+            additionalDisks: [{ sizeGib, storageTier: { id: 'id-fast', name: 'fast' } }],
           },
         },
         vmCatalogItem,
@@ -341,7 +384,7 @@ describe('buildComputeInstanceStepSchema', () => {
         spec: {
           ...emptyValues.spec,
           instanceType: 'standard-4-8',
-          additionalDisks: [{ sizeGib: '100', storageTier: '' }],
+          additionalDisks: [{ sizeGib: '100', storageTier: emptyResourceSelectValue() }],
         },
       },
       vmCatalogItem,

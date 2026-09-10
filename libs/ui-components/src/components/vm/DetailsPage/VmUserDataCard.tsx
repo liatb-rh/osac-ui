@@ -9,7 +9,6 @@ import {
 
 import type { ComputeInstance } from '@osac/types';
 
-import { useVmDetailsDisplay } from './useVmDetailsDisplay';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 interface VmUserDataCardProps {
@@ -18,11 +17,10 @@ interface VmUserDataCardProps {
 
 const VmUserDataCard = ({ vm }: VmUserDataCardProps) => {
   const { t } = useTranslation();
-  const { hasCatalogItem } = useVmDetailsDisplay(vm);
   const [isExpanded, setIsExpanded] = useState(false);
   const userData = vm.spec?.userData?.trim();
 
-  if (!hasCatalogItem || !userData) {
+  if (!userData) {
     return null;
   }
 

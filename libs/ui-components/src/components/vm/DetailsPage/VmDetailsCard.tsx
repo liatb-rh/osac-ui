@@ -6,22 +6,14 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Skeleton,
 } from '@patternfly/react-core';
 
 import type { ComputeInstance } from '@osac/types';
 
-import { useVmDetailsDisplay } from './useVmDetailsDisplay';
-import VmDetailsCatalogValue from './VmDetailsCatalogValue';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { displayValue } from '../../../utils/detailFormatters';
-import {
-  formatBootDiskSizeForReview,
-  formatReviewScalar,
-} from '../../catalogProvision/wizard/catalogOverlay';
+import { formatBootDiskSizeForReview } from '../../catalogProvision/wizard/catalogOverlay';
 import { Timestamp } from '../../Primitives/Timestamp';
-import { SubtleContent } from '../../SubtleContent/SubtleContent';
-import { formatInstanceTypeReviewLabelFromType } from '../utils';
 
 interface Props {
   vm: ComputeInstance;
@@ -29,88 +21,58 @@ interface Props {
 
 const VmDetailsCard = ({ vm }: Props) => {
   const { t } = useTranslation();
-  const {
-    catalogItemId,
-    hasCatalogItem,
-    isCatalogItemLoading,
-    instanceType,
-    instanceTypeId,
-    isInstanceTypeLoading,
-    fieldLabels,
-  } = useVmDetailsDisplay(vm);
+  const catalogItem = vm.spec?.catalogItem;
+  const instanceType = vm.spec?.instanceType;
 
   return (
     <Card isFullHeight>
       <CardTitle>{t('Details')}</CardTitle>
       <CardBody>
-        {!hasCatalogItem ? (
-          <SubtleContent component="p">
-            {t('Catalog configuration is unavailable for this virtual machine.')}
-          </SubtleContent>
-        ) : null}
         <DescriptionList isCompact>
-          {hasCatalogItem ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>{t('Catalog item')}</DescriptionListTerm>
-              <DescriptionListDescription>
-                {isCatalogItemLoading ? (
-                  <Skeleton width="150px" />
-                ) : (
-                  <VmDetailsCatalogValue catalogItemId={catalogItemId} />
-                )}
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
           <DescriptionListGroup>
-            <DescriptionListTerm>{t('catalogProvision.vm.fields.name')}</DescriptionListTerm>
+            <DescriptionListTerm>{t('Catalog item')}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {displayValue(catalogItem?.name || catalogItem?.id)}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>{t('Name')}</DescriptionListTerm>
             <DescriptionListDescription>
               {displayValue(vm.metadata?.name)}
             </DescriptionListDescription>
           </DescriptionListGroup>
-          {hasCatalogItem ? (
-            <>
-              <DescriptionListGroup>
-                <DescriptionListTerm>{fieldLabels.sshPublicKey}</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {displayValue(vm.spec?.sshPublicKey)}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>
-                  {t('catalogProvision.vm.fields.instanceType')}
-                </DescriptionListTerm>
-                <DescriptionListDescription>
-                  {isInstanceTypeLoading && instanceTypeId ? (
-                    <Skeleton width="150px" />
-                  ) : (
-                    formatInstanceTypeReviewLabelFromType(
-                      instanceType,
-                      t('catalogProvision.instanceTypes.deprecatedSuffix'),
-                      instanceTypeId,
-                    )
-                  )}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>{fieldLabels.bootDisk}</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {formatBootDiskSizeForReview(vm.spec?.bootDisk?.sizeGib)},{' '}
-                  {formatReviewScalar(vm.spec?.bootDisk?.storageTier)}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              {(vm.spec?.additionalDisks ?? []).map((disk, index) => (
-                <DescriptionListGroup key={`additional-disk-${index}`}>
-                  <DescriptionListTerm>
-                    {t('Additional disk {{number}}', { number: index + 1 })}
-                  </DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {formatBootDiskSizeForReview(disk.sizeGib)},{' '}
-                    {formatReviewScalar(disk.storageTier)}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ))}
-            </>
-          ) : null}
+          <DescriptionListGroup>
+            <DescriptionListTerm>{t('SSH public key')}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {displayValue(vm.spec?.sshPublicKey)}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>{t('Instance type')}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {displayValue(instanceType?.name || instanceType?.id)}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>{t('Boot disk')}</DescriptionListTerm>
+            <DescriptionListDescription>
+              {formatBootDiskSizeForReview(vm.spec?.bootDisk?.sizeGib)},{' '}
+              {displayValue(
+                vm.spec?.bootDisk?.storageTier?.name || vm.spec?.bootDisk?.storageTier?.id,
+              )}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          {(vm.spec?.additionalDisks ?? []).map((disk, index) => (
+            <DescriptionListGroup key={`additional-disk-${index}`}>
+              <DescriptionListTerm>
+                {t('Additional disk {{number}}', { number: index + 1 })}
+              </DescriptionListTerm>
+              <DescriptionListDescription>
+                {formatBootDiskSizeForReview(disk.sizeGib)},{' '}
+                {displayValue(disk.storageTier?.name || disk.storageTier?.id)}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ))}
           <DescriptionListGroup>
             <DescriptionListTerm>{t('Created')}</DescriptionListTerm>
             <DescriptionListDescription>

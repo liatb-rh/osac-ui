@@ -1,4 +1,4 @@
-import { type MouseEvent, type Ref, useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, type ReactNode, type Ref, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Content,
@@ -17,13 +17,12 @@ import { getErrorMessage } from '@osac/ui-components/utils/error';
 import { getVisibleFieldError } from './fieldError';
 import { useShowFieldValidationErrors } from './FieldValidationContext';
 import { FormFieldHelper } from './FormFieldHelper';
+import { type ResourceSelectValue } from './resourceSelectValue';
 
 type ListService = Parameters<typeof useListResource>[0];
 
-export interface ResourceSelectValue {
-  id: string;
-  name: string;
-}
+export type { ResourceSelectValue } from './resourceSelectValue';
+export { emptyResourceSelectValue } from './resourceSelectValue';
 
 export interface ResourceListItem {
   id: string;
@@ -35,8 +34,10 @@ export interface ResourceSelectFieldProps {
   label: string;
   fieldId: string;
   service: ListService;
+  request?: { filter?: string };
   isRequired?: boolean;
   isDisabled?: boolean;
+  labelInfo?: ReactNode;
   placeholder?: string;
   loadingPlaceholder?: string;
   autoSelectSingleOption?: boolean;
@@ -44,8 +45,6 @@ export interface ResourceSelectFieldProps {
   emptyTitle?: string;
   emptyDescription?: string;
 }
-
-export const emptyResourceSelectValue = (): ResourceSelectValue => ({ id: '', name: '' });
 
 const resourceFromItem = (item: ResourceListItem): ResourceSelectValue => ({
   id: item.id,
@@ -57,8 +56,10 @@ export const ResourceSelectField = ({
   label,
   fieldId,
   service,
+  request,
   isRequired = false,
   isDisabled = false,
+  labelInfo,
   placeholder = '',
   loadingPlaceholder = 'Loading...',
   autoSelectSingleOption = false,
@@ -70,7 +71,7 @@ export const ResourceSelectField = ({
   const [isOpen, setIsOpen] = useState(false);
   const showValidationErrors = useShowFieldValidationErrors();
   const error = getVisibleFieldError(meta, showValidationErrors);
-  const { data, isLoading, error: loadError } = useListResource(service);
+  const { data, isLoading, error: loadError } = useListResource(service, request);
   const items = useMemo(
     () =>
       ((data as { items?: ResourceListItem[] } | undefined)?.items ?? []).filter((item) => item.id),
@@ -82,7 +83,9 @@ export const ResourceSelectField = ({
   const controlDisabled = isDisabled || isLoading || listFailed || listEmpty;
   const effectivePlaceholder = isLoading ? loadingPlaceholder : placeholder;
   const selectedId = field.value?.id ?? '';
-  const toggleLabel = field.value?.name || effectivePlaceholder;
+  const selectedItem = items.find((item) => item.id === selectedId);
+  const toggleLabel =
+    (selectedItem ? selectedItem.metadata?.name : field.value?.name) || effectivePlaceholder;
   const validated = error ? 'error' : 'default';
 
   useEffect(() => {
@@ -137,7 +140,7 @@ export const ResourceSelectField = ({
           {emptyDescription ? <Content component="p">{emptyDescription}</Content> : null}
         </Alert>
       ) : null}
-      <FormGroup label={label} fieldId={fieldId} isRequired={isRequired}>
+      <FormGroup label={label} fieldId={fieldId} isRequired={isRequired} labelInfo={labelInfo}>
         <Select
           id={`${fieldId}-select`}
           isOpen={isOpen}
@@ -150,7 +153,7 @@ export const ResourceSelectField = ({
           <SelectList>
             {items.map((item) => (
               <SelectOption key={item.id} value={item.id}>
-                {item.metadata?.name ?? ''}
+                {item.metadata?.name}
               </SelectOption>
             ))}
           </SelectList>

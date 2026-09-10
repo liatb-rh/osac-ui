@@ -59,7 +59,10 @@ describe('applyVmCatalogConfigurationDefaults', () => {
       t,
     );
 
-    expect(setFieldValue).toHaveBeenCalledWith('spec.bootDisk.storageTier', 'bulk');
+    expect(setFieldValue).toHaveBeenCalledWith('spec.bootDisk.storageTier', {
+      id: '',
+      name: 'bulk',
+    });
   });
 
   it('does not set a default when the storage tier field has none', () => {
@@ -93,7 +96,7 @@ describe('applyVmCatalogConfigurationDefaults', () => {
     );
 
     expect(setFieldValue).toHaveBeenCalledWith('spec.additionalDisks', [
-      { sizeGib: '40', storageTier: 'tier-a' },
+      { sizeGib: '40', storageTier: { id: '', name: 'tier-a' } },
     ]);
   });
 
