@@ -23,6 +23,7 @@ interface OSACWizardFooterProps {
   stepHasErrors: (stepId: string, errors: FormikErrors<unknown>) => boolean;
   isEdit?: boolean;
   error: unknown;
+  onErrorReset?: () => void;
 }
 
 export const OSACWizardFooter = ({
@@ -30,6 +31,7 @@ export const OSACWizardFooter = ({
   stepHasErrors,
   isEdit,
   error,
+  onErrorReset,
 }: OSACWizardFooterProps) => {
   const { t } = useTranslation();
   const { activeStep, goToStepByIndex, steps } = useWizardContext();
@@ -44,7 +46,8 @@ export const OSACWizardFooter = ({
   useEffect(() => {
     setValidationAlert(false);
     setShowErrors(false);
-  }, [activeStep.id, setShowErrors]);
+    onErrorReset?.();
+  }, [activeStep.id, onErrorReset, setShowErrors]);
 
   const handleBack = useCallback(() => {
     if (isFirst || isSubmitting) {

@@ -211,6 +211,46 @@ describe('AdminBareMetalInstanceTypeFormPage — create wizard', () => {
     expect(screen.getByText(/backend blew up/)).toBeInTheDocument();
   });
 
+  it('clears the submission error when navigating away from the last step', async () => {
+    const { user } = renderAt(`${LIST_ROUTE}/create`, {
+      transportOverrides: {
+        onBaremetalInstanceTypeCreate: () => {
+          throw new ConnectError('backend blew up', Code.InvalidArgument);
+        },
+      },
+    });
+
+    await fillGeneralStep(user, 'bm-new');
+    await clickNext(user);
+    await fillCpuMemoryStep(user);
+    await clickNext(user);
+    await screen.findByRole('heading', { name: 'Accelerators' });
+    await clickNext(user);
+    await screen.findByRole('heading', { name: 'Disks' });
+    await clickNext(user);
+    await screen.findByRole('heading', { name: 'Networking' });
+    await clickNext(user);
+    await screen.findByRole('heading', { name: 'Capabilities' });
+    await clickNext(user);
+    await screen.findByRole('heading', { name: 'Review' });
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(await screen.findByText('Failed to create resource')).toBeInTheDocument();
+    expect(screen.getByText(/backend blew up/)).toBeInTheDocument();
+
+    // Navigate back from the Review (last) step
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    await screen.findByRole('heading', { name: 'Capabilities' });
+
+    // Navigate forward to the last step again
+    await clickNext(user);
+    await screen.findByRole('heading', { name: 'Review' });
+
+    // The error should be cleared
+    expect(screen.queryByText('Failed to create resource')).not.toBeInTheDocument();
+    expect(screen.queryByText(/backend blew up/)).not.toBeInTheDocument();
+  });
+
   it('adds and removes a disk row on the Disks step', async () => {
     const { user } = renderAt(`${LIST_ROUTE}/create`);
 

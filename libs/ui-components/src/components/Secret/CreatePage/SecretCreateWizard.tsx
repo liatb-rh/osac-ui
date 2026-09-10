@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -43,9 +43,22 @@ const SecretCreateWizard = ({ secret }: SecretCreateWizardProps) => {
   const { t } = useTranslation();
 
   const navigate = useNavigate();
-  const { mutateAsync: createAsync, error: createErr } = useCreateResource(Secrets);
-  const { mutateAsync: updateAsync, error: updateErr } = useUpdateResource(Secrets);
+  const {
+    mutateAsync: createAsync,
+    error: createErr,
+    reset: resetCreate,
+  } = useCreateResource(Secrets);
+  const {
+    mutateAsync: updateAsync,
+    error: updateErr,
+    reset: resetUpdate,
+  } = useUpdateResource(Secrets);
   const [currentStep, setCurrentStep] = useState<SecretCreateWizardSteps>('general');
+
+  const handleErrorReset = useCallback(() => {
+    resetCreate();
+    resetUpdate();
+  }, [resetCreate, resetUpdate]);
 
   const initialValues = getSecretValues(secret);
 
@@ -113,6 +126,7 @@ const SecretCreateWizard = ({ secret }: SecretCreateWizardProps) => {
                   stepHasErrors={secretStepHasErrors}
                   isEdit={!!secret}
                   error={createErr || updateErr}
+                  onErrorReset={handleErrorReset}
                 />
               }
               onStepChange={(_, step) => {
